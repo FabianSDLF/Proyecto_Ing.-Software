@@ -21,4 +21,8 @@ public class User {
     private String password;
 
     private Boolean active;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
 }
