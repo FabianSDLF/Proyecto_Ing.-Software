@@ -32,5 +32,9 @@ public class PracticeAssignment {
     @JoinColumn(name = "tutor_id")
     private User tutor;
 
+    @ManyToOne
+    @JoinColumn(name = "partner_id")
+    private User partner; // Para HU 9: Duplas en ciclo intermedio
+
     private String semester;
 }
