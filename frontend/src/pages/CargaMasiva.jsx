@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-export default function CargaMasiva() {
+export default function
+    CargaMasiva() {
     const [file, setFile] = useState(null);
 
     const handleUpload = async (e) => {
@@ -63,7 +64,7 @@ export default function CargaMasiva() {
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 hover:shadow-md transition-all active:scale-95"
+                        className="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-orange-700 hover:shadow-md transition-all active:scale-95"
                     >
                         Procesar Usuarios
                     </button>

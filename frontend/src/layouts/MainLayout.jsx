@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import logoPitagoras from '../assets/hero.png';
 
 export default function MainLayout() {
     const [userRole, setUserRole] = useState(null);
@@ -22,8 +23,13 @@ export default function MainLayout() {
         <div className="flex min-h-screen bg-gray-50">
 
             {/* Menú Lateral (Sidebar) */}
-            <aside className="w-64 bg-blue-900 text-white p-5 flex flex-col">
-                <h2 className="text-2xl font-bold mb-8">Prácticas UBB</h2>
+            <aside className="w-64 bg-[#003B70] text-white p-5 flex flex-col shadow-xl">
+                <div className="flex items-center gap-3 mb-8">
+                    <img src={logoPitagoras} alt="Logo Pitagoras" className="w-10 h-10 object-contain bg-white rounded-md p-1" />
+                    <h2 className="text-2xl font-bold tracking-widest text-orange-500">
+                        PITAGORAS
+                    </h2>
+                </div>
                 <nav className="flex flex-col space-y-2 flex-grow">
                     <Link to="/dashboard" className="hover:bg-blue-800 p-3 rounded">Inicio</Link>
                     <Link to="#" className="hover:bg-blue-800 p-3 rounded">Mi Portafolio</Link>
@@ -35,6 +41,7 @@ export default function MainLayout() {
                             <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2 px-3">Administración</span>
                             <Link to="/carga-masiva" className="hover:bg-blue-800 p-3 rounded">Carga Masiva</Link>
                             <Link to="/gestion-roles" className="hover:bg-blue-800 p-3 rounded">Gestión de Roles</Link>
+                            <Link to="/asignaturas" className="hover:bg-blue-800 p-3 rounded">Gestión Asignaturas</Link>
                         </>
                     )}
                 </nav>

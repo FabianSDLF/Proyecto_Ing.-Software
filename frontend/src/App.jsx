@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CargaMasiva from './pages/CargaMasiva';
 import GestionRoles from './pages/GestionRoles';
+import GestionAsignaturas from './pages/GestionAsignaturas';
 import MainLayout from './layouts/MainLayout';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/carga-masiva" element={<CargaMasiva />} />
                     <Route path="/gestion-roles" element={<GestionRoles />} />
+                    <Route path="/asignaturas" element={<GestionAsignaturas />} />
                 </Route>
             </Routes>
         </BrowserRouter>

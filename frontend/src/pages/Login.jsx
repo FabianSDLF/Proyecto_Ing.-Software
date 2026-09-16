@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Herramienta para saltar a otra página
+import loginImage from '../assets/loginImage.jpeg';
 
 export default function Login() {
     // 1. Memoria de la pantalla: Aquí guardamos lo que el usuario tipea
@@ -56,43 +57,71 @@ export default function Login() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-            <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-                    Sistema de Prácticas Pedagógicas
-                </h2>
+        <div className="flex min-h-screen bg-gray-50">
+            {/* Mitad Izquierda: Imagen Ilustrativa */}
+            <div className="hidden md:flex md:w-1/2 bg-[#003B70] items-center justify-center relative overflow-hidden">
+                {/* Capa de opacidad y color institucional */}
+                <div className="absolute inset-0 bg-[#003B70] opacity-60 z-10"></div>
+                <img 
+                    src={loginImage} 
+                    alt="Universidad del Bío-Bío" 
+                    className="absolute inset-0 object-cover w-full h-full z-0"
+                />
+                
+                {/* Texto sobre la imagen */}
+                <div className="relative z-20 text-white p-12 text-center">
+                    <h1 className="text-5xl font-extrabold mb-6 tracking-widest text-orange-500">PITAGORAS</h1>
+                    <p className="text-xl font-light text-gray-200">Plataforma de Gestión Académica y Portafolio Digital</p>
+                </div>
+            </div>
 
-                {/* Le decimos al formulario que al enviarse, ejecute la función handleLogin */}
-                <form onSubmit={handleLogin} className="space-y-4">
+            {/* Mitad Derecha: Formulario de Login */}
+            <div className="flex flex-1 items-center justify-center w-full md:w-1/2">
+                <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-2xl">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Bienvenido</h2>
+                        <p className="text-gray-500">Ingresa tus credenciales para continuar</p>
+                    </div>
 
-                    {/* Si hay un error, dibuja este texto rojo */}
-                    {errorMensaje && <p className="text-red-500 text-sm text-center font-bold">{errorMensaje}</p>}
+                    <form onSubmit={handleLogin} className="space-y-6">
+                        {errorMensaje && (
+                            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                                <p className="text-red-700 text-sm font-semibold">{errorMensaje}</p>
+                            </div>
+                        )}
 
-                    {/* Input de Correo conectado a la memoria (useState) */}
-                    <input
-                        type="email"
-                        placeholder="Correo institucional"
-                        className="w-full border p-2 rounded"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Correo Institucional</label>
+                            <input
+                                type="email"
+                                placeholder="ejemplo@ubiobio.cl"
+                                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
 
-                    {/* Input de Contraseña conectado a la memoria (useState) */}
-                    <input
-                        type="password"
-                        placeholder="Contraseña"
-                        className="w-full border p-2 rounded"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                            <div className="text-right mt-2">
+                                <a href="#" className="text-sm text-blue-600 hover:text-orange-500">¿Olvidaste tu contraseña?</a>
+                            </div>
+                        </div>
 
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
-                        Iniciar Sesión
-                    </button>
-                </form>
-
+                        <button type="submit" className="w-full bg-orange-600 text-white p-3 rounded-xl hover:bg-orange-700 font-bold text-lg shadow-md hover:shadow-lg transition-all active:scale-95 mt-4">
+                            Iniciar Sesión
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );
