@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
-export default function GestionRoles() {
+export default function GestionUsuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loadingUsuarios, setLoadingUsuarios] = useState(true);
+
+    // Formulario (Crear o Editar)
+    const [showForm, setShowForm] = useState(false);
+    const [editingUserId, setEditingUserId] = useState(null);
+    const [formData, setFormData] = useState({ fullName: '', email: '', password: '', role: '' });
 
     useEffect(() => {
         cargarUsuarios();
@@ -37,65 +42,166 @@ export default function GestionRoles() {
         }
     };
 
-    const cambiarRol = async (usuarioId, newRoleName) => {
-        const loadingToast = toast.loading("Actualizando rol...");
+    const handleCrearUsuario = async () => {
+        if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
+            toast.error("Todos los campos son obligatorios para crear.");
+            return;
+        }
+        
+        const nuevoUsuario = {
+            fullName: formData.fullName,
+            email: formData.email,
+            passwordHash: formData.password,
+            active: true,
+            role: { name: formData.role }
+        };
+
+        const loadingToast = toast.loading("Creando usuario...");
         try {
-            const respuesta = await fetch(`http://localhost:8080/api/usuarios/${usuarioId}/rol`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ roleName: newRoleName })
+            const res = await fetch('http://localhost:8080/api/usuarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevoUsuario)
             });
 
-            if (respuesta.ok) {
-                toast.dismiss(loadingToast);
-                toast.success("Rol actualizado con éxito");
-                
-                // Actualizar estado local
-                setUsuarios(usuarios.map(u => {
-                    if (u.id === usuarioId) {
-                        return { ...u, role: roles.find(r => r.name === newRoleName) };
-                    }
-                    return u;
-                }));
+            if (res.ok) {
+                toast.success("Usuario creado correctamente", { id: loadingToast });
+                setShowForm(false);
+                setFormData({ fullName: '', email: '', password: '', role: '' });
+                cargarUsuarios();
             } else {
-                const textoError = await respuesta.text();
-                toast.dismiss(loadingToast);
-                toast.error("Error al actualizar rol: " + textoError);
+                toast.error("Error al crear usuario", { id: loadingToast });
             }
-        } catch (err) {
-            toast.dismiss(loadingToast);
-            toast.error("Error de conexión con el servidor");
+        } catch (error) {
+            toast.error("Error de red", { id: loadingToast });
+        }
+    };
+
+    const handleEditarUsuario = async () => {
+        const payload = {
+            fullName: formData.fullName,
+            email: formData.email,
+            role: { name: formData.role }
+        };
+
+        const loadingToast = toast.loading("Actualizando usuario...");
+        try {
+            const res = await fetch(`http://localhost:8080/api/usuarios/${editingUserId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                toast.success("Usuario actualizado correctamente", { id: loadingToast });
+                setShowForm(false);
+                setEditingUserId(null);
+                setFormData({ fullName: '', email: '', password: '', role: '' });
+                cargarUsuarios();
+            } else {
+                toast.error("Error al actualizar usuario", { id: loadingToast });
+            }
+        } catch (error) {
+            toast.error("Error de red", { id: loadingToast });
+        }
+    };
+
+    const toggleEstado = async (id, estadoActual) => {
+        const nuevoEstado = estadoActual === null || estadoActual === undefined ? false : !estadoActual;
+        const loadingToast = toast.loading(nuevoEstado ? "Activando..." : "Desactivando...");
+        try {
+            const res = await fetch(`http://localhost:8080/api/usuarios/${id}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: nuevoEstado })
+            });
+
+            if (res.ok) {
+                toast.success(nuevoEstado ? "Usuario activado" : "Usuario desactivado", { id: loadingToast });
+                cargarUsuarios();
+            } else {
+                toast.error("Error al cambiar estado", { id: loadingToast });
+            }
+        } catch (error) {
+            toast.error("Error de red", { id: loadingToast });
         }
     };
 
     return (
-        <div className="p-8 max-w-6xl mx-auto space-y-8">
-            <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Gestión de Roles</h1>
+        <div className="p-8 max-w-7xl mx-auto space-y-8">
+            <div className="flex justify-between items-center">
+                <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Gestión de Usuarios</h1>
+                <button 
+                    onClick={() => {
+                        setEditingUserId(null);
+                        setFormData({ fullName: '', email: '', password: '', role: '' });
+                        setShowForm(!showForm);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow"
+                >
+                    {showForm ? "Cerrar Formulario" : "+ Nuevo Usuario"}
+                </button>
+            </div>
 
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-                <div className="flex items-center mb-6">
-                    <div className="bg-green-100 p-3 rounded-full mr-4">
-                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            {showForm && (
+                <div className="bg-white p-6 rounded-2xl shadow border border-gray-100">
+                    <h2 className="text-xl font-bold mb-4">{editingUserId ? "Editar Usuario" : "Crear Usuario"}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input 
+                            className="border p-2 rounded w-full" 
+                            placeholder="Nombre Completo" 
+                            value={formData.fullName} 
+                            onChange={e => setFormData({...formData, fullName: e.target.value})} 
+                        />
+                        <input 
+                            className="border p-2 rounded w-full" 
+                            placeholder="Email" 
+                            type="email"
+                            value={formData.email} 
+                            onChange={e => setFormData({...formData, email: e.target.value})} 
+                        />
+                        {!editingUserId && (
+                            <input 
+                                className="border p-2 rounded w-full" 
+                                placeholder="Contraseña" 
+                                type="password"
+                                value={formData.password} 
+                                onChange={e => setFormData({...formData, password: e.target.value})} 
+                            />
+                        )}
+                        <select 
+                            className="border p-2 rounded w-full"
+                            value={formData.role}
+                            onChange={e => setFormData({...formData, role: e.target.value})}
+                        >
+                            <option value="">Selecciona un Rol</option>
+                            {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                        </select>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Usuarios del Sistema</h2>
-                        <p className="text-gray-500 mt-1">Asigna y modifica los roles de los usuarios registrados.</p>
+                    <div className="mt-4 flex justify-end">
+                        <button 
+                            onClick={editingUserId ? handleEditarUsuario : handleCrearUsuario}
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow"
+                        >
+                            {editingUserId ? "Guardar Cambios" : "Crear Usuario"}
+                        </button>
                     </div>
                 </div>
+            )}
 
+            <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     {loadingUsuarios ? (
-                        <p className="text-center text-gray-500">Cargando usuarios...</p>
+                        <p className="text-center text-gray-500 py-8">Cargando usuarios...</p>
                     ) : (
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Completo</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol Actual</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modificar Rol</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -108,29 +214,36 @@ export default function GestionRoles() {
                                                 {usuario.role ? usuario.role.name : 'Sin Rol'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <select
-                                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                                                value={usuario.role ? usuario.role.name : ''}
-                                                onChange={(e) => cambiarRol(usuario.id, e.target.value)}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${usuario.active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {usuario.active !== false ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button 
+                                                onClick={() => {
+                                                    setEditingUserId(usuario.id);
+                                                    setFormData({
+                                                        fullName: usuario.fullName,
+                                                        email: usuario.email,
+                                                        password: '',
+                                                        role: usuario.role ? usuario.role.name : ''
+                                                    });
+                                                    setShowForm(true);
+                                                }}
+                                                className="text-blue-600 hover:text-blue-900"
                                             >
-                                                <option value="" disabled>Seleccione un rol...</option>
-                                                {roles.map(rol => (
-                                                    <option key={rol.id} value={rol.name}>
-                                                        {rol.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                Editar
+                                            </button>
+                                            <button 
+                                                onClick={() => toggleEstado(usuario.id, usuario.active)}
+                                                className={`${usuario.active !== false ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                                            >
+                                                {usuario.active !== false ? 'Desactivar' : 'Activar'}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
-                                {usuarios.length === 0 && (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
-                                            No hay usuarios registrados.
-                                        </td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     )}

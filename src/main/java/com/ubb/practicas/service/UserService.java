@@ -105,4 +105,30 @@ public class UserService {
         user.setRole(role);
         return userRepository.save(user);
     }
+
+    public User actualizarUsuario(Long usuarioId, User datosActualizados) throws Exception {
+        User user = userRepository.findById(usuarioId)
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+
+        if (datosActualizados.getFullName() != null) {
+            user.setFullName(datosActualizados.getFullName());
+        }
+        if (datosActualizados.getEmail() != null) {
+            user.setEmail(datosActualizados.getEmail());
+        }
+        if (datosActualizados.getRole() != null && datosActualizados.getRole().getName() != null) {
+            Role role = roleRepository.findByName(datosActualizados.getRole().getName());
+            if (role != null) {
+                user.setRole(role);
+            }
+        }
+        return userRepository.save(user);
+    }
+
+    public User cambiarEstadoUsuario(Long usuarioId, boolean estado) throws Exception {
+        User user = userRepository.findById(usuarioId)
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+        user.setActive(estado);
+        return userRepository.save(user);
+    }
 }
