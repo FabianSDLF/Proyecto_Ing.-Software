@@ -10,8 +10,13 @@ export default function GestionUsuarios() {
     const [showForm, setShowForm] = useState(false);
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ fullName: '', email: '', password: '', role: '' });
+    const [usuarioActual, setUsuarioActual] = useState(null);
 
     useEffect(() => {
+        const storedUser = localStorage.getItem('usuarioActivo');
+        if (storedUser) {
+            setUsuarioActual(JSON.parse(storedUser));
+        }
         cargarUsuarios();
         cargarRoles();
     }, []);
@@ -170,9 +175,11 @@ export default function GestionUsuarios() {
                             />
                         )}
                         <select 
-                            className="border p-2 rounded w-full"
+                            className="border p-2 rounded w-full bg-white disabled:bg-gray-100 disabled:text-gray-500"
                             value={formData.role}
                             onChange={e => setFormData({...formData, role: e.target.value})}
+                            disabled={editingUserId && usuarioActual && editingUserId === usuarioActual.id}
+                            title={editingUserId && usuarioActual && editingUserId === usuarioActual.id ? "No puedes cambiar tu propio rol" : ""}
                         >
                             <option value="">Selecciona un Rol</option>
                             {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
@@ -235,12 +242,19 @@ export default function GestionUsuarios() {
                                             >
                                                 Editar
                                             </button>
-                                            <button 
-                                                onClick={() => toggleEstado(usuario.id, usuario.active)}
-                                                className={`${usuario.active !== false ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                                            >
-                                                {usuario.active !== false ? 'Desactivar' : 'Activar'}
-                                            </button>
+                                            
+                                            {(!usuarioActual || usuario.id !== usuarioActual.id) ? (
+                                                <button 
+                                                    onClick={() => toggleEstado(usuario.id, usuario.active)}
+                                                    className={`${usuario.active !== false ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                                                >
+                                                    {usuario.active !== false ? 'Desactivar' : 'Activar'}
+                                                </button>
+                                            ) : (
+                                                <span className="text-gray-400 cursor-not-allowed" title="No puedes desactivarte a ti mismo">
+                                                    Desactivar
+                                                </span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
