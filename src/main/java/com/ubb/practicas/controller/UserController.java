@@ -27,6 +27,11 @@ public class UserController {
         return userRepository.findAll();
     }
 
+    @GetMapping("/rol/{roleName}")
+    public List<User> listarUsuariosPorRol(@PathVariable String roleName) {
+        return userRepository.findByRoleName(roleName);
+    }
+
     @PostMapping
     public ResponseEntity<?> crearUsuario(@RequestBody User nuevoUsuario) {
         try {
