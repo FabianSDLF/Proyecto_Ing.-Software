@@ -1,9 +1,9 @@
 package com.ubb.practicas.model;
 
+import com.ubb.practicas.model.enums.DocumentType;
 import jakarta.persistence.*;
 import lombok.Data;
-
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -12,14 +12,13 @@ public class PortfolioDocument {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne
     @JoinColumn(name = "practice_assignment_id")
     private PracticeAssignment practiceAssignment;
-
-    private String type;
-
+    @Enumerated(EnumType.STRING)
+    private DocumentType type;
+    private String fileName;
     private String fileUrl;
-
-    private Date uploadDate;
+    private Long sizeBytes;
+    private LocalDateTime uploadDate;
 }

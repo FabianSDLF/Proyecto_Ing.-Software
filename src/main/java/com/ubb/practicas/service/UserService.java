@@ -54,7 +54,7 @@ public class UserService {
             }
             user.setFullName(fullName);
             user.setEmail(email);
-            user.setPassword(password);
+            user.setPasswordHash(password);
             user.setRole(role);
             userRepository.save(user);
         }
@@ -87,7 +87,7 @@ public class UserService {
             }
             user.setFullName(fullName);
             user.setEmail(email);
-            user.setPassword(password);
+            user.setPasswordHash(password);
             user.setRole(role);
             userRepository.save(user);
         }

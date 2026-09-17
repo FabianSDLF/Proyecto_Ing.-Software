@@ -37,7 +37,7 @@ public class UserController {
         // 1. Buscamos en la base de datos si existe alguien con ese correo
         User usuario = userRepository.findByEmail(request.getEmail());
         // 2. Si el usuario existe, comparamos la contraseña
-        if (usuario != null && usuario.getPassword().equals(request.getPassword())) {
+        if (usuario != null && usuario.getPasswordHash().equals(request.getPassword())) {
 
             // ¡Éxito! Devolvemos los datos del usuario con un código HTTP 200 (OK)
             return ResponseEntity.ok(usuario);
