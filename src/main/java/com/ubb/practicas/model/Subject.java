@@ -15,4 +15,8 @@ public class Subject {
     @Enumerated(EnumType.STRING)
     private PracticeCycle cycle;
     private String code;
+    
+    @ManyToOne
+    @JoinColumn(name = "professor_id")
+    private User professor;
 }

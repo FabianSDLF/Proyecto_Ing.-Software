@@ -131,4 +131,15 @@ public class UserService {
         user.setActive(estado);
         return userRepository.save(user);
     }
+
+    public User crearUsuario(User nuevoUsuario) throws Exception {
+        if (nuevoUsuario.getRole() != null && nuevoUsuario.getRole().getName() != null) {
+            Role role = roleRepository.findByName(nuevoUsuario.getRole().getName());
+            if (role == null) {
+                throw new Exception("Rol no encontrado: " + nuevoUsuario.getRole().getName());
+            }
+            nuevoUsuario.setRole(role);
+        }
+        return userRepository.save(nuevoUsuario);
+    }
 }

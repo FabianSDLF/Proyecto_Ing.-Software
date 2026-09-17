@@ -28,8 +28,13 @@ public class UserController {
     }
 
     @PostMapping
-    public User crearUsuario(@RequestBody User nuevoUsuario) {
-        return userRepository.save(nuevoUsuario);
+    public ResponseEntity<?> crearUsuario(@RequestBody User nuevoUsuario) {
+        try {
+            User created = userService.crearUsuario(nuevoUsuario);
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @PostMapping("/login")
