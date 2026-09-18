@@ -3,12 +3,29 @@ import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
     const [user, setUser] = useState(null);
+    const [stats, setStats] = useState({ asignaciones: 0, centros: 0 });
 
     useEffect(() => {
         const usuarioGuardado = localStorage.getItem('usuarioActivo');
         if (usuarioGuardado) {
             try {
-                setUser(JSON.parse(usuarioGuardado));
+                const parsedUser = JSON.parse(usuarioGuardado);
+                setUser(parsedUser);
+                
+                // Cargar estadísticas si es Administrador
+                if (parsedUser?.role?.name === 'Administrador') {
+                    const token = localStorage.getItem('token');
+                    
+                    fetch('http://localhost:8080/api/asignaciones', { headers: { 'Authorization': `Bearer ${token}` } })
+                        .then(res => res.json())
+                        .then(data => setStats(s => ({ ...s, asignaciones: data.length })))
+                        .catch(err => console.error(err));
+                        
+                    fetch('http://localhost:8080/api/centros', { headers: { 'Authorization': `Bearer ${token}` } })
+                        .then(res => res.json())
+                        .then(data => setStats(s => ({ ...s, centros: data.length })))
+                        .catch(err => console.error(err));
+                }
             } catch (error) {
                 console.error("Error parsing user from localStorage:", error);
                 localStorage.removeItem('usuarioActivo');
@@ -31,7 +48,26 @@ export default function Dashboard() {
 
             {/* Vista de Administrador */}
             {userRole === 'Administrador' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-6">
+                    {/* Estadísticas (HU9) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gradient-to-r from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold opacity-90">Alumnos Asignados</h3>
+                                <p className="text-4xl font-extrabold mt-2">{stats.asignaciones}</p>
+                            </div>
+                            <svg className="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+                        </div>
+                        <div className="bg-gradient-to-r from-green-500 to-green-700 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold opacity-90">Colegios Activos</h3>
+                                <p className="text-4xl font-extrabold mt-2">{stats.centros}</p>
+                            </div>
+                            <svg className="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"></path></svg>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Link to="/gestion-roles" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
                         <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -55,6 +91,7 @@ export default function Dashboard() {
                         <h3 className="text-lg font-bold text-gray-800">Pautas y Evaluacin</h3>
                         <p className="text-sm text-gray-500 mt-2">Configura rǧbricas y ponderaciones de asignaturas.</p>
                     </Link>
+                </div>
                 </div>
             )}
 
