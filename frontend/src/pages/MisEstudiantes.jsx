@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function MisEstudiantes() {
     const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         cargarEstudiantes();
@@ -15,7 +17,12 @@ export default function MisEstudiantes() {
             const usuarioGuardado = localStorage.getItem('usuarioActivo');
             if (usuarioGuardado) {
                 const usuario = JSON.parse(usuarioGuardado);
-                const res = await fetch(`http://localhost:8080/api/profesor/${usuario.id}/estudiantes`);
+                if (usuario?.role?.name !== 'Profesor') {
+                    toast.error("No tienes permiso para ver esta página.");
+                    navigate('/dashboard');
+                    return;
+                }
+                const res = await fetch(`http://localhost:8080/api/profesor/${usuario.id}/estudiantes`, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 if (res.ok) {
                     const data = await res.json();
                     setAsignaciones(data);

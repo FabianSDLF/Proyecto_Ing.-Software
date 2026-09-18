@@ -13,7 +13,8 @@ export default function MainLayout() {
             try {
                 const usuarioObj = JSON.parse(usuarioGuardado);
                 setUser(usuarioObj);
-            } catch {
+            } catch (error) {
+                console.error("Error parsing user from localStorage:", error);
                 localStorage.removeItem('usuarioActivo');
                 navigate('/');
             }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function GestionUsuarios() {
     const [usuarios, setUsuarios] = useState([]);
@@ -11,20 +12,35 @@ export default function GestionUsuarios() {
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ fullName: '', email: '', password: '', role: '' });
     const [usuarioActual, setUsuarioActual] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const storedUser = localStorage.getItem('usuarioActivo');
         if (storedUser) {
-            setUsuarioActual(JSON.parse(storedUser));
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                if (parsedUser?.role?.name !== 'Administrador') {
+                    toast.error("No tienes permiso para ver esta página.");
+                    navigate('/dashboard');
+                    return;
+                }
+                setUsuarioActual(parsedUser);
+            } catch (error) {
+                navigate('/');
+                return;
+            }
+        } else {
+            navigate('/');
+            return;
         }
         cargarUsuarios();
         cargarRoles();
-    }, []);
+    }, [navigate]);
 
     const cargarUsuarios = async () => {
         setLoadingUsuarios(true);
         try {
-            const res = await fetch('http://localhost:8080/api/usuarios');
+            const res = await fetch('http://localhost:8080/api/usuarios', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
             if (res.ok) {
                 const data = await res.json();
                 setUsuarios(data);
@@ -37,7 +53,7 @@ export default function GestionUsuarios() {
 
     const cargarRoles = async () => {
         try {
-            const res = await fetch('http://localhost:8080/api/roles');
+            const res = await fetch('http://localhost:8080/api/roles', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
             if (res.ok) {
                 const data = await res.json();
                 setRoles(data);
@@ -65,7 +81,7 @@ export default function GestionUsuarios() {
         try {
             const res = await fetch('http://localhost:8080/api/usuarios', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify(nuevoUsuario)
             });
 
@@ -93,7 +109,7 @@ export default function GestionUsuarios() {
         try {
             const res = await fetch(`http://localhost:8080/api/usuarios/${editingUserId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify(payload)
             });
 
@@ -117,7 +133,7 @@ export default function GestionUsuarios() {
         try {
             const res = await fetch(`http://localhost:8080/api/usuarios/${id}/estado`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify({ active: nuevoEstado })
             });
 

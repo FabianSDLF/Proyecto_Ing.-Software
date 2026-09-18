@@ -32,12 +32,12 @@ export default function Asignaciones() {
                 profesRes, 
                 tutoresRes
             ] = await Promise.all([
-                fetch('http://localhost:8080/api/asignaciones'),
-                fetch('http://localhost:8080/api/usuarios/rol/Estudiante'),
-                fetch('http://localhost:8080/api/asignaturas'),
-                fetch('http://localhost:8080/api/centros'),
-                fetch('http://localhost:8080/api/usuarios/rol/Profesor Colaborador'),
-                fetch('http://localhost:8080/api/usuarios/rol/Tutor')
+                fetch('http://localhost:8080/api/asignaciones', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } }),
+                fetch('http://localhost:8080/api/usuarios/rol/Estudiante', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } }),
+                fetch('http://localhost:8080/api/asignaturas', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } }),
+                fetch('http://localhost:8080/api/centros', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } }),
+                fetch('http://localhost:8080/api/usuarios/rol/Profesor Colaborador', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } }),
+                fetch('http://localhost:8080/api/usuarios/rol/Tutor', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
             ]);
             
             if (asigRes.ok) setAsignaciones(await asigRes.json());
@@ -95,7 +95,7 @@ export default function Asignaciones() {
             
             const res = await fetch('http://localhost:8080/api/asignaciones', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify(payload)
             });
 
@@ -119,7 +119,7 @@ export default function Asignaciones() {
         if (window.confirm('¿Está seguro de eliminar esta asignación?')) {
             try {
                 const res = await fetch(`http://localhost:8080/api/asignaciones/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 
                 if (res.ok) {
@@ -163,7 +163,7 @@ export default function Asignaciones() {
                         <tbody className="divide-y divide-gray-200">
                             {asignaciones.map((asig) => (
                                 <tr key={asig.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">{asig.student?.name} {asig.student?.lastName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{asig.student?.fullName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{asig.subject?.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{asig.center?.name || 'No asignado'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{asig.collaborator ? `${asig.collaborator.name} ${asig.collaborator.lastName}` : 'No asignado'}</td>
@@ -206,7 +206,7 @@ export default function Asignaciones() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Estudiante *</label>
                                 <select name="studentId" value={formData.studentId} onChange={handleInputChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Seleccione estudiante</option>
-                                    {estudiantes.map(e => <option key={e.id} value={e.id}>{e.name} {e.lastName} ({e.email})</option>)}
+                                    {estudiantes.map(e => <option key={e.id} value={e.id}>{e.fullName} ({e.email})</option>)}
                                 </select>
                             </div>
 

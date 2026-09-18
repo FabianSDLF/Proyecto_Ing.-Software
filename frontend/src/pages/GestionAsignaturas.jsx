@@ -11,7 +11,7 @@ export default function GestionAsignaturas() {
 
   const fetchAsignaturas = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/asignaturas');
+      const res = await fetch('http://localhost:8080/api/asignaturas', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
       if (res.ok) {
         const data = await res.json();
         setAsignaturas(data);
@@ -57,7 +57,7 @@ export default function GestionAsignaturas() {
     try {
       const res = await fetch('http://localhost:8080/api/asignaturas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
         body: JSON.stringify({ name: name.trim(), cycle })
       });
 
@@ -82,7 +82,8 @@ export default function GestionAsignaturas() {
     }
     try {
       const res = await fetch(`http://localhost:8080/api/asignaturas/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
       });
       if (res.ok) {
         toast.success('Asignatura eliminada');

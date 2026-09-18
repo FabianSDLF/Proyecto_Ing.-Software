@@ -24,15 +24,7 @@ public class SubjectController {
     @Autowired
     private PracticeAssignmentRepository practiceAssignmentRepository;
 
-    @Autowired
-    private EntityManager entityManager;
 
-    @Transactional
-    @PostMapping("/reset-ids")
-    public ResponseEntity<?> resetAutoIncrement() {
-        entityManager.createNativeQuery("ALTER TABLE asignaturas AUTO_INCREMENT = 1").executeUpdate();
-        return ResponseEntity.ok("Contador reseteado");
-    }
 
     @Autowired
     private com.ubb.practicas.repository.UserRepository userRepository;

@@ -20,6 +20,7 @@ export default function
         try {
             const respuesta = await fetch('http://localhost:8080/api/usuarios/carga-masiva', {
                 method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: formData,
             });
 

@@ -11,11 +11,13 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 import java.time.LocalDateTime;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 @Configuration
 public class DataSeeder {
 
     @Bean
-    public CommandLineRunner cargarDatosIniciales(RoleRepository roleRepository, UserRepository userRepository) {
+    public CommandLineRunner cargarDatosIniciales(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             // Verificamos si la tabla de roles está vacía
             if (roleRepository.count() == 0) {
@@ -39,8 +41,8 @@ public class DataSeeder {
                     User adminUser = new User();
                     adminUser.setFullName("Administrador Sistema");
                     adminUser.setEmail("admin@ubb.cl");
-                    // OJO: Como ahora usamos passwordHash, insertamos la contraseña tal cual (en un sistema real se encriptaría con BCrypt)
-                    adminUser.setPasswordHash("admin123");
+                    // Contraseña encriptada con BCrypt
+                    adminUser.setPasswordHash(passwordEncoder.encode("admin123"));
                     adminUser.setActive(true);
                     adminUser.setRole(adminRole);
                     adminUser.setCreatedAt(LocalDateTime.now());

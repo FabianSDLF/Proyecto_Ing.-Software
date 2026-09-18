@@ -14,7 +14,8 @@ public class Notification {
     @ManyToOne
     @JoinColumn(name = "targetUser_id")
     private User targetUser;
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private com.ubb.practicas.model.enums.NotificationType type;
     private String message;
     @Column(name = "is_read")
     private Boolean read;

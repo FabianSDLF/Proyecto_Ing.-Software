@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -25,6 +25,7 @@ function App() {
                     <Route path="/asignaciones" element={<Asignaciones />} />
                     <Route path="/mis-estudiantes" element={<MisEstudiantes />} />
                 </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     );

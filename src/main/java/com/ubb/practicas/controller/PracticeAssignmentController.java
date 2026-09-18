@@ -22,6 +22,15 @@ public class PracticeAssignmentController {
         return assignmentRepository.findAll();
     }
 
+    @Autowired
+    private com.ubb.practicas.repository.UserRepository userRepository;
+    
+    @Autowired
+    private com.ubb.practicas.repository.SubjectRepository subjectRepository;
+    
+    @Autowired
+    private com.ubb.practicas.repository.PracticeCenterRepository centerRepository;
+
     @PostMapping
     public ResponseEntity<?> crearAsignacion(@RequestBody PracticeAssignment assignment) {
         if (assignment.getStudent() == null || assignment.getStudent().getId() == null) {
@@ -29,6 +38,16 @@ public class PracticeAssignmentController {
         }
         if (assignment.getSubject() == null || assignment.getSubject().getId() == null) {
             return ResponseEntity.badRequest().body("La asignatura es obligatoria");
+        }
+        
+        if (!userRepository.existsById(assignment.getStudent().getId())) {
+            return ResponseEntity.badRequest().body("El estudiante no existe en la base de datos");
+        }
+        if (!subjectRepository.existsById(assignment.getSubject().getId())) {
+            return ResponseEntity.badRequest().body("La asignatura no existe en la base de datos");
+        }
+        if (assignment.getCenter() != null && assignment.getCenter().getId() != null && !centerRepository.existsById(assignment.getCenter().getId())) {
+            return ResponseEntity.badRequest().body("El centro de práctica no existe");
         }
         
         assignment.setCreatedAt(LocalDateTime.now());

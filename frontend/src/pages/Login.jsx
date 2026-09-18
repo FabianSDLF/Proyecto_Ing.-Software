@@ -16,23 +16,24 @@ export default function Login() {
         setErrorMensaje(''); // Limpiamos errores antiguos
 
         try {
-            const respuesta = await fetch('http://localhost:8080/api/usuarios/login', {
+            const respuesta = await fetch('http://localhost:8080/api/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                 body: JSON.stringify({ email: email, password: password })
             });
 
             if (respuesta.ok) {
                 // 1. Extraemos los datos del usuario que Java nos envió
-                const usuario = await respuesta.json();
+                const authData = await respuesta.json();
 
                 // (Opcional pero recomendado) Guardamos el usuario en la memoria del navegador
                 // para que las otras pantallas sepan quién inició sesión.
-                localStorage.setItem('usuarioActivo', JSON.stringify(usuario));
+                localStorage.setItem('token', authData.token);
+                localStorage.setItem('usuarioActivo', JSON.stringify(authData.user));
 
                 // 2. Leemos el nombre del rol y redirigimos
                 // Nota: Asegúrate de usar 'nombre' o 'name' según como lo dejaste en tu clase Role de Java.
-                const rolDelUsuario = usuario.role.name;
+                const rolDelUsuario = authData.user.role.name;
 
                 if (rolDelUsuario === 'Administrador') {
                     navigate('/dashboard'); // Ahora el admin va al inicio y usa la sidebar

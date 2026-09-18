@@ -13,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/usuarios")
 public class UserController {
 
@@ -39,24 +38,6 @@ public class UserController {
             return ResponseEntity.ok(created);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> iniciarSesion(@RequestBody LoginRequest request) {
-        // 1. Buscamos en la base de datos si existe alguien con ese correo
-        User usuario = userRepository.findByEmail(request.getEmail());
-        // 2. Si el usuario existe, comparamos la contraseña
-        if (usuario != null && usuario.getPasswordHash().equals(request.getPassword())) {
-
-            // ¡Éxito! Devolvemos los datos del usuario con un código HTTP 200 (OK)
-            return ResponseEntity.ok(usuario);
-
-        } else {
-
-            // ¡Fallo! Devolvemos un código HTTP 401 (No Autorizado)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales incorrectas");
-
         }
     }
 
