@@ -17,8 +17,8 @@ export default function MisEstudiantes() {
             const usuarioGuardado = localStorage.getItem('usuarioActivo');
             if (usuarioGuardado) {
                 const usuario = JSON.parse(usuarioGuardado);
-                if (usuario?.role?.name !== 'Profesor') {
-                    toast.error("No tienes permiso para ver esta página.");
+                if (!['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(usuario?.role?.name)) {
+                    toast.error("No tienes permiso para ver esta pǭgina.");
                     navigate('/dashboard');
                     return;
                 }

@@ -7,5 +7,7 @@ import java.util.List;
 
 public interface PracticeAssignmentRepository extends JpaRepository<PracticeAssignment, Long> {
     List<PracticeAssignment> findBySubjectProfessorId(Long professorId);
+    List<PracticeAssignment> findByCollaboratorId(Long collaboratorId);
+    List<PracticeAssignment> findByTutorId(Long tutorId);
     boolean existsBySubjectId(Long subjectId);
 }

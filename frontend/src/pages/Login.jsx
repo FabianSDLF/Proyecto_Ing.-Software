@@ -41,7 +41,7 @@ export default function Login() {
                 else if (rolDelUsuario === 'Estudiante') {
                     navigate('/dashboard');
                 }
-                else if (rolDelUsuario === 'Profesor') {
+                else if (['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(rolDelUsuario)) {
                     // Si luego haces un panel de profesor, lo pones aquí
                     navigate('/dashboard'); // Por ahora lo mandamos al dashboard también
                 }

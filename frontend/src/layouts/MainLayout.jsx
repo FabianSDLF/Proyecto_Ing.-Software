@@ -95,8 +95,8 @@ export default function MainLayout() {
                         </div>
                     )}
 
-                    {/* Opciones exclusivas de Profesor */}
-                    {userRole === 'Profesor' && (
+                    {/* Opciones exclusivas de Docentes */}
+                    {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && (
                         <div className="mt-8">
                             <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-4 px-4 opacity-80">Docencia</p>
                             

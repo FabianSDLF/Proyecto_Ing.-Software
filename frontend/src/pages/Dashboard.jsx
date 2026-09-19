@@ -122,8 +122,8 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Vista de Profesor */}
-            {userRole === 'Profesor' && (
+            {/* Vista de Docentes */}
+            {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && (
                 <div className="grid grid-cols-1 gap-6">
                     <Link to="/mis-estudiantes" className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-green-500 hover:shadow-md transition-shadow">
                         <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -139,7 +139,7 @@ export default function Dashboard() {
             )}
             
             {/* Fallback */}
-            {!['Administrador', 'Estudiante', 'Profesor'].includes(userRole) && userRole !== '' && (
+            {!['Administrador', 'Estudiante', 'Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && userRole !== '' && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <p className="text-gray-600">No hay widgets configurados para este rol.</p>
                 </div>

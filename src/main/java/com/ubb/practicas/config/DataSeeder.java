@@ -28,9 +28,15 @@ public class DataSeeder {
                 estudiante.setName("Estudiante");
 
                 Role profesor = new Role();
-                profesor.setName("Profesor");
+                profesor.setName("Profesor de Asignatura");
 
-                roleRepository.saveAll(List.of(admin, estudiante, profesor));
+                Role colaborador = new Role();
+                colaborador.setName("Profesor Colaborador");
+
+                Role tutor = new Role();
+                tutor.setName("Tutor");
+
+                roleRepository.saveAll(List.of(admin, estudiante, profesor, colaborador, tutor));
                 System.out.println("✅ SEMILLAS DE DATOS: Roles creados exitosamente en la BD.");
             }
 
