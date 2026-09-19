@@ -22,6 +22,16 @@ public class PracticeAssignmentController {
         return assignmentRepository.findAll();
     }
 
+    @GetMapping("/colaborador/{id}")
+    public ResponseEntity<List<PracticeAssignment>> listarPorColaborador(@PathVariable Long id) {
+        return ResponseEntity.ok(assignmentRepository.findByCollaboratorId(id));
+    }
+
+    @GetMapping("/tutor/{id}")
+    public ResponseEntity<List<PracticeAssignment>> listarPorTutor(@PathVariable Long id) {
+        return ResponseEntity.ok(assignmentRepository.findByTutorId(id));
+    }
+
     @Autowired
     private com.ubb.practicas.repository.UserRepository userRepository;
     

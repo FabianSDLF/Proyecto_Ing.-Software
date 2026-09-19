@@ -17,12 +17,25 @@ export default function MisEstudiantes() {
             const usuarioGuardado = localStorage.getItem('usuarioActivo');
             if (usuarioGuardado) {
                 const usuario = JSON.parse(usuarioGuardado);
-                if (!['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(usuario?.role?.name)) {
+                const roleName = usuario?.role?.name;
+                const rolesPermitidos = ['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'];
+                
+                if (!rolesPermitidos.includes(roleName)) {
                     toast.error("No tienes permiso para ver esta pǭgina.");
                     navigate('/dashboard');
                     return;
                 }
-                const res = await fetch(`http://localhost:8080/api/profesor/${usuario.id}/estudiantes`, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+                
+                let endpoint = '';
+                if (roleName === 'Profesor de Asignatura') {
+                    endpoint = `http://localhost:8080/api/profesor/${usuario.id}/estudiantes`;
+                } else if (roleName === 'Profesor Colaborador') {
+                    endpoint = `http://localhost:8080/api/asignaciones/colaborador/${usuario.id}`;
+                } else if (roleName === 'Tutor') {
+                    endpoint = `http://localhost:8080/api/asignaciones/tutor/${usuario.id}`;
+                }
+
+                const res = await fetch(endpoint, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
                 if (res.ok) {
                     const data = await res.json();
                     setAsignaciones(data);
@@ -46,8 +59,8 @@ export default function MisEstudiantes() {
                         <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Estudiantes Inscritos en mis Asignaturas</h2>
-                        <p className="text-gray-500 mt-1">Lleva el control y seguimiento de tus estudiantes.</p>
+                        <h2 className="text-2xl font-bold text-gray-800">Mis Estudiantes Asignados</h2>
+                        <p className="text-gray-500 mt-1">Lleva el control y seguimiento de tus estudiantes a cargo.</p>
                     </div>
                 </div>
 
