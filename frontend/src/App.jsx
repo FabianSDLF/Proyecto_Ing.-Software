@@ -7,7 +7,11 @@ import GestionRoles from './pages/GestionRoles';
 import GestionAsignaturas from './pages/GestionAsignaturas';
 import Asignaciones from './pages/Asignaciones';
 import MisEstudiantes from './pages/MisEstudiantes';
+import Perfil from './pages/Perfil';
+import Portafolio from './pages/Portafolio';
 import MainLayout from './layouts/MainLayout';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
     return (
@@ -16,9 +20,13 @@ function App() {
 
             <Routes>
                 <Route path="/" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 <Route element={<MainLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/perfil" element={<Perfil />} />
+                    <Route path="/portafolio" element={<Portafolio />} />
                     <Route path="/carga-masiva" element={<CargaMasiva />} />
                     <Route path="/gestion-roles" element={<GestionRoles />} />
                     <Route path="/asignaturas" element={<GestionAsignaturas />} />

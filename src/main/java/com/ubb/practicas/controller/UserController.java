@@ -92,4 +92,29 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+    @GetMapping("/perfil")
+    public ResponseEntity<?> obtenerMiPerfil(java.security.Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado");
+        }
+        User user = userRepository.findByEmail(principal.getName());
+        return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/perfil")
+    public ResponseEntity<?> actualizarMiPerfil(
+            java.security.Principal principal,
+            @RequestBody com.ubb.practicas.dto.UserProfileUpdateRequest request) {
+
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado");
+        }
+
+        try {
+            User updatedUser = userService.actualizarMiPerfil(principal.getName(), request);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

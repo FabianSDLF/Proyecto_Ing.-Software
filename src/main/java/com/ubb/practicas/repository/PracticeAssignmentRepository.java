@@ -9,5 +9,6 @@ public interface PracticeAssignmentRepository extends JpaRepository<PracticeAssi
     List<PracticeAssignment> findBySubjectProfessorId(Long professorId);
     List<PracticeAssignment> findByCollaboratorId(Long collaboratorId);
     List<PracticeAssignment> findByTutorId(Long tutorId);
+    List<PracticeAssignment> findByStudentEmail(String email);
     boolean existsBySubjectId(Long subjectId);
 }

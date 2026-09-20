@@ -15,6 +15,7 @@ public class User {
     private String fullName;
     @Column(unique = true)
     private String email;
+    private String phone;
     @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     private String passwordHash;
     private Boolean active;

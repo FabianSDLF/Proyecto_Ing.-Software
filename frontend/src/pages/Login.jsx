@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Herramienta para saltar a otra página
+import { useNavigate, Link } from 'react-router-dom';
 import loginImage from '../assets/loginImage.jpeg';
 
 export default function Login() {
@@ -114,7 +114,7 @@ export default function Login() {
                                 required
                             />
                             <div className="text-right mt-2">
-                                <a href="#" className="text-sm text-blue-600 hover:text-orange-500">¿Olvidaste tu contraseña?</a>
+                                <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-orange-500">¿Olvidaste tu contraseña?</Link>
                             </div>
                         </div>
 

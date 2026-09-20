@@ -180,4 +180,28 @@ public class UserService {
         
         return userRepository.save(nuevoUsuario);
     }
+    @Transactional
+    public User actualizarMiPerfil(String emailActual, com.ubb.practicas.dto.UserProfileUpdateRequest request) throws Exception {
+        User user = userRepository.findByEmail(emailActual);
+        if (user == null) {
+            throw new Exception("Usuario no encontrado");
+        }
+        if (request.getFullName() != null && !request.getFullName().isEmpty()) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        if (request.getEmail() != null && !user.getEmail().equals(request.getEmail())) {
+            if (userRepository.findByEmail(request.getEmail()) != null) {
+                throw new Exception("El email ya está en uso por otro usuario");
+            }
+            user.setEmail(request.getEmail());
+        }
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+        return userRepository.save(user);
+    }
+
 }
