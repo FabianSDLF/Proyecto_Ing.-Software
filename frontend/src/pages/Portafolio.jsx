@@ -22,6 +22,9 @@ export default function Portafolio() {
     });
     const [uploadingPlan, setUploadingPlan] = useState(false);
 
+    const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx'];
+    const acceptAttr = allowedExtensions.join(',');
+
     const fetchEvidencias = async () => {
         const token = localStorage.getItem('token');
         try {
@@ -47,9 +50,22 @@ export default function Portafolio() {
         fetchPlanificaciones();
     }, []);
 
+    const validateFile = (file) => {
+        if (!file) return false;
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!allowedExtensions.includes(ext)) {
+            toast.error(`Formato no permitido. Usa: ${allowedExtensions.join(', ')}`);
+            return false;
+        }
+        return true;
+    };
+
     const handleEvidenciaUpload = async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!validateFile(file)) {
+            if (evidenciaInputRef.current) evidenciaInputRef.current.value = '';
+            return;
+        }
 
         setUploadingEvidencia(true);
         const token = localStorage.getItem('token');
@@ -78,6 +94,7 @@ export default function Portafolio() {
     const handlePlanSubmit = async (e) => {
         e.preventDefault();
         if (!planForm.file) return toast.error('Debes adjuntar un archivo');
+        if (!validateFile(planForm.file)) return;
 
         setUploadingPlan(true);
         const token = localStorage.getItem('token');
@@ -107,6 +124,55 @@ export default function Portafolio() {
         }
     };
 
+    const handleDownload = async (doc) => {
+        if (!doc || !doc.fileUrl) return;
+        const token = localStorage.getItem('token');
+        const toastId = toast.loading("Descargando...");
+        
+        try {
+            const res = await fetch(`http://localhost:8080${doc.fileUrl}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!res.ok) throw new Error("Error en la descarga");
+            
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = doc.fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Descarga completada", { id: toastId });
+        } catch (error) {
+            toast.error("No se pudo descargar el archivo", { id: toastId });
+        }
+    };
+    
+    const handleDelete = async (docId, isPlan = false) => {
+        if (!confirm("¿Seguro que deseas eliminar este archivo? Esta acción no se puede deshacer.")) return;
+        
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`http://localhost:8080/api/portafolio/documentos/${docId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.ok) {
+                toast.success("Archivo eliminado");
+                if (isPlan) fetchPlanificaciones();
+                else fetchEvidencias();
+            } else {
+                toast.error(await res.text());
+            }
+        } catch (error) {
+            toast.error("Error al eliminar archivo");
+        }
+    };
+
     return (
         <div className="max-w-5xl mx-auto p-6">
             <h1 className="text-3xl font-bold text-[#003B70] mb-6">Mi Portafolio Digital</h1>
@@ -130,7 +196,7 @@ export default function Portafolio() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-gray-800">Tus Evidencias</h2>
-                        <input type="file" ref={evidenciaInputRef} onChange={handleEvidenciaUpload} className="hidden" />
+                        <input type="file" ref={evidenciaInputRef} onChange={handleEvidenciaUpload} accept={acceptAttr} className="hidden" />
                         <button onClick={() => evidenciaInputRef.current.click()} disabled={uploadingEvidencia} className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg">
                             {uploadingEvidencia ? 'Subiendo...' : 'Subir Archivo'}
                         </button>
@@ -142,13 +208,18 @@ export default function Portafolio() {
                                 <tr className="border-b-2 border-gray-100">
                                     <th className="py-3 px-4 font-semibold text-gray-600">Nombre del Archivo</th>
                                     <th className="py-3 px-4 font-semibold text-gray-600">Fecha</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {evidencias.map(doc => (
-                                    <tr key={doc.id} className="border-b border-gray-50">
-                                        <td className="py-4 px-4 text-blue-600 font-medium">{doc.fileName}</td>
+                                    <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50">
+                                        <td className="py-4 px-4 text-gray-800 font-medium">{doc.fileName}</td>
                                         <td className="py-4 px-4 text-gray-500">{new Date(doc.uploadDate).toLocaleDateString()}</td>
+                                        <td className="py-4 px-4 text-right">
+                                            <button onClick={() => handleDownload(doc)} className="text-blue-600 hover:text-blue-800 mr-4 font-medium">Descargar</button>
+                                            <button onClick={() => handleDelete(doc.id, false)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -175,16 +246,21 @@ export default function Portafolio() {
                                     <th className="py-3 px-4 font-semibold text-gray-600">Eje Matemático</th>
                                     <th className="py-3 px-4 font-semibold text-gray-600">Estado</th>
                                     <th className="py-3 px-4 font-semibold text-gray-600">Archivo</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {planificaciones.map(plan => (
-                                    <tr key={plan.id} className="border-b border-gray-50">
+                                    <tr key={plan.id} className="border-b border-gray-50 hover:bg-gray-50">
                                         <td className="py-4 px-4 text-gray-600">{new Date(plan.createdAt).toLocaleDateString()}</td>
                                         <td className="py-4 px-4 text-gray-600">{plan.schoolGrade}</td>
                                         <td className="py-4 px-4 text-gray-600">{plan.mathAxis}</td>
                                         <td className="py-4 px-4"><span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold">{plan.status}</span></td>
-                                        <td className="py-4 px-4 text-blue-600 font-medium">{plan.document?.fileName}</td>
+                                        <td className="py-4 px-4 text-gray-800 font-medium truncate max-w-xs">{plan.document?.fileName}</td>
+                                        <td className="py-4 px-4 text-right">
+                                            <button onClick={() => handleDownload(plan.document)} className="text-blue-600 hover:text-blue-800 mr-4 font-medium">Descargar</button>
+                                            <button onClick={() => handleDelete(plan.document?.id, true)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -201,7 +277,7 @@ export default function Portafolio() {
                         <form onSubmit={handlePlanSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Curso</label>
-                                <input type="text" required value={planForm.schoolGrade} onChange={e => setPlanForm({...planForm, schoolGrade: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500" placeholder="Ej. 1° Medio A"/>
+                                <input type="text" required value={planForm.schoolGrade} onChange={e => setPlanForm({...planForm, schoolGrade: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500" placeholder="Ej. 1º Medio A"/>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Eje Matemático</label>
@@ -217,7 +293,7 @@ export default function Portafolio() {
                                 <textarea required value={planForm.objective} onChange={e => setPlanForm({...planForm, objective: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500" rows="3"></textarea>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Documento Adjunto</label>
+                                <label className="block text-sm font-medium mb-1">Documento Adjunto (PDF, Word, PPT)</label>
                                 <div 
                                     className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors"
                                     onClick={() => document.getElementById('file-upload-plan').click()}
@@ -226,7 +302,13 @@ export default function Portafolio() {
                                     <span className="text-sm text-gray-700 font-medium">Haz clic aquí para buscar tu archivo</span>
                                     {planForm.file && <span className="mt-2 text-sm text-green-600 font-bold bg-green-50 px-3 py-1 rounded-full">{planForm.file.name}</span>}
                                 </div>
-                                <input id="file-upload-plan" type="file" required onChange={e => setPlanForm({...planForm, file: e.target.files[0]})} className="hidden"/>
+                                <input id="file-upload-plan" type="file" accept={acceptAttr} required onChange={e => {
+                                    if (validateFile(e.target.files[0])) {
+                                        setPlanForm({...planForm, file: e.target.files[0]})
+                                    } else {
+                                        e.target.value = '';
+                                    }
+                                }} className="hidden"/>
                             </div>
                             <div className="flex justify-end gap-3 pt-4">
                                 <button type="button" onClick={() => setShowPlanModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>

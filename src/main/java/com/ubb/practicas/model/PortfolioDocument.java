@@ -19,6 +19,8 @@ public class PortfolioDocument {
     private DocumentType type;
     private String fileName;
     private String fileUrl;
+    private String storedFileName;
+    private String contentType;
     private Long sizeBytes;
     private LocalDateTime uploadDate;
 }

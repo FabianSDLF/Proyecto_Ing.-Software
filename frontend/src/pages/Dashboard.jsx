@@ -104,9 +104,9 @@ export default function Dashboard() {
                             Mi Portafolio
                         </h3>
                         <p className="text-gray-600 mt-3">Gestiona tus planificaciones, guas y documentos finales. Sube tus entregables para revisin.</p>
-                        <button className="mt-4 px-4 py-2 bg-orange-50 text-orange-600 font-semibold rounded-lg hover:bg-orange-100 transition-colors text-sm">
+                        <Link to="/portafolio" className="inline-block mt-4 px-4 py-2 bg-orange-50 text-orange-600 font-semibold rounded-lg hover:bg-orange-100 transition-colors text-sm">
                             Ir al Portafolio
-                        </button>
+                        </Link>
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-600 hover:shadow-md transition-shadow">
