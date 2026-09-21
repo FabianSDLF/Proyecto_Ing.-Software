@@ -63,14 +63,14 @@ export default function NuevaPlanificacion() {
             });
 
             if (res.ok) {
-                toast.success('Planificacin creada con xito');
+                toast.success('Planificación creada con éxito');
                 navigate('/portafolio');
             } else {
                 const text = await res.text();
-                toast.error(text || 'Error al crear planificacin');
+                toast.error(text || 'Error al crear planificación');
             }
         } catch (error) {
-            toast.error("Error de conexin con el servidor");
+            toast.error("Error de conexión con el servidor");
         }
         setUploadingPlan(false);
     };
@@ -81,7 +81,7 @@ export default function NuevaPlanificacion() {
                 <button onClick={() => navigate('/portafolio')} className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
                     <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 </button>
-                <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Crear Nueva Planificacin</h1>
+                <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Crear Nueva Planificación</h1>
             </div>
 
             <form onSubmit={handlePlanSubmit} className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 space-y-6">
@@ -94,16 +94,16 @@ export default function NuevaPlanificacion() {
                         <input type="text" required value={planForm.schoolGrade} onChange={e => setPlanForm({...planForm, schoolGrade: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Curso..." />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Eje Matemǭtico</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Eje Matemático</label>
                         <select value={planForm.mathAxis} onChange={e => setPlanForm({...planForm, mathAxis: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                            <option value="NUMEROS">Nǧmeros</option>
-                            <option value="ALGEBRA">?lgebra</option>
-                            <option value="GEOMETRIA">Geometra</option>
-                            <option value="PROBABILIDAD_ESTADISTICA">Probabilidad y Estadstica</option>
+                            <option value="NUMEROS">Números</option>
+                            <option value="ALGEBRA">Álgebra</option>
+                            <option value="GEOMETRIA">Geometría</option>
+                            <option value="PROBABILIDAD_ESTADISTICA">Probabilidad y Estadística</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Duracin de la Clase (Ej. 90 minutos)</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Duración de la Clase (Ej. 90 minutos)</label>
                         <input type="text" required value={planForm.duracion} onChange={e => setPlanForm({...planForm, duracion: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="90 minutos..." />
                     </div>
                 </div>
@@ -116,7 +116,7 @@ export default function NuevaPlanificacion() {
                         <textarea required value={planForm.baseLearningObjective} onChange={e => setPlanForm({...planForm, baseLearningObjective: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[80px]" placeholder="Desarrollar las reglas de las probabilidades..."></textarea>
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Objetivo de la Clase (Especfico)</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Objetivo de la Clase (Específico)</label>
                         <textarea required value={planForm.objectives} onChange={e => setPlanForm({...planForm, objectives: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[80px]" placeholder="Aplicar la Ley de Laplace..."></textarea>
                     </div>
                     <div>
@@ -130,7 +130,7 @@ export default function NuevaPlanificacion() {
                 <div className="space-y-6">
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Inicio</label>
-                        <textarea required value={planForm.inicio} onChange={e => setPlanForm({...planForm, inicio: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[100px]" placeholder="Saludo, activacin de conocimientos previos..."></textarea>
+                        <textarea required value={planForm.inicio} onChange={e => setPlanForm({...planForm, inicio: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[100px]" placeholder="Saludo, activación de conocimientos previos..."></textarea>
                     </div>
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Desarrollo</label>
@@ -138,7 +138,7 @@ export default function NuevaPlanificacion() {
                     </div>
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Cierre</label>
-                        <textarea required value={planForm.cierre} onChange={e => setPlanForm({...planForm, cierre: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[100px]" placeholder="Sntesis, evaluacin formativa..."></textarea>
+                        <textarea required value={planForm.cierre} onChange={e => setPlanForm({...planForm, cierre: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[100px]" placeholder="Sntesis, evaluación formativa..."></textarea>
                     </div>
                 </div>
 
@@ -151,7 +151,7 @@ export default function NuevaPlanificacion() {
                             <input type="text" value={planForm.recursos} onChange={e => setPlanForm({...planForm, recursos: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Proyector, guas de trabajo..." />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Instrumentos de Evaluacin</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Instrumentos de Evaluación</label>
                             <input type="text" value={planForm.evaluacion} onChange={e => setPlanForm({...planForm, evaluacion: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Rbrica, Puesta en comn grupal..." />
                         </div>
                     </div>
@@ -163,7 +163,7 @@ export default function NuevaPlanificacion() {
                             onClick={() => document.getElementById('file-upload-plan').click()}
                         >
                             <svg className="w-10 h-10 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                            <span className="text-sm text-gray-700 font-medium">Haz clic aqu para buscar o cambiar tu archivo (Opcional)</span>
+                            <span className="text-sm text-gray-700 font-medium">Haz clic aquí para buscar o cambiar tu archivo (Opcional)</span>
                             {planForm.file && <span className="mt-2 text-sm text-green-600 font-bold bg-green-50 px-3 py-1 rounded-full">{planForm.file.name}</span>}
                         </div>
                         <input id="file-upload-plan" type="file" onChange={e => {
@@ -175,7 +175,7 @@ export default function NuevaPlanificacion() {
                 <div className="flex justify-end gap-4 pt-8 border-t">
                     <button type="button" onClick={() => navigate('/portafolio')} className="px-6 py-3 font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
                     <button type="submit" disabled={uploadingPlan} className="px-6 py-3 font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md">
-                        {uploadingPlan ? 'Guardando...' : 'Guardar Planificacin'}
+                        {uploadingPlan ? 'Guardando...' : 'Guardar Planificación'}
                     </button>
                 </div>
             </form>

@@ -45,9 +45,9 @@ public class PortfolioController {
                 // The cascade or manual delete of document will happen
             }
             lessonPlanRepository.delete(plan);
-            return ResponseEntity.ok("Planificacin eliminada");
+            return ResponseEntity.ok("Planificación eliminada");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al eliminar planificacin: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error al eliminar planificación: " + e.getMessage());
         }
     }
 
@@ -124,7 +124,7 @@ public class PortfolioController {
 
         try {
             List<PracticeAssignment> assignments = practiceAssignmentRepository.findByStudentEmail(principal.getName());
-            if (assignments.isEmpty()) return ResponseEntity.badRequest().body("No tienes una asignacin de prctica activa.");
+            if (assignments.isEmpty()) return ResponseEntity.badRequest().body("No tienes una asignación de práctica activa.");
 
             LessonPlan plan = new LessonPlan();
             plan.setPracticeAssignment(assignments.get(0));
@@ -160,7 +160,7 @@ public class PortfolioController {
             lessonPlanRepository.save(plan);
             return ResponseEntity.ok(plan);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al crear planificacin: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error al crear planificación: " + e.getMessage());
         }
     }
 
@@ -203,7 +203,7 @@ public class PortfolioController {
         try {
             fileStorageService.deleteFile(doc.getStoredFileName());
             
-            // Si es planificacin, eliminarla
+            // Si es planificación, eliminarla
             if (doc.getType() == com.ubb.practicas.model.enums.DocumentType.PLANIFICACION) {
                 // Find and delete the related LessonPlan first due to foreign key
                 List<LessonPlan> plans = lessonPlanRepository.findByPracticeAssignment_Student_Email(principal.getName());
