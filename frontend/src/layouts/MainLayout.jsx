@@ -61,11 +61,7 @@ export default function MainLayout() {
                         Inicio
                     </Link>
 
-                    <Link to="/perfil" className={`${baseLinkClass} ${isActive('/perfil') ? activeLinkClass : inactiveLinkClass}`}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        Mi Perfil
-                    </Link>
-                    
+
                     <Link to="/portafolio" className={`${baseLinkClass} ${isActive('/portafolio') ? activeLinkClass : inactiveLinkClass}`}>
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                         Mi Portafolio
@@ -119,7 +115,7 @@ export default function MainLayout() {
                 <div className="mt-auto border-t border-blue-800 pt-4">
                     {user && (
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 overflow-hidden">
+                            <Link to="/perfil" className="flex items-center gap-3 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
                                 {/* Avatar con Iniciales */}
                                 <div className="flex-shrink-0 w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-inner">
                                     {getInitials(user.fullName)}
@@ -129,7 +125,7 @@ export default function MainLayout() {
                                     <span className="text-sm font-semibold text-white truncate">{user.fullName || 'Usuario'}</span>
                                     <span className="text-xs text-blue-300 truncate">{userRole || 'Sin Rol'}</span>
                                 </div>
-                            </div>
+                            </Link>
 
                             {/* Botón de Logout sutil al lado */}
                             <button 
