@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function Portafolio() {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('EVIDENCIAS');
     
     // Evidencias
@@ -151,25 +153,26 @@ export default function Portafolio() {
         }
     };
     
-    const handleDelete = async (docId, isPlan = false) => {
-        if (!confirm("¿Seguro que deseas eliminar este archivo? Esta acción no se puede deshacer.")) return;
+    const handleDelete = async (id, isPlan = false) => {
+        if (!confirm(`¿Seguro que deseas eliminar est${isPlan ? 'a planificación' : 'e archivo'}? Esta acción no se puede deshacer.`)) return;
         
+        const endpoint = isPlan ? `http://localhost:8080/api/portafolio/planificaciones/${id}` : `http://localhost:8080/api/portafolio/documentos/${id}`;
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:8080/api/portafolio/documentos/${docId}`, {
+            const res = await fetch(endpoint, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
             if (res.ok) {
-                toast.success("Archivo eliminado");
+                toast.success(isPlan ? "Planificación eliminada" : "Archivo eliminado");
                 if (isPlan) fetchPlanificaciones();
                 else fetchEvidencias();
             } else {
                 toast.error(await res.text());
             }
         } catch (error) {
-            toast.error("Error al eliminar archivo");
+            toast.error("Error al eliminar");
         }
     };
 
@@ -232,7 +235,7 @@ export default function Portafolio() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-gray-800">Tus Planificaciones</h2>
-                        <button onClick={() => setShowPlanModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+                        <button onClick={() => navigate('/portafolio/nueva-planificacion')} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
                             + Nueva Planificación
                         </button>
                     </div>
@@ -258,8 +261,8 @@ export default function Portafolio() {
                                         <td className="py-4 px-4"><span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold">{plan.status}</span></td>
                                         <td className="py-4 px-4 text-gray-800 font-medium truncate max-w-xs">{plan.document?.fileName}</td>
                                         <td className="py-4 px-4 text-right">
-                                            <button onClick={() => handleDownload(plan.document)} className="text-blue-600 hover:text-blue-800 mr-4 font-medium">Descargar</button>
-                                            <button onClick={() => handleDelete(plan.document?.id, true)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                            {plan.document && <button onClick={() => handleDownload(plan.document)} className="text-blue-600 hover:text-blue-800 mr-4 font-medium">Descargar</button>}
+                                            <button onClick={() => handleDelete(plan.id, true)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -270,7 +273,7 @@ export default function Portafolio() {
             )}
 
             {/* Modal Nueva Planificación */}
-            {showPlanModal && (
+            {false && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-8 rounded-xl max-w-md w-full">
                         <h3 className="text-2xl font-bold mb-4">Nueva Planificación</h3>

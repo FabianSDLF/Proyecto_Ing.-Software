@@ -25,6 +25,32 @@ import java.time.LocalDateTime;
 @RequestMapping("/api/portafolio")
 public class PortfolioController {
 
+    @DeleteMapping("/planificaciones/{id}")
+    public ResponseEntity<?> eliminarPlanificacion(@PathVariable Long id, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
+
+        Optional<LessonPlan> planOpt = lessonPlanRepository.findById(id);
+        if (planOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        LessonPlan plan = planOpt.get();
+        if (!plan.getPracticeAssignment().getStudent().getEmail().equals(principal.getName())) {
+            return ResponseEntity.status(403).build();
+        }
+        
+        try {
+            if (plan.getDocument() != null) {
+                fileStorageService.deleteFile(plan.getDocument().getStoredFileName());
+                // The cascade or manual delete of document will happen
+            }
+            lessonPlanRepository.delete(plan);
+            return ResponseEntity.ok("Planificacin eliminada");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al eliminar planificacin: " + e.getMessage());
+        }
+    }
+
     @Autowired
     private PortfolioDocumentRepository portfolioDocumentRepository;
 
@@ -87,48 +113,54 @@ public class PortfolioController {
     @PostMapping("/planificaciones/upload")
     public ResponseEntity<?> crearPlanificacion(
             Principal principal,
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam("schoolGrade") String schoolGrade,
             @RequestParam("mathAxis") String mathAxis,
-            @RequestParam("objective") String objective) {
+            @RequestParam("objective") String objective,
+            @RequestParam(value = "specificObjectives", required = false) String specificObjectives,
+            @RequestParam(value = "classActivities", required = false) String classActivities) {
         
         if (principal == null) return ResponseEntity.status(401).build();
 
         try {
             List<PracticeAssignment> assignments = practiceAssignmentRepository.findByStudentEmail(principal.getName());
-            if (assignments.isEmpty()) return ResponseEntity.badRequest().body("No tienes una asignación de práctica activa.");
+            if (assignments.isEmpty()) return ResponseEntity.badRequest().body("No tienes una asignacin de prctica activa.");
 
-            String storedFileName = fileStorageService.storeFile(file);
-
-            // 1. Crear el documento
-            PortfolioDocument doc = new PortfolioDocument();
-            doc.setPracticeAssignment(assignments.get(0));
-            doc.setType(com.ubb.practicas.model.enums.DocumentType.PLANIFICACION);
-            doc.setFileName(file.getOriginalFilename());
-            doc.setStoredFileName(storedFileName);
-            doc.setContentType(file.getContentType());
-            doc.setSizeBytes(file.getSize());
-            doc.setUploadDate(LocalDateTime.now());
-
-            portfolioDocumentRepository.save(doc);
-            doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
-            portfolioDocumentRepository.save(doc);
-
-            // 2. Crear la planificación
             LessonPlan plan = new LessonPlan();
             plan.setPracticeAssignment(assignments.get(0));
-            plan.setDocument(doc);
             plan.setStatus(com.ubb.practicas.model.enums.PlanStatus.BORRADOR);
             plan.setSchoolGrade(schoolGrade);
             plan.setMathAxis(com.ubb.practicas.model.enums.MathAxis.valueOf(mathAxis));
             plan.setBaseLearningObjective(objective);
+            plan.setObjectives(specificObjectives);
+            plan.setContentJson(classActivities);
             plan.setCreatedAt(LocalDateTime.now());
             plan.setUpdatedAt(LocalDateTime.now());
+
+            if (file != null && !file.isEmpty() && file.getSize() > 0) {
+                if (!"planificacion_sin_archivo.txt".equals(file.getOriginalFilename())) {
+                    String storedFileName = fileStorageService.storeFile(file);
+                    PortfolioDocument doc = new PortfolioDocument();
+                    doc.setPracticeAssignment(assignments.get(0));
+                    doc.setType(com.ubb.practicas.model.enums.DocumentType.PLANIFICACION);
+                    doc.setFileName(file.getOriginalFilename());
+                    doc.setStoredFileName(storedFileName);
+                    doc.setContentType(file.getContentType());
+                    doc.setSizeBytes(file.getSize());
+                    doc.setUploadDate(LocalDateTime.now());
+
+                    portfolioDocumentRepository.save(doc);
+                    doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
+                    portfolioDocumentRepository.save(doc);
+                    
+                    plan.setDocument(doc);
+                }
+            }
 
             lessonPlanRepository.save(plan);
             return ResponseEntity.ok(plan);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al crear planificación: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error al crear planificacin: " + e.getMessage());
         }
     }
 
