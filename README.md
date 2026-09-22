@@ -19,31 +19,46 @@ El proyecto es una aplicación **Full-Stack** dividida en dos componentes princi
 * **Build Tool:** Vite
 * **Estilos:** Tailwind CSS
 * **Enrutamiento:** React Router Dom
+* **Servidor Web:** Nginx (en entorno Dockerizado)
 
 ---
 
-## 📋 Requisitos Previos
+## 🐳 Ejecución Rápida con Docker (Recomendado)
 
-Asegúrate de tener instalado lo siguiente en tu entorno de desarrollo local:
+La forma más sencilla y recomendada de levantar todo el proyecto (Base de datos, Backend y Frontend) sin necesidad de instalar Java, Node o MySQL manualmente en tu máquina o servidor, es utilizando **Docker**.
+
+### Requisitos Previos (Docker)
+* Tener instalado [Docker Desktop](https://www.docker.com/products/docker-desktop/) (o Docker Engine en Linux).
+
+### Pasos para ejecutar
+1. Abre una terminal en la raíz del proyecto (`Proyecto_IngSoft_Practicas`).
+2. Ejecuta el siguiente comando para construir y levantar todos los contenedores en segundo plano:
+   ```bash
+   docker compose up -d --build
+   ```
+3. ¡Listo! Una vez finalizado el proceso de construcción, la aplicación estará disponible en:
+   * **Frontend:** [http://localhost](http://localhost)
+   * **Backend (API):** [http://localhost:8080](http://localhost:8080)
+
+Para detener los contenedores, simplemente ejecuta:
+```bash
+docker compose down
+```
+
+---
+
+## 🛠️ Instalación y Ejecución Manual (Modo Desarrollo)
+
+Si prefieres ejecutar el código manualmente (por ejemplo, para depurar o desarrollar), sigue estos pasos.
+
+### Requisitos Previos (Manual)
 * **Java Development Kit (JDK) 21**
 * **Node.js** (versión 18 o superior recomendada) y **npm**
 * **MySQL Server**
 
----
-
-## 🛠️ Instalación y Ejecución
-
-Sigue estos pasos para levantar el entorno de desarrollo en tu máquina local.
-
 ### 1. Configuración del Backend (Base de Datos)
-1. Abre tu gestor de MySQL (ej. MySQL Workbench) y crea una base de datos para el proyecto (por ejemplo, `practicas_db`).
-2. Verifica que las credenciales de conexión en tu archivo `src/main/resources/application.properties` sean correctas:
-   ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/practicas_db
-   spring.datasource.username=TU_USUARIO_MYSQL
-   spring.datasource.password=TU_PASSWORD_MYSQL
-   spring.jpa.hibernate.ddl-auto=update
-   ```
+1. Abre tu gestor de MySQL y crea una base de datos.
+2. Verifica que las credenciales de conexión en tu archivo `src/main/resources/application.properties` sean correctas.
 3. Ejecuta el servidor Backend. Si usas la consola:
    ```bash
    ./mvnw spring-boot:run
@@ -83,6 +98,8 @@ Proyecto_IngSoft_Practicas/
 │   │   ├── pages/       # Vistas de la aplicación (Login, Dashboard, Portafolio)
 │   │   └── App.jsx      # Enrutamiento principal
 ├── uploads/             # Almacenamiento local de archivos y evidencias
+├── docker-compose.yml   # Configuración y orquestación de Docker
+├── Dockerfile           # Imagen del Backend
 └── pom.xml              # Dependencias de Maven
 ```
 
