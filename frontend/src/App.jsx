@@ -9,6 +9,7 @@ import Asignaciones from './pages/Asignaciones';
 import MisEstudiantes from './pages/MisEstudiantes';
 import Perfil from './pages/Perfil';
 import Portafolio from './pages/Portafolio';
+import NuevaPlanificacion from './pages/NuevaPlanificacion';
 import MainLayout from './layouts/MainLayout';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -27,6 +28,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/perfil" element={<Perfil />} />
                     <Route path="/portafolio" element={<Portafolio />} />
+                    <Route path="/portafolio/nueva-planificacion" element={<NuevaPlanificacion />} />
                     <Route path="/carga-masiva" element={<CargaMasiva />} />
                     <Route path="/gestion-roles" element={<GestionRoles />} />
                     <Route path="/asignaturas" element={<GestionAsignaturas />} />
