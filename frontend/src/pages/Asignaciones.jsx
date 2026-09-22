@@ -166,8 +166,8 @@ export default function Asignaciones() {
                                     <td className="px-6 py-4 whitespace-nowrap">{asig.student?.fullName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{asig.subject?.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{asig.center?.name || 'No asignado'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{asig.collaborator ? `${asig.collaborator.name} ${asig.collaborator.lastName}` : 'No asignado'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{asig.tutor ? `${asig.tutor.name} ${asig.tutor.lastName}` : 'No asignado'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{asig.collaborator ? asig.collaborator.fullName : 'No asignado'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{asig.tutor ? asig.tutor.fullName : 'No asignado'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${asig.status === 'ACTIVA' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                             {asig.status}
@@ -231,14 +231,14 @@ export default function Asignaciones() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Profesor Colaborador</label>
                                     <select name="collaboratorId" value={formData.collaboratorId} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
                                         <option value="">(Opcional) Seleccione colaborador</option>
-                                        {profesores.map(p => <option key={p.id} value={p.id}>{p.name} {p.lastName}</option>)}
+                                        {profesores.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Tutor de Universidad</label>
                                     <select name="tutorId" value={formData.tutorId} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
                                         <option value="">(Opcional) Seleccione tutor</option>
-                                        {tutores.map(t => <option key={t.id} value={t.id}>{t.name} {t.lastName}</option>)}
+                                        {tutores.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -258,3 +258,5 @@ export default function Asignaciones() {
         </div>
     );
 }
+
+
