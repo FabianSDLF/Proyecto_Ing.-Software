@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Base de datos MySQL
+  db:
+    image: mysql:8.0
+    container_name: practicas_db
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: sistema_practicas
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+  # Backend Spring Boot
+  backend:
+    build: .
+    container_name: practicas_backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      # Sobrescribimos las variables de entorno de application.properties
+      # para que apunte al contenedor "db" en vez de "localhost"
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=admin
+    volumes:
+      # Volumen para que los archivos subidos persistan si el contenedor se reinicia
+      - backend_uploads:/app/uploads
+    restart: unless-stopped
+
+  # Frontend React (Vite + Nginx)
+  frontend:
+    build: ./frontend
+    container_name: practicas_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  backend_uploads:
