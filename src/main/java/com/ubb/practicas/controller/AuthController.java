@@ -2,88 +2,39 @@ package com.ubb.practicas.controller;
 
 import com.ubb.practicas.dto.AuthResponse;
 import com.ubb.practicas.dto.LoginRequest;
-import com.ubb.practicas.dto.UserResponse;
-import com.ubb.practicas.model.User;
-import com.ubb.practicas.model.PasswordResetToken;
-import com.ubb.practicas.repository.UserRepository;
-import com.ubb.practicas.repository.PasswordResetTokenRepository;
-import com.ubb.practicas.security.JwtUtil;
+import com.ubb.practicas.service.AuthService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
-
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
-
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-    }
+    private final AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User usuario = userRepository.findByEmail(request.getEmail());
-
-        if (usuario == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales incorrectas");
-        }
-
-        if (!usuario.getActive()) {
+        try {
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (DisabledException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Cuenta desactivada");
-        }
-
-        if (!passwordEncoder.matches(request.getPassword(), usuario.getPasswordHash())) {
+        } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales incorrectas");
         }
-
-        String roleName = usuario.getRole() != null ? usuario.getRole().getName() : "SinRol";
-        String token = jwtUtil.generateToken(usuario.getEmail(), roleName);
-        UserResponse userResponse = UserResponse.fromUser(usuario);
-
-        return ResponseEntity.ok(new AuthResponse(token, userResponse));
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        
-        if (email != null && !email.trim().isEmpty()) {
-            User user = userRepository.findByEmail(email.trim());
-            if (user != null && Boolean.TRUE.equals(user.getActive())) {
-                String token = UUID.randomUUID().toString();
-                PasswordResetToken resetToken = new PasswordResetToken();
-                resetToken.setToken(token);
-                resetToken.setUser(user);
-                resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
-                tokenRepository.save(resetToken);
-
-                // TR-02: Registrar en logs del servidor en desarrollo; NUNCA exponer el enlace en la respuesta HTTP
-                log.info("Solicitud de recuperación para {}. Token de desarrollo: http://localhost:5173/reset-password?token={}", email, token);
-            }
-        }
-
-        // BK-12 & TR-02: Retorno uniforme para prevenir enumeración de cuentas y account takeover
-        return ResponseEntity.ok(Map.of(
-            "message", "Si el correo corresponde a una cuenta registrada, se enviarán instrucciones de recuperación."
-        ));
+        return ResponseEntity.ok(authService.forgotPassword(email));
     }
 
     @PostMapping("/reset-password")
@@ -91,23 +42,10 @@ public class AuthController {
         String tokenStr = request.get("token");
         String newPassword = request.get("newPassword");
 
-        Optional<PasswordResetToken> tokenOpt = tokenRepository.findByToken(tokenStr);
-        if (tokenOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "El enlace de recuperación es inválido o no existe."));
+        try {
+            return ResponseEntity.ok(authService.resetPassword(tokenStr, newPassword));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
-
-        PasswordResetToken token = tokenOpt.get();
-        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "El enlace ha expirado. Solicita uno nuevo."));
-        }
-
-        User user = token.getUser();
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-
-        // Opcional: Eliminar el token después de usarlo para que no se reuse
-        tokenRepository.delete(token);
-
-        return ResponseEntity.ok(Map.of("message", "Contraseña restablecida exitosamente."));
     }
 }

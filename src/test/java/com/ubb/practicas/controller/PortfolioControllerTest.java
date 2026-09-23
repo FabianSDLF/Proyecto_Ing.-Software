@@ -6,7 +6,7 @@ import com.ubb.practicas.model.enums.DocumentType;
 import com.ubb.practicas.model.enums.MathAxis;
 import com.ubb.practicas.model.enums.PlanStatus;
 import com.ubb.practicas.repository.*;
-import com.ubb.practicas.service.FileStorageService;
+import com.ubb.practicas.service.StorageService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ public class PortfolioControllerTest {
     private RoleRepository roleRepository;
 
     @Autowired
-    private FileStorageService fileStorageService;
+    private StorageService storageService;
 
     private User student;
     private User otherStudent;
@@ -101,7 +101,7 @@ public class PortfolioControllerTest {
         assignment = practiceAssignmentRepository.save(assignment);
 
         MockMultipartFile initialFile = new MockMultipartFile("file", "evidencia.pdf", "application/pdf", "test-content".getBytes());
-        String storedFileName = fileStorageService.storeFile(initialFile);
+        String storedFileName = storageService.storeFile(initialFile);
 
         document = new PortfolioDocument();
         document.setPracticeAssignment(assignment);
@@ -174,7 +174,7 @@ public class PortfolioControllerTest {
 
         // Documento tipo PLANIFICACION con archivo real
         MockMultipartFile planFile = new MockMultipartFile("file", "plan.pdf", "application/pdf", "plan-content".getBytes());
-        String planStored = fileStorageService.storeFile(planFile);
+        String planStored = storageService.storeFile(planFile);
 
         PortfolioDocument docPlan = new PortfolioDocument();
         docPlan.setPracticeAssignment(assignment);

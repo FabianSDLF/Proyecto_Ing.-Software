@@ -1,34 +1,33 @@
 package com.ubb.practicas.controller;
 
-import com.ubb.practicas.dto.LoginRequest;
+import com.ubb.practicas.dto.UserProfileUpdateRequest;
 import com.ubb.practicas.model.User;
-import com.ubb.practicas.repository.UserRepository;
 import com.ubb.practicas.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/usuarios")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     @GetMapping
     public List<User> obtenerTodosUsuarios() {
-        return userRepository.findAll();
+        return userService.obtenerTodosUsuarios();
     }
 
     @GetMapping("/rol/{roleName}")
     public List<User> listarUsuariosPorRol(@PathVariable String roleName) {
-        return userRepository.findByRoleName(roleName);
+        return userService.listarUsuariosPorRol(roleName);
     }
 
     @PostMapping
@@ -44,19 +43,16 @@ public class UserController {
     @PostMapping("/carga-masiva")
     public ResponseEntity<?> cargaMasivaUsuarios(@RequestParam("archivo") MultipartFile archivo) {
         try {
-            // Le pasamos la pelota al cerebro (el Service)
             userService.procesarArchivoMasivo(archivo);
-
             return ResponseEntity.ok("Usuarios cargados exitosamente de forma masiva.");
         } catch (Exception e) {
-            // Si el archivo está corrupto o le falta una columna, atrapamos el error
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error al procesar el archivo: " + e.getMessage());
         }
     }
 
     @PutMapping("/{id}/rol")
-    public ResponseEntity<?> actualizarRol(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
+    public ResponseEntity<?> actualizarRol(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         try {
             String roleName = payload.get("roleName");
             if (roleName == null || roleName.isEmpty()) {
@@ -80,7 +76,7 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/estado")
-    public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody java.util.Map<String, Boolean> payload) {
+    public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, Boolean> payload) {
         try {
             Boolean estado = payload.get("active");
             if (estado == null) {
@@ -92,19 +88,20 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
     @GetMapping("/perfil")
-    public ResponseEntity<?> obtenerMiPerfil(java.security.Principal principal) {
+    public ResponseEntity<?> obtenerMiPerfil(Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado");
         }
-        User user = userRepository.findByEmail(principal.getName());
+        User user = userService.obtenerPorEmail(principal.getName());
         return ResponseEntity.ok(user);
     }
 
     @PutMapping("/perfil")
     public ResponseEntity<?> actualizarMiPerfil(
-            java.security.Principal principal,
-            @RequestBody com.ubb.practicas.dto.UserProfileUpdateRequest request) {
+            Principal principal,
+            @RequestBody UserProfileUpdateRequest request) {
 
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado");
