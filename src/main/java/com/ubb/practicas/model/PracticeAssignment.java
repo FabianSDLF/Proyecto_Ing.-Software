@@ -33,4 +33,26 @@ public class PracticeAssignment {
     @Enumerated(EnumType.STRING)
     private AssignmentStatus status;
     private LocalDateTime createdAt;
+
+    public boolean isStudent(String email) {
+        return email != null && this.student != null && email.equalsIgnoreCase(this.student.getEmail());
+    }
+
+    public boolean isProfessor(String email) {
+        return email != null && this.subject != null && this.subject.getProfessor() != null 
+                && email.equalsIgnoreCase(this.subject.getProfessor().getEmail());
+    }
+
+    public boolean isCollaborator(String email) {
+        return email != null && this.collaborator != null && email.equalsIgnoreCase(this.collaborator.getEmail());
+    }
+
+    public boolean isTutor(String email) {
+        return email != null && this.tutor != null && email.equalsIgnoreCase(this.tutor.getEmail());
+    }
+
+    public boolean hasParticipant(String email) {
+        if (email == null) return false;
+        return isStudent(email) || isProfessor(email) || isCollaborator(email) || isTutor(email);
+    }
 }

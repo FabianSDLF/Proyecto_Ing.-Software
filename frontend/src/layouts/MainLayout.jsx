@@ -16,6 +16,7 @@ export default function MainLayout() {
             } catch (error) {
                 console.error("Error parsing user from localStorage:", error);
                 localStorage.removeItem('usuarioActivo');
+                localStorage.removeItem('token');
                 navigate('/');
             }
         } else {
@@ -24,6 +25,12 @@ export default function MainLayout() {
     }, [navigate]);
 
     const userRole = user?.role?.name || null;
+
+    const handleLogout = () => {
+        localStorage.removeItem('usuarioActivo');
+        localStorage.removeItem('token');
+        navigate('/');
+    };
 
     // Función para obtener las iniciales (Ej: Fabián Sepúlveda -> FS)
     const getInitials = (name) => {
@@ -129,7 +136,7 @@ export default function MainLayout() {
 
                             {/* Botón de Logout sutil al lado */}
                             <button 
-                                onClick={() => { localStorage.removeItem('usuarioActivo'); navigate('/'); }}
+                                onClick={handleLogout}
                                 className="ml-2 p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 hover:bg-opacity-40 rounded-lg transition-colors"
                                 title="Cerrar Sesión"
                             >

@@ -51,3 +51,35 @@ Producir un reporte único y consolidado que incluya: (a) resumen ejecutivo del 
 ### Restricciones
 - [ ] No se modificó ni creó ningún archivo de código fuente
 - [ ] No se ejecutaron comandos que modifiquen el estado del repositorio git
+
+## 2026-09-23T18:55:17Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo Completo (Full Team)
+
+Usa un equipo grande de agentes (Full Team). Implementar progresivamente todas las fases de refactorización para resolver los 95 problemas detallados en los archivos `reporte_codigo.md` y `PROJECT.md`. El trabajo debe realizarse aisladamente en la rama `fabian`.
+
+Working directory: c:/Users/Fabián Sepúlveda/Desktop/UBB/2026-2/Ingenieria Software/Proyecto_Documentacion/5_Desarrollo/Proyecto_IngSoft_Practicas
+Integrity mode: development
+
+## Requirements
+
+### R1. Gestión de Ramas
+El equipo debe realizar un `git checkout -b fabian` (o cambiar a ella si ya existe) antes de hacer cualquier modificación al código. Todos los commits deben ir a esta rama.
+
+### R2. Implementación Completa
+Aplicar las soluciones teóricas de los 95 hallazgos listados en `reporte_codigo.md`, siguiendo el orden de las 4 fases de `PROJECT.md`.
+
+## Acceptance Criteria
+
+### Integridad del Repositorio
+- [ ] Todo el trabajo de refactorización se encuentra versionado (commiteado) exclusivamente en la rama `fabian`.
+- [ ] No existen archivos modificados sin commitear en el árbol de trabajo al finalizar.
+
+### Verificación de Compilación
+- [ ] El backend de Spring Boot compila exitosamente sin errores de sintaxis tras los cambios.
+- [ ] El frontend compila exitosamente (ej: `npm run build` o equivalente) sin errores fatales.
+

@@ -37,4 +37,12 @@ public class LessonPlan {
     private LessonPlan parentPlan;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public boolean isOwnedBy(String email) {
+        return email != null && this.practiceAssignment != null && this.practiceAssignment.isStudent(email);
+    }
+
+    public boolean hasDocument(Long documentId) {
+        return documentId != null && this.document != null && documentId.equals(this.document.getId());
+    }
 }

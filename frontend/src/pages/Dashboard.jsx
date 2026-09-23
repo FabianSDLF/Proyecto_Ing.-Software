@@ -29,6 +29,7 @@ export default function Dashboard() {
             } catch (error) {
                 console.error("Error parsing user from localStorage:", error);
                 localStorage.removeItem('usuarioActivo');
+                localStorage.removeItem('token');
             }
         }
     }, []);

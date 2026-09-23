@@ -23,6 +23,8 @@ import java.util.UUID;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -62,24 +64,25 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        User user = userRepository.findByEmail(email);
         
-        if (user == null) {
-            // Por seguridad, retornamos OK incluso si no existe, pero para ayudar al debug en este proyecto enviamos error:
-            return ResponseEntity.badRequest().body(Map.of("message", "No existe una cuenta con ese correo institucional."));
+        if (email != null && !email.trim().isEmpty()) {
+            User user = userRepository.findByEmail(email.trim());
+            if (user != null && Boolean.TRUE.equals(user.getActive())) {
+                String token = UUID.randomUUID().toString();
+                PasswordResetToken resetToken = new PasswordResetToken();
+                resetToken.setToken(token);
+                resetToken.setUser(user);
+                resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
+                tokenRepository.save(resetToken);
+
+                // TR-02: Registrar en logs del servidor en desarrollo; NUNCA exponer el enlace en la respuesta HTTP
+                log.info("Solicitud de recuperación para {}. Token de desarrollo: http://localhost:5173/reset-password?token={}", email, token);
+            }
         }
 
-        String token = UUID.randomUUID().toString();
-        PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setToken(token);
-        resetToken.setUser(user);
-        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30)); 
-        
-        tokenRepository.save(resetToken);
-        
+        // BK-12 & TR-02: Retorno uniforme para prevenir enumeración de cuentas y account takeover
         return ResponseEntity.ok(Map.of(
-            "message", "Simulación: En un entorno real se enviaría un correo con este enlace.",
-            "link", "http://localhost:5173/reset-password?token=" + token
+            "message", "Si el correo corresponde a una cuenta registrada, se enviarán instrucciones de recuperación."
         ));
     }
 

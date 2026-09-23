@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import loginImage from '../assets/loginImage.jpeg';
 
@@ -10,6 +10,12 @@ export default function Login() {
 
     const navigate = useNavigate();
 
+    // Limpiar cualquier sesión residual en localStorage al entrar a la pantalla de login
+    useEffect(() => {
+        localStorage.removeItem('usuarioActivo');
+        localStorage.removeItem('token');
+    }, []);
+
     // 2. La función que se dispara al presionar el botón
     const handleLogin = async (e) => {
         e.preventDefault(); // Evita que la página web titile/recargue
@@ -18,7 +24,7 @@ export default function Login() {
         try {
             const respuesta = await fetch('http://localhost:8080/api/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email, password: password })
             });
 

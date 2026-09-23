@@ -23,4 +23,12 @@ public class PortfolioDocument {
     private String contentType;
     private Long sizeBytes;
     private LocalDateTime uploadDate;
+
+    public boolean isOwnedBy(String email) {
+        return email != null && this.practiceAssignment != null && this.practiceAssignment.isStudent(email);
+    }
+
+    public boolean isAccessibleBy(String email) {
+        return email != null && this.practiceAssignment != null && this.practiceAssignment.hasParticipant(email);
+    }
 }

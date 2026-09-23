@@ -1,14 +1,20 @@
 package com.ubb.practicas.controller;
 
 import com.ubb.practicas.model.PracticeAssignment;
+import com.ubb.practicas.model.User;
+import com.ubb.practicas.model.enums.TeachingRole;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
+import com.ubb.practicas.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/profesor")
 public class ProfessorController {
 
@@ -16,30 +22,39 @@ public class ProfessorController {
     private PracticeAssignmentRepository practiceAssignmentRepository;
 
     @Autowired
-    private com.ubb.practicas.repository.UserRepository userRepository;
+    private UserRepository userRepository;
 
     @GetMapping("/{professorId}/estudiantes")
-    public org.springframework.http.ResponseEntity<?> obtenerEstudiantesPorProfesor(@PathVariable Long professorId) {
-        com.ubb.practicas.model.User user = userRepository.findById(professorId).orElse(null);
-        
-        if (user == null || user.getRole() == null) {
-            return org.springframework.http.ResponseEntity.badRequest().body("Usuario no encontrado");
+    public ResponseEntity<?> obtenerEstudiantesPorProfesor(@PathVariable Long professorId, Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        
-        String roleName = user.getRole().getName();
-        List<PracticeAssignment> assignments;
-        
-        if ("Profesor de Asignatura".equals(roleName)) {
-            assignments = practiceAssignmentRepository.findBySubjectProfessorId(professorId);
-        } else if ("Profesor Colaborador".equals(roleName)) {
-            assignments = practiceAssignmentRepository.findByCollaboratorId(professorId);
-        } else if ("Tutor".equals(roleName)) {
-            assignments = practiceAssignmentRepository.findByTutorId(professorId);
-        } else {
-            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
-                    .body("El usuario no tiene un rol docente vǭlido");
+
+        User targetProfessor = userRepository.findById(professorId).orElse(null);
+        if (targetProfessor == null || targetProfessor.getRole() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado");
         }
-        
-        return org.springframework.http.ResponseEntity.ok(assignments);
+
+        User caller = userRepository.findByEmail(principal.getName());
+        if (caller == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        boolean isAdmin = caller.getRole() != null && "Administrador".equalsIgnoreCase(caller.getRole().getName());
+        boolean isSelf = caller.getId() != null && caller.getId().equals(professorId);
+
+        if (!isAdmin && !isSelf) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Acceso denegado: no tiene permisos para consultar los estudiantes de este docente");
+        }
+
+        Optional<TeachingRole> teachingRole = TeachingRole.fromRoleName(targetProfessor.getRole().getName());
+        if (teachingRole.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("El usuario no tiene un rol docente válido");
+        }
+
+        List<PracticeAssignment> assignments = teachingRole.get().findAssignments(practiceAssignmentRepository, professorId);
+        return ResponseEntity.ok(assignments);
     }
 }
