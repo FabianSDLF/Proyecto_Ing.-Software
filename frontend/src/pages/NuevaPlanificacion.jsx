@@ -148,11 +148,11 @@ export default function NuevaPlanificacion() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Recursos Materiales</label>
-                            <input type="text" value={planForm.recursos} onChange={e => setPlanForm({...planForm, recursos: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Proyector, guas de trabajo..." />
+                            <input type="text" value={planForm.recursos} onChange={e => setPlanForm({...planForm, recursos: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Proyector, guías de trabajo..." />
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Instrumentos de Evaluación</label>
-                            <input type="text" value={planForm.evaluacion} onChange={e => setPlanForm({...planForm, evaluacion: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Rbrica, Puesta en comn grupal..." />
+                            <input type="text" value={planForm.evaluacion} onChange={e => setPlanForm({...planForm, evaluacion: e.target.value})} className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="Rúbrica, Puesta en común grupal..." />
                         </div>
                     </div>
                     
