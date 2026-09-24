@@ -14,6 +14,7 @@ export default function Modal({
   title,
   description,
   children,
+  footer,
   size = 'md',
   showCloseButton = true,
   className = '',
@@ -105,6 +106,13 @@ export default function Modal({
 
         {/* Content */}
         <div>{children}</div>
+
+        {/* Footer */}
+        {footer && (
+          <div className="mt-6 pt-5 border-t border-gray-100">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
