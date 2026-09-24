@@ -1,40 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import assignmentService from '../services/assignmentService';
+import centerService from '../services/centerService';
 
 export default function Dashboard() {
-    const [user, setUser] = useState(null);
+    const { user, userRole } = useAuth();
     const [stats, setStats] = useState({ asignaciones: 0, centros: 0 });
 
     useEffect(() => {
-        const usuarioGuardado = localStorage.getItem('usuarioActivo');
-        if (usuarioGuardado) {
+        if (userRole !== 'Administrador') return;
+
+        const controller = new AbortController();
+
+        async function loadStats() {
             try {
-                const parsedUser = JSON.parse(usuarioGuardado);
-                setUser(parsedUser);
-                
-                // Cargar estadísticas si es Administrador
-                if (parsedUser?.role?.name === 'Administrador') {
-                    const token = localStorage.getItem('token');
-                    
-                    fetch('http://localhost:8080/api/asignaciones', { headers: { 'Authorization': `Bearer ${token}` } })
-                        .then(res => res.json())
-                        .then(data => setStats(s => ({ ...s, asignaciones: data.length })))
-                        .catch(err => console.error(err));
-                        
-                    fetch('http://localhost:8080/api/centros', { headers: { 'Authorization': `Bearer ${token}` } })
-                        .then(res => res.json())
-                        .then(data => setStats(s => ({ ...s, centros: data.length })))
-                        .catch(err => console.error(err));
+                const [assignments, centers] = await Promise.all([
+                    assignmentService.getAssignments({ signal: controller.signal }),
+                    centerService.getCenters({ signal: controller.signal })
+                ]);
+                setStats({
+                    asignaciones: Array.isArray(assignments) ? assignments.length : 0,
+                    centros: Array.isArray(centers) ? centers.length : 0
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Error cargando estadísticas del dashboard:', err);
                 }
-            } catch (error) {
-                console.error("Error parsing user from localStorage:", error);
-                localStorage.removeItem('usuarioActivo');
-                localStorage.removeItem('token');
             }
         }
-    }, []);
 
-    const userRole = user?.role?.name || '';
+        loadStats();
+
+        return () => controller.abort();
+    }, [userRole]);
 
     return (
         <div className="space-y-6">
@@ -69,30 +68,30 @@ export default function Dashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Link to="/gestion-roles" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
-                        <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800">Gestión de Usuarios</h3>
-                        <p className="text-sm text-gray-500 mt-2">Administra roles y realiza cargas masivas de estudiantes.</p>
-                    </Link>
+                        <Link to="/gestion-roles" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                            <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Gestión de Usuarios</h3>
+                            <p className="text-sm text-gray-500 mt-2">Administra roles y realiza cargas masivas de estudiantes.</p>
+                        </Link>
 
-                    <Link to="#" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
-                        <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800">Centros de Práctica</h3>
-                        <p className="text-sm text-gray-500 mt-2">Administra colegios, dependencias e información CNA.</p>
-                    </Link>
+                        <Link to="/asignaciones" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Asignaciones</h3>
+                            <p className="text-sm text-gray-500 mt-2">Gestiona asignaciones de estudiantes a centros de práctica.</p>
+                        </Link>
 
-                    <Link to="/asignaturas" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
-                        <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800">Pautas y Evaluación</h3>
-                        <p className="text-sm text-gray-500 mt-2">Configura rúbricas y ponderaciones de asignaturas.</p>
-                    </Link>
-                </div>
+                        <Link to="/asignaturas" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
+                            <div className="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800">Gestión de Asignaturas</h3>
+                            <p className="text-sm text-gray-500 mt-2">Configura asignaturas y profesores responsables.</p>
+                        </Link>
+                    </div>
                 </div>
             )}
 
@@ -116,9 +115,9 @@ export default function Dashboard() {
                             RetroPlani Mate (IA)
                         </h3>
                         <p className="text-gray-600 mt-3">Valida tus planificaciones con el asistente virtual antes de enviarlas al profesor colaborador.</p>
-                        <button className="mt-4 px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition-colors text-sm">
-                            Iniciar Revisión
-                        </button>
+                        <span className="inline-block mt-4 px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg text-sm">
+                            Próximamente disponible
+                        </span>
                     </div>
                 </div>
             )}
@@ -132,9 +131,9 @@ export default function Dashboard() {
                             Mis Estudiantes Asignados
                         </h3>
                         <p className="text-gray-600 mt-3">Revisa las asignaciones y evalúa el desempeño de tus estudiantes en sus respectivos centros de práctica.</p>
-                        <button className="mt-4 px-4 py-2 bg-green-50 text-green-600 font-semibold rounded-lg hover:bg-green-100 transition-colors text-sm">
+                        <span className="inline-block mt-4 px-4 py-2 bg-green-50 text-green-600 font-semibold rounded-lg text-sm">
                             Ver listado de estudiantes
-                        </button>
+                        </span>
                     </Link>
                 </div>
             )}

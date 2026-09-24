@@ -1,283 +1,274 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import userService from '../services/userService';
+import { DataTable, Modal, Input, Select, Button, Badge } from '../components/ui';
 
-export default function GestionUsuarios() {
+export default function GestionRoles() {
+    const { user: usuarioActual } = useAuth();
     const [usuarios, setUsuarios] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loadingUsuarios, setLoadingUsuarios] = useState(true);
 
-    // Formulario (Crear o Editar)
+    // Formulario Modal (Crear o Editar)
     const [showForm, setShowForm] = useState(false);
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ fullName: '', email: '', password: '', role: '' });
-    const [usuarioActual, setUsuarioActual] = useState(null);
-    const navigate = useNavigate();
+    const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem('usuarioActivo');
-        if (storedUser) {
-            try {
-                const parsedUser = JSON.parse(storedUser);
-                if (parsedUser?.role?.name !== 'Administrador') {
-                    toast.error("No tienes permiso para ver esta página.");
-                    navigate('/dashboard');
-                    return;
-                }
-                setUsuarioActual(parsedUser);
-            } catch (error) {
-                navigate('/');
-                return;
-            }
-        } else {
-            navigate('/');
-            return;
-        }
-        cargarUsuarios();
-        cargarRoles();
-    }, [navigate]);
-
-    const cargarUsuarios = async () => {
+    const cargarDatos = useCallback(async (signal) => {
         setLoadingUsuarios(true);
         try {
-            const res = await fetch('http://localhost:8080/api/usuarios', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-            if (res.ok) {
-                const data = await res.json();
-                setUsuarios(data);
-            }
+            const [usersData, rolesData] = await Promise.all([
+                userService.getUsers({ signal }),
+                userService.getRoles({ signal })
+            ]);
+            setUsuarios(Array.isArray(usersData) ? usersData : []);
+            setRoles(Array.isArray(rolesData) ? rolesData : []);
         } catch (error) {
-            toast.error("Error al cargar usuarios");
-        }
-        setLoadingUsuarios(false);
-    };
-
-    const cargarRoles = async () => {
-        try {
-            const res = await fetch('http://localhost:8080/api/roles', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-            if (res.ok) {
-                const data = await res.json();
-                setRoles(data);
+            if (error.name !== 'AbortError') {
+                console.error('Error al cargar usuarios o roles:', error);
+                toast.error(error.message || 'Error al cargar los datos.');
             }
-        } catch (error) {
-            toast.error("Error al cargar roles");
+        } finally {
+            setLoadingUsuarios(false);
         }
-    };
+    }, []);
 
-    const handleCrearUsuario = async () => {
-        if (!formData.fullName || !formData.email || !formData.password || !formData.role) {
+    useEffect(() => {
+        const controller = new AbortController();
+        cargarDatos(controller.signal);
+        return () => controller.abort();
+    }, [cargarDatos]);
+
+    const handleGuardarUsuario = async (e) => {
+        e.preventDefault();
+
+        if (!editingUserId && (!formData.fullName || !formData.email || !formData.password || !formData.role)) {
             toast.error("Todos los campos son obligatorios para crear.");
             return;
         }
-        
-        const nuevoUsuario = {
-            fullName: formData.fullName,
-            email: formData.email,
-            passwordHash: formData.password,
-            active: true,
-            role: { name: formData.role }
-        };
 
-        const loadingToast = toast.loading("Creando usuario...");
-        try {
-            const res = await fetch('http://localhost:8080/api/usuarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                body: JSON.stringify(nuevoUsuario)
-            });
-
-            if (res.ok) {
-                toast.success("Usuario creado correctamente", { id: loadingToast });
-                setShowForm(false);
-                setFormData({ fullName: '', email: '', password: '', role: '' });
-                cargarUsuarios();
-            } else {
-                toast.error("Error al crear usuario", { id: loadingToast });
-            }
-        } catch (error) {
-            toast.error("Error de red", { id: loadingToast });
+        if (editingUserId && (!formData.fullName || !formData.email || !formData.role)) {
+            toast.error("Nombre, correo y rol son obligatorios.");
+            return;
         }
-    };
 
-    const handleEditarUsuario = async () => {
-        const payload = {
-            fullName: formData.fullName,
-            email: formData.email,
-            role: { name: formData.role }
-        };
+        setIsSaving(true);
+        const loadingToast = toast.loading(editingUserId ? "Actualizando usuario..." : "Creando usuario...");
 
-        const loadingToast = toast.loading("Actualizando usuario...");
         try {
-            const res = await fetch(`http://localhost:8080/api/usuarios/${editingUserId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
+            if (editingUserId) {
+                await userService.updateUser(editingUserId, {
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    role: { name: formData.role }
+                });
                 toast.success("Usuario actualizado correctamente", { id: loadingToast });
-                setShowForm(false);
-                setEditingUserId(null);
-                setFormData({ fullName: '', email: '', password: '', role: '' });
-                cargarUsuarios();
             } else {
-                toast.error("Error al actualizar usuario", { id: loadingToast });
+                await userService.createUser({
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    password: formData.password,
+                    role: { name: formData.role },
+                    active: true
+                });
+                toast.success("Usuario creado correctamente", { id: loadingToast });
             }
+
+            setShowForm(false);
+            setEditingUserId(null);
+            setFormData({ fullName: '', email: '', password: '', role: '' });
+            cargarDatos();
         } catch (error) {
-            toast.error("Error de red", { id: loadingToast });
+            console.error('Error al guardar usuario:', error);
+            toast.error(error.message || "Error al procesar la solicitud", { id: loadingToast });
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const toggleEstado = async (id, estadoActual) => {
+    const toggleEstado = useCallback(async (id, estadoActual) => {
         const nuevoEstado = estadoActual === null || estadoActual === undefined ? false : !estadoActual;
         const loadingToast = toast.loading(nuevoEstado ? "Activando..." : "Desactivando...");
         try {
-            const res = await fetch(`http://localhost:8080/api/usuarios/${id}/estado`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                body: JSON.stringify({ active: nuevoEstado })
-            });
-
-            if (res.ok) {
-                toast.success(nuevoEstado ? "Usuario activado" : "Usuario desactivado", { id: loadingToast });
-                cargarUsuarios();
-            } else {
-                toast.error("Error al cambiar estado", { id: loadingToast });
-            }
+            await userService.updateStatus(id, nuevoEstado);
+            toast.success(nuevoEstado ? "Usuario activado" : "Usuario desactivado", { id: loadingToast });
+            cargarDatos();
         } catch (error) {
-            toast.error("Error de red", { id: loadingToast });
+            console.error('Error al cambiar estado:', error);
+            toast.error(error.message || "Error al cambiar estado", { id: loadingToast });
         }
-    };
+    }, [cargarDatos]);
+
+    const columns = useMemo(() => [
+        {
+            header: 'Nombre',
+            accessor: 'fullName',
+            className: 'font-medium text-gray-900',
+        },
+        {
+            header: 'Email',
+            accessor: 'email',
+            className: 'text-gray-500',
+        },
+        {
+            header: 'Rol',
+            render: (row) => (
+                <Badge variant="primary">
+                    {row.role?.name || 'Sin Rol'}
+                </Badge>
+            ),
+        },
+        {
+            header: 'Estado',
+            align: 'center',
+            render: (row) => (
+                <Badge variant={row.active !== false ? 'success' : 'danger'}>
+                    {row.active !== false ? 'Activo' : 'Inactivo'}
+                </Badge>
+            ),
+        },
+        {
+            header: 'Acciones',
+            align: 'right',
+            render: (row) => (
+                <div className="flex items-center justify-end space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            setEditingUserId(row.id);
+                            setFormData({
+                                fullName: row.fullName,
+                                email: row.email,
+                                password: '',
+                                role: row.role ? row.role.name : ''
+                            });
+                            setShowForm(true);
+                        }}
+                    >
+                        Editar
+                    </Button>
+                    
+                    {(!usuarioActual || row.id !== usuarioActual.id) ? (
+                        <Button
+                            variant={row.active !== false ? 'danger' : 'success'}
+                            size="sm"
+                            onClick={() => toggleEstado(row.id, row.active)}
+                        >
+                            {row.active !== false ? 'Desactivar' : 'Activar'}
+                        </Button>
+                    ) : (
+                        <span className="text-xs text-gray-400 cursor-not-allowed px-2" title="No puedes desactivarte a ti mismo">
+                            Actual
+                        </span>
+                    )}
+                </div>
+            ),
+        },
+    ], [usuarioActual, toggleEstado]);
+
+    const roleOptions = useMemo(() => (
+        roles.map(r => ({ value: r.name, label: r.name }))
+    ), [roles]);
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
             <div className="flex justify-between items-center">
-                <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Gestión de Usuarios</h1>
-                <button 
+                <div>
+                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Gestión de Usuarios</h1>
+                    <p className="text-gray-500 mt-1">Administra cuentas, roles y estados de los usuarios del sistema.</p>
+                </div>
+                <Button 
+                    variant="primary"
                     onClick={() => {
                         setEditingUserId(null);
                         setFormData({ fullName: '', email: '', password: '', role: '' });
-                        setShowForm(!showForm);
+                        setShowForm(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow"
                 >
-                    {showForm ? "Cerrar Formulario" : "+ Nuevo Usuario"}
-                </button>
+                    + Nuevo Usuario
+                </Button>
             </div>
 
-            {showForm && (
-                <div className="bg-white p-6 rounded-2xl shadow border border-gray-100">
-                    <h2 className="text-xl font-bold mb-4">{editingUserId ? "Editar Usuario" : "Crear Usuario"}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input 
-                            className="border p-2 rounded w-full" 
-                            placeholder="Nombre Completo" 
-                            value={formData.fullName} 
-                            onChange={e => setFormData({...formData, fullName: e.target.value})} 
-                        />
-                        <input 
-                            className="border p-2 rounded w-full" 
-                            placeholder="Email" 
-                            type="email"
-                            value={formData.email} 
-                            onChange={e => setFormData({...formData, email: e.target.value})} 
-                        />
-                        {!editingUserId && (
-                            <input 
-                                className="border p-2 rounded w-full" 
-                                placeholder="Contraseña" 
-                                type="password"
-                                value={formData.password} 
-                                onChange={e => setFormData({...formData, password: e.target.value})} 
-                            />
-                        )}
-                        <select 
-                            className="border p-2 rounded w-full bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                            value={formData.role}
-                            onChange={e => setFormData({...formData, role: e.target.value})}
-                            disabled={editingUserId && usuarioActual && editingUserId === usuarioActual.id}
-                            title={editingUserId && usuarioActual && editingUserId === usuarioActual.id ? "No puedes cambiar tu propio rol" : ""}
+            {/* Modal de Creación / Edición */}
+            <Modal
+                isOpen={showForm}
+                onClose={() => {
+                    setShowForm(false);
+                    setEditingUserId(null);
+                    setFormData({ fullName: '', email: '', password: '', role: '' });
+                }}
+                title={editingUserId ? "Editar Usuario" : "Crear Nuevo Usuario"}
+                size="md"
+                footer={
+                    <div className="flex justify-end space-x-3">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowForm(false)}
+                            disabled={isSaving}
                         >
-                            <option value="">Selecciona un Rol</option>
-                            {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                        <button 
-                            onClick={editingUserId ? handleEditarUsuario : handleCrearUsuario}
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow"
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleGuardarUsuario}
+                            isLoading={isSaving}
                         >
                             {editingUserId ? "Guardar Cambios" : "Crear Usuario"}
-                        </button>
+                        </Button>
                     </div>
-                </div>
-            )}
-
-            <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    {loadingUsuarios ? (
-                        <p className="text-center text-gray-500 py-8">Cargando usuarios...</p>
-                    ) : (
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {usuarios.map(usuario => (
-                                    <tr key={usuario.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{usuario.fullName}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                {usuario.role ? usuario.role.name : 'Sin Rol'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${usuario.active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {usuario.active !== false ? 'Activo' : 'Inactivo'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                            <button 
-                                                onClick={() => {
-                                                    setEditingUserId(usuario.id);
-                                                    setFormData({
-                                                        fullName: usuario.fullName,
-                                                        email: usuario.email,
-                                                        password: '',
-                                                        role: usuario.role ? usuario.role.name : ''
-                                                    });
-                                                    setShowForm(true);
-                                                }}
-                                                className="text-blue-600 hover:text-blue-900"
-                                            >
-                                                Editar
-                                            </button>
-                                            
-                                            {(!usuarioActual || usuario.id !== usuarioActual.id) ? (
-                                                <button 
-                                                    onClick={() => toggleEstado(usuario.id, usuario.active)}
-                                                    className={`${usuario.active !== false ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                                                >
-                                                    {usuario.active !== false ? 'Desactivar' : 'Activar'}
-                                                </button>
-                                            ) : (
-                                                <span className="text-gray-400 cursor-not-allowed" title="No puedes desactivarte a ti mismo">
-                                                    Desactivar
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                }
+            >
+                <form onSubmit={handleGuardarUsuario} className="space-y-4">
+                    <Input 
+                        label="Nombre Completo"
+                        placeholder="Ej. Juan Pérez" 
+                        value={formData.fullName} 
+                        onChange={e => setFormData({...formData, fullName: e.target.value})} 
+                        required
+                    />
+                    <Input 
+                        label="Email Institucional"
+                        placeholder="usuario@ubiobio.cl" 
+                        type="email"
+                        value={formData.email} 
+                        onChange={e => setFormData({...formData, email: e.target.value})} 
+                        required
+                    />
+                    {!editingUserId && (
+                        <Input 
+                            label="Contraseña"
+                            placeholder="••••••••" 
+                            type="password"
+                            value={formData.password} 
+                            onChange={e => setFormData({...formData, password: e.target.value})} 
+                            required
+                        />
                     )}
-                </div>
+                    <Select 
+                        label="Rol Asignado"
+                        options={roleOptions}
+                        value={formData.role}
+                        onChange={e => setFormData({...formData, role: e.target.value})}
+                        disabled={editingUserId && usuarioActual && editingUserId === usuarioActual.id}
+                        helperText={editingUserId && usuarioActual && editingUserId === usuarioActual.id ? "No puedes cambiar tu propio rol" : undefined}
+                        placeholder="Selecciona un Rol"
+                        required
+                    />
+                </form>
+            </Modal>
+
+            {/* Tabla de Usuarios */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <DataTable
+                    columns={columns}
+                    data={usuarios}
+                    isLoading={loadingUsuarios}
+                    emptyMessage="No se encontraron usuarios registrados."
+                    keyField="id"
+                />
             </div>
         </div>
     );

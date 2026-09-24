@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import userService from '../services/userService';
+import { Button } from '../components/ui';
 
-export default function
-    CargaMasiva() {
+export default function CargaMasiva() {
     const [file, setFile] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handleUpload = async (e) => {
         e.preventDefault();
@@ -12,30 +14,21 @@ export default function
             return;
         }
 
-        const formData = new FormData();
-        formData.append('archivo', file);
-
         const loadingToast = toast.loading("Procesando usuarios...");
+        setLoading(true);
 
         try {
-            const respuesta = await fetch('http://localhost:8080/api/usuarios/carga-masiva', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-                body: formData,
-            });
-
-            if (respuesta.ok) {
-                toast.dismiss(loadingToast);
-                toast.success("¡Usuarios cargados con éxito!");
-                setFile(null);
-            } else {
-                const textoError = await respuesta.text();
-                toast.dismiss(loadingToast);
-                toast.error("Error: " + textoError);
-            }
+            await userService.uploadBatch(file);
+            toast.dismiss(loadingToast);
+            toast.success("¡Usuarios cargados con éxito!");
+            setFile(null);
+            // Reset input element
+            e.target.reset();
         } catch (err) {
             toast.dismiss(loadingToast);
-            toast.error("El servidor Java está apagado.");
+            toast.error(err.message || "Error al procesar el archivo masivo.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -59,16 +52,19 @@ export default function
                         <input
                             type="file"
                             accept=".csv, .xlsx"
-                            onChange={(e) => setFile(e.target.files[0])}
+                            onChange={(e) => setFile(e.target.files?.[0] || null)}
                             className="w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                         />
                     </div>
-                    <button
+                    <Button
                         type="submit"
-                        className="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-orange-700 hover:shadow-md transition-all active:scale-95"
+                        variant="primary"
+                        size="lg"
+                        className="w-full bg-orange-600 hover:bg-orange-700 font-bold"
+                        isLoading={loading}
                     >
                         Procesar Usuarios
-                    </button>
+                    </Button>
                 </form>
             </div>
         </div>

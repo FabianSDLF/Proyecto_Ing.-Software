@@ -129,7 +129,7 @@ public class PracticeAssignmentServiceImpl implements PracticeAssignmentService 
 
         Optional<TeachingRole> teachingRole = TeachingRole.fromRoleName(targetProfessor.getRole().getName());
         if (teachingRole.isEmpty()) {
-            throw new IllegalArgumentException("El usuario no tiene un rol docente válido");
+            throw new com.ubb.practicas.exception.ForbiddenException("El usuario no tiene un rol docente válido");
         }
 
         return teachingRole.get().findAssignments(assignmentRepository, professorId);

@@ -13,10 +13,10 @@ public interface UserService {
     List<User> obtenerTodosUsuarios();
     List<User> listarUsuariosPorRol(String roleName);
     User obtenerPorEmail(String email);
-    void procesarArchivoMasivo(MultipartFile archivo) throws Exception;
-    User actualizarRolUsuario(Long usuarioId, String roleName) throws Exception;
-    User actualizarUsuario(Long usuarioId, User datosActualizados) throws Exception;
-    User cambiarEstadoUsuario(Long usuarioId, boolean estado) throws Exception;
-    User crearUsuario(User nuevoUsuario) throws Exception;
-    User actualizarMiPerfil(String emailActual, UserProfileUpdateRequest request) throws Exception;
+    void procesarArchivoMasivo(MultipartFile archivo);
+    User actualizarRolUsuario(Long usuarioId, String roleName);
+    User actualizarUsuario(Long usuarioId, User datosActualizados);
+    User cambiarEstadoUsuario(Long usuarioId, boolean estado);
+    User crearUsuario(User nuevoUsuario);
+    User actualizarMiPerfil(String emailActual, UserProfileUpdateRequest request);
 }

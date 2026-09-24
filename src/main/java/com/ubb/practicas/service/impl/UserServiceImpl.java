@@ -1,6 +1,9 @@
 package com.ubb.practicas.service.impl;
 
 import com.ubb.practicas.dto.UserProfileUpdateRequest;
+import com.ubb.practicas.exception.EmailAlreadyInUseException;
+import com.ubb.practicas.exception.RoleNotFoundException;
+import com.ubb.practicas.exception.UserNotFoundException;
 import com.ubb.practicas.model.Role;
 import com.ubb.practicas.model.User;
 import com.ubb.practicas.repository.RoleRepository;
@@ -45,19 +48,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void procesarArchivoMasivo(MultipartFile archivo) throws Exception {
+    public void procesarArchivoMasivo(MultipartFile archivo) {
         userBatchImportService.procesarArchivoMasivo(archivo);
     }
 
     @Override
     @Transactional
-    public User actualizarRolUsuario(Long usuarioId, String roleName) throws Exception {
+    public User actualizarRolUsuario(Long usuarioId, String roleName) {
         User user = userRepository.findById(usuarioId)
-                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + usuarioId));
 
         Role role = roleRepository.findByName(roleName);
         if (role == null) {
-            throw new Exception("Rol no encontrado: " + roleName);
+            throw new RoleNotFoundException("Rol no encontrado: " + roleName);
         }
 
         user.setRole(role);
@@ -66,16 +69,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User actualizarUsuario(Long usuarioId, User datosActualizados) throws Exception {
+    public User actualizarUsuario(Long usuarioId, User datosActualizados) {
         User user = userRepository.findById(usuarioId)
-                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + usuarioId));
 
         if (datosActualizados.getFullName() != null) {
             user.setFullName(datosActualizados.getFullName());
         }
         if (datosActualizados.getEmail() != null && !user.getEmail().equals(datosActualizados.getEmail())) {
             if (userRepository.findByEmail(datosActualizados.getEmail()) != null) {
-                throw new Exception("El email ya está en uso");
+                throw new EmailAlreadyInUseException("El email ya está en uso: " + datosActualizados.getEmail());
             }
             user.setEmail(datosActualizados.getEmail());
         }
@@ -90,24 +93,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User cambiarEstadoUsuario(Long usuarioId, boolean estado) throws Exception {
+    public User cambiarEstadoUsuario(Long usuarioId, boolean estado) {
         User user = userRepository.findById(usuarioId)
-                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + usuarioId));
         user.setActive(estado);
         return userRepository.save(user);
     }
 
     @Override
     @Transactional
-    public User crearUsuario(User nuevoUsuario) throws Exception {
+    public User crearUsuario(User nuevoUsuario) {
         if (userRepository.findByEmail(nuevoUsuario.getEmail()) != null) {
-            throw new Exception("El email ya está en uso");
+            throw new EmailAlreadyInUseException("El email ya está en uso: " + nuevoUsuario.getEmail());
         }
 
         if (nuevoUsuario.getRole() != null && nuevoUsuario.getRole().getName() != null) {
             Role role = roleRepository.findByName(nuevoUsuario.getRole().getName());
             if (role == null) {
-                throw new Exception("Rol no encontrado: " + nuevoUsuario.getRole().getName());
+                throw new RoleNotFoundException("Rol no encontrado: " + nuevoUsuario.getRole().getName());
             }
             nuevoUsuario.setRole(role);
         }
@@ -126,10 +129,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User actualizarMiPerfil(String emailActual, UserProfileUpdateRequest request) throws Exception {
+    public User actualizarMiPerfil(String emailActual, UserProfileUpdateRequest request) {
         User user = userRepository.findByEmail(emailActual);
         if (user == null) {
-            throw new Exception("Usuario no encontrado");
+            throw new UserNotFoundException("Usuario no encontrado con email: " + emailActual);
         }
         if (request.getFullName() != null && !request.getFullName().isEmpty()) {
             user.setFullName(request.getFullName());
@@ -139,7 +142,7 @@ public class UserServiceImpl implements UserService {
         }
         if (request.getEmail() != null && !user.getEmail().equals(request.getEmail())) {
             if (userRepository.findByEmail(request.getEmail()) != null) {
-                throw new Exception("El email ya está en uso por otro usuario");
+                throw new EmailAlreadyInUseException("El email ya está en uso por otro usuario: " + request.getEmail());
             }
             user.setEmail(request.getEmail());
         }

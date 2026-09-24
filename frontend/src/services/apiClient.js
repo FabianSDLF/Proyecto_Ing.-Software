@@ -90,7 +90,7 @@ async function request(endpoint, options = {}) {
             errorData = text;
           }
         }
-      } catch (_) {
+      } catch {
         // Fallback to default message
       }
 

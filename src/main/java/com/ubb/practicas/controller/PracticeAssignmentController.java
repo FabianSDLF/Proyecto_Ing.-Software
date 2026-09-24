@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/asignaciones")
@@ -17,8 +17,8 @@ public class PracticeAssignmentController {
     private final PracticeAssignmentService assignmentService;
 
     @GetMapping
-    public List<PracticeAssignment> listarAsignaciones() {
-        return assignmentService.listarAsignaciones();
+    public ResponseEntity<List<PracticeAssignment>> listarAsignaciones() {
+        return ResponseEntity.ok(assignmentService.listarAsignaciones());
     }
 
     @GetMapping("/colaborador/{id}")
@@ -32,22 +32,14 @@ public class PracticeAssignmentController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crearAsignacion(@RequestBody PracticeAssignment assignment) {
-        try {
-            PracticeAssignment created = assignmentService.crearAsignacion(assignment);
-            return ResponseEntity.ok(created);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<PracticeAssignment> crearAsignacion(@RequestBody PracticeAssignment assignment) {
+        PracticeAssignment created = assignmentService.crearAsignacion(assignment);
+        return ResponseEntity.ok(created);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarAsignacion(@PathVariable Long id) {
-        try {
-            assignmentService.eliminarAsignacion(id);
-            return ResponseEntity.ok().build();
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Map<String, String>> eliminarAsignacion(@PathVariable Long id) {
+        assignmentService.eliminarAsignacion(id);
+        return ResponseEntity.ok(Map.of("message", "Asignación eliminada exitosamente"));
     }
 }

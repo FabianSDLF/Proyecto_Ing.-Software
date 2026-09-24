@@ -87,4 +87,31 @@ Aplicar las soluciones teóricas de los 95 hallazgos listados en `reporte_codigo
 
 URGENT: The user has requested to PAUSE all work immediately after Phase 2 is completely finished and committed. Do NOT proceed to Phase 3. Once Phase 2 is committed and passes its Gate Review, halt orchestration and report back to me so we can pause the project.
 
+## 2026-09-24T00:44:29Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo Completo (Full Team)
+
+Usa un equipo grande de agentes (Full Team). Continuar con el plan de refactorización detallado en `PROJECT.md`, ejecutando las Fases 3 y 4 hasta concluir completamente con todos los hallazgos. El trabajo debe continuar en la rama `fabian`.
+
+Working directory: c:/Users/Fabián Sepúlveda/Desktop/UBB/2026-2/Ingenieria Software/Proyecto_Documentacion/5_Desarrollo/Proyecto_IngSoft_Practicas
+Integrity mode: development
+
+## Requirements
+
+### R1. Continuación en Rama Existente
+Asegurarse de trabajar sobre la rama `fabian` que ya contiene los avances de las Fases 1 y 2. Todos los nuevos commits deben ir a esta rama.
+
+### R2. Ejecución Final (Fases 3 y 4)
+Implementar los cambios correspondientes a la Fase 3 y Fase 4 descritas en `PROJECT.md` y `reporte_codigo.md` para cerrar la totalidad de los problemas encontrados.
+
+## Acceptance Criteria
+
+### Verificación de Compilación
+- [ ] El backend de Spring Boot compila exitosamente sin errores (`mvn compile`).
+- [ ] El frontend compila exitosamente (`npm run build`).
+
 

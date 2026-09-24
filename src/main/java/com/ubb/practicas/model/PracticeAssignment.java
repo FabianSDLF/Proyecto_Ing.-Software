@@ -2,36 +2,62 @@ package com.ubb.practicas.model;
 
 import com.ubb.practicas.model.enums.AssignmentStatus;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
 @Table(name = "Asignacion_Practicas")
 public class PracticeAssignment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
+    @ToString.Exclude
     private User student;
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id")
+    @ToString.Exclude
     private Subject subject;
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "center_id")
+    @ToString.Exclude
     private PracticeCenter center;
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "collaborator_id")
+    @ToString.Exclude
     private User collaborator;
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tutor_id")
+    @ToString.Exclude
     private User tutor;
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "period_id")
+    @ToString.Exclude
     private AcademicPeriod period;
+
     @Enumerated(EnumType.STRING)
     private AssignmentStatus status;
+
     private LocalDateTime createdAt;
 
     public boolean isStudent(String email) {
