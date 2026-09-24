@@ -21,8 +21,8 @@ export default function DataTable({
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return data;
     const sorted = [...data].sort((a, b) => {
-      const aVal = a[sortConfig.key];
-      const bVal = b[sortConfig.key];
+      const aVal = sortConfig.key.split('.').reduce((acc, part) => acc && acc[part], a);
+      const bVal = sortConfig.key.split('.').reduce((acc, part) => acc && acc[part], b);
       if (aVal === bVal) return 0;
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
@@ -108,16 +108,20 @@ export default function DataTable({
             ) : (
               paginatedData.map((row, index) => (
                 <tr key={keyExtractor(row, index)} className="hover:bg-gray-50 transition-colors">
-                  {columns.map((col) => (
-                    <td
-                      key={col.accessor || col.key || col.header}
-                      className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
-                      } ${col.cellClassName || 'text-gray-700'}`}
-                    >
-                      {col.render ? col.render(row) : row[col.accessor || col.key]}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const colKey = col.accessor || col.key;
+                    const nestedValue = colKey ? colKey.split('.').reduce((acc, part) => acc && acc[part], row) : undefined;
+                    return (
+                      <td
+                        key={colKey || col.header}
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${
+                          col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
+                        } ${col.cellClassName || 'text-gray-700'}`}
+                      >
+                        {col.render ? col.render(row) : nestedValue}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
