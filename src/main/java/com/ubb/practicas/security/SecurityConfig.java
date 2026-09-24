@@ -45,16 +45,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/usuarios/perfil").authenticated()
-                .requestMatchers("/api/usuarios/carga-masiva").hasAnyRole("Coordinador de practicas", "Coordinador de practicas")
-                .requestMatchers("/api/usuarios/**").hasAnyRole("Coordinador de practicas", "Coordinador de practicas")
+                .requestMatchers("/api/usuarios/carga-masiva").hasRole("Coordinador de practicas")
+                .requestMatchers("/api/usuarios/**").hasRole("Coordinador de practicas")
                 .requestMatchers("/api/asignaciones/colaborador/**", "/api/asignaciones/tutor/**").hasAnyRole(
-                    "Coordinador de practicas", "Coordinador de practicas",
+                    "Coordinador de practicas",
                     "PROFESOR_COLABORADOR", "Profesor Colaborador",
                     "TUTOR", "Tutor",
                     "PROFESOR_DE_ASIGNATURA", "Profesor de Asignatura"
                 )
-                .requestMatchers("/api/asignaciones/**").hasAnyRole("Coordinador de practicas", "Coordinador de practicas")
-                .requestMatchers("/api/carga-masiva/**").hasAnyRole("Coordinador de practicas", "Coordinador de practicas")
+                .requestMatchers("/api/asignaciones/**").hasRole("Coordinador de practicas")
+                .requestMatchers("/api/carga-masiva/**").hasRole("Coordinador de practicas")
                 .requestMatchers("/api/portafolio/**", "/api/profesor/**").authenticated()
                 .anyRequest().authenticated()
             )
