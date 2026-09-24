@@ -114,4 +114,33 @@ Implementar los cambios correspondientes a la Fase 3 y Fase 4 descritas en `PROJ
 - [ ] El backend de Spring Boot compila exitosamente sin errores (`mvn compile`).
 - [ ] El frontend compila exitosamente (`npm run build`).
 
+## 2026-09-24T11:31:54Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo Completo (Full Team)
+
+Usa un equipo grande de agentes (Full Team). Finalizar la implementación de la Fase 4 del proyecto (Quality Assurance & Automated Tests). Existen archivos sin commitear en el árbol de trabajo dejados por una ejecución previa interrumpida; el equipo debe continuar desde este punto, arreglar los tests si es necesario, y cerrar la Fase 4.
+
+Working directory: c:/Users/Fabián Sepúlveda/Desktop/UBB/2026-2/Ingenieria Software/Proyecto_Documentacion/5_Desarrollo/Proyecto_IngSoft_Practicas
+Integrity mode: development
+
+## Requirements
+
+### R1. Retomar Trabajo Inconcluso
+Identificar el estado de los archivos modificados y no rastreados (tests de backend, frontend, Playwright) en la rama `fabian`. No descartar el código útil ya escrito por la ejecución anterior.
+
+### R2. Finalizar Fase 4
+Hacer que todas las pruebas automatizadas pasen exitosamente, solucionando cualquier error de compilación o de ejecución de tests que haya quedado pendiente.
+
+## Acceptance Criteria
+
+### Verificación Total
+- [ ] `mvn clean test` ejecuta y pasa todas las pruebas en el backend sin errores.
+- [ ] Las pruebas del frontend compilan y pasan correctamente.
+- [ ] Los cambios finales quedan versionados (commit) en la rama `fabian` y el árbol queda limpio.
+
+
 

@@ -26,6 +26,14 @@ export function AuthProvider({ children }) {
   const isAuthenticated = useMemo(() => Boolean(token && user), [token, user]);
   const userRole = useMemo(() => user?.role?.name || null, [user]);
 
+  // Specific role evaluation helpers (TS-06, FE-03)
+  const isAdmin = useMemo(() => userRole === 'Administrador', [userRole]);
+  const isStudent = useMemo(() => userRole === 'Estudiante', [userRole]);
+  const isProfessor = useMemo(
+    () => ['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole),
+    [userRole]
+  );
+
   /**
    * Log in user, persist credentials, and update reactive state
    */
@@ -88,12 +96,15 @@ export function AuthProvider({ children }) {
       userRole,
       isAuthenticated,
       isLoading,
+      isAdmin,
+      isStudent,
+      isProfessor,
       login,
       logout,
       updateUserProfile,
       hasRole,
     }),
-    [user, token, userRole, isAuthenticated, isLoading, login, logout, updateUserProfile, hasRole]
+    [user, token, userRole, isAuthenticated, isLoading, isAdmin, isStudent, isProfessor, login, logout, updateUserProfile, hasRole]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

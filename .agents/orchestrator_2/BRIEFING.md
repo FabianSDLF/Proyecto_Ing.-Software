@@ -51,12 +51,21 @@ Coordinate the full team to execute Phase 3 and Phase 4 of the PITAGORAS refacto
 | explorer_m3_err_1 | teamwork_preview_explorer | Phase 3 Backend Error Handling & DTOs | completed | f687db19-79d0-4155-8dad-80328b6a87ea |
 | explorer_m3_jpa_2 | teamwork_preview_explorer | Phase 3 JPA & Domain Architecture | completed | e1c60645-006f-4c2f-8c92-d45ce7cb8a47 |
 | explorer_m3_fe_3 | teamwork_preview_explorer | Phase 3 Frontend Hygiene & Oxlint | completed | 1b5fc094-3615-4f14-bd97-e43a09ba7086 |
-| worker_m3_1 | teamwork_preview_worker | Phase 3 Implementation & Build | in-progress | 7a911721-ab20-4ecb-98bb-6cbee4c97f62 |
+| worker_m3_1 | teamwork_preview_worker | Phase 3 Implementation & Build | completed | 7a911721-ab20-4ecb-98bb-6cbee4c97f62 |
+| reviewer_m3_1 | teamwork_preview_reviewer | Phase 3 Backend Review | completed | bb88cf51-0ebb-4cf3-ab55-b400693129f5 |
+| reviewer_m3_2 | teamwork_preview_reviewer | Phase 3 Frontend Review | completed | 99a27f0e-4484-42a1-bb06-db297eaa11f2 |
+| challenger_m3_1 | teamwork_preview_challenger | Phase 3 Backend Adversarial Stress Test | completed | 1dd88af0-87d6-40d4-9030-18739a9715ec |
+| challenger_m3_2 | teamwork_preview_challenger | Phase 3 Frontend Adversarial Stress Test | completed | 0db67b71-3493-4448-85da-769ced626bd0 |
+| auditor_m3_1 | teamwork_preview_auditor | Phase 3 Forensic Integrity Audit | completed | 79108ee8-5613-4d4f-910d-d977509b0a62 |
+| explorer_m4_srv_1 | teamwork_preview_explorer | Phase 4 Service Unit Testing Explorer | completed | 43e2a55e-b477-4218-8977-0772e202ad5d |
+| explorer_m4_ctrl_2 | teamwork_preview_explorer | Phase 4 Controller & Test Smell Explorer | completed | 7bd65c0f-f820-48a4-8594-be5ca51f48d8 |
+| explorer_m4_fe_3 | teamwork_preview_explorer | Phase 4 Frontend Testing Explorer | completed | 975c8acd-baff-4e1f-bc60-79a0e9c15d38 |
+| worker_m4_1 | teamwork_preview_worker | Phase 4 Implementation & Testing | in-progress | 43a96a3f-af84-4660-987c-ed8ad43994e8 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 4 / 16
-- Pending subagents: 7a911721-ab20-4ecb-98bb-6cbee4c97f62
+- Spawn count: 13 / 16
+- Pending subagents: 43a96a3f-af84-4660-987c-ed8ad43994e8
 - Predecessor: orchestrator_1
 - Successor: not yet spawned
 

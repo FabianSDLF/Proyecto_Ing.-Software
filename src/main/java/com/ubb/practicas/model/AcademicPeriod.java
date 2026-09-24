@@ -26,6 +26,8 @@ public class AcademicPeriod {
     private Long id;
 
     private String name;
+
+    @Column(name = "`year`")
     private Integer year;
     private Integer semesterNumber;
     private LocalDate startDate;
