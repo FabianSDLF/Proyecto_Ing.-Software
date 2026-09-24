@@ -65,12 +65,13 @@ export default function DataTable({
             <tr>
               {columns.map((col) => {
                 const isSortable = !!col.sortable;
-                const isSorted = sortConfig.key === col.key;
+                const colKey = col.accessor || col.key || col.header;
+                const isSorted = sortConfig.key === colKey;
                 return (
                   <th
-                    key={col.key || col.header}
+                    key={colKey}
                     scope="col"
-                    onClick={() => handleSort(col.key, isSortable)}
+                    onClick={() => handleSort(colKey, isSortable)}
                     className={`px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider ${
                       col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
                     } ${isSortable ? 'cursor-pointer select-none hover:bg-gray-100 transition-colors' : ''} ${
@@ -109,12 +110,12 @@ export default function DataTable({
                 <tr key={keyExtractor(row, index)} className="hover:bg-gray-50 transition-colors">
                   {columns.map((col) => (
                     <td
-                      key={col.key || col.header}
+                      key={col.accessor || col.key || col.header}
                       className={`px-6 py-4 whitespace-nowrap text-sm ${
                         col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
                       } ${col.cellClassName || 'text-gray-700'}`}
                     >
-                      {col.render ? col.render(row) : row[col.key]}
+                      {col.render ? col.render(row) : row[col.accessor || col.key]}
                     </td>
                   ))}
                 </tr>
