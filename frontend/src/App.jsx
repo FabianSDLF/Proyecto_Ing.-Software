@@ -47,7 +47,7 @@ function App() {
               </Route>
 
               {/* Administrator Routes */}
-              <Route element={<RoleRoute allowedRoles={['Administrador']} />}>
+              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
                 <Route path="/carga-masiva" element={<CargaMasiva />} />
                 <Route path="/gestion-roles" element={<GestionRoles />} />
                 <Route path="/asignaturas" element={<GestionAsignaturas />} />

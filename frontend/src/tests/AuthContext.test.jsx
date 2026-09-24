@@ -49,7 +49,7 @@ describe('AuthContext & useAuth Hook', () => {
         id: 1,
         fullName: 'Fabián Sepúlveda',
         email: 'fabian@ubiobio.cl',
-        role: { id: 1, name: 'Administrador' },
+        role: { id: 1, name: 'Coordinador de practicas' },
       };
       localStorage.setItem('token', 'valid-jwt-token');
       localStorage.setItem('usuarioActivo', JSON.stringify(mockUser));
@@ -59,7 +59,7 @@ describe('AuthContext & useAuth Hook', () => {
       expect(result.current.token).toBe('valid-jwt-token');
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
-      expect(result.current.userRole).toBe('Administrador');
+      expect(result.current.userRole).toBe('Coordinador de practicas');
     });
 
     it('safely handles malformed JSON in localStorage without crashing', () => {
@@ -129,7 +129,7 @@ describe('AuthContext & useAuth Hook', () => {
   describe('Logout Flow (TR-04)', () => {
     it('purges BOTH token and usuarioActivo from localStorage and resets context state', () => {
       localStorage.setItem('token', 'active-token');
-      localStorage.setItem('usuarioActivo', JSON.stringify({ id: 1, role: { name: 'Administrador' } }));
+      localStorage.setItem('usuarioActivo', JSON.stringify({ id: 1, role: { name: 'Coordinador de practicas' } }));
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
@@ -154,15 +154,15 @@ describe('AuthContext & useAuth Hook', () => {
       localStorage.setItem('token', 'admin-token');
       localStorage.setItem(
         'usuarioActivo',
-        JSON.stringify({ id: 1, fullName: 'Admin', role: { name: 'Administrador' } })
+        JSON.stringify({ id: 1, fullName: 'Admin', role: { name: 'Coordinador de practicas' } })
       );
 
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
-      expect(result.current.userRole).toBe('Administrador');
-      expect(result.current.hasRole('Administrador')).toBe(true);
+      expect(result.current.userRole).toBe('Coordinador de practicas');
+      expect(result.current.hasRole('Coordinador de practicas')).toBe(true);
       expect(result.current.hasRole('Estudiante')).toBe(false);
-      expect(result.current.hasRole(['Administrador', 'Tutor'])).toBe(true);
+      expect(result.current.hasRole(['Coordinador de practicas', 'Tutor'])).toBe(true);
 
       // Dedicated role getters if present
       if ('isAdmin' in result.current) {
@@ -183,7 +183,7 @@ describe('AuthContext & useAuth Hook', () => {
 
       expect(result.current.userRole).toBe('Estudiante');
       expect(result.current.hasRole('Estudiante')).toBe(true);
-      expect(result.current.hasRole('Administrador')).toBe(false);
+      expect(result.current.hasRole('Coordinador de practicas')).toBe(false);
 
       if ('isStudent' in result.current) {
         expect(result.current.isAdmin).toBe(false);
@@ -206,7 +206,7 @@ describe('AuthContext & useAuth Hook', () => {
 
         expect(result.current.userRole).toBe(roleName);
         expect(result.current.hasRole(roleName)).toBe(true);
-        expect(result.current.hasRole('Administrador')).toBe(false);
+        expect(result.current.hasRole('Coordinador de practicas')).toBe(false);
         expect(result.current.hasRole('Estudiante')).toBe(false);
 
         if ('isProfessor' in result.current) {
@@ -220,7 +220,7 @@ describe('AuthContext & useAuth Hook', () => {
     it('returns false for all roles when user is unauthenticated', () => {
       const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
-      expect(result.current.hasRole('Administrador')).toBe(false);
+      expect(result.current.hasRole('Coordinador de practicas')).toBe(false);
       expect(result.current.hasRole('Estudiante')).toBe(false);
       expect(result.current.hasRole(['Tutor', 'Profesor Colaborador'])).toBe(false);
 

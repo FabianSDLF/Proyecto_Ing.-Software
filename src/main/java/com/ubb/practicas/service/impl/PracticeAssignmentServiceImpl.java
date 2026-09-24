@@ -120,7 +120,7 @@ public class PracticeAssignmentServiceImpl implements PracticeAssignmentService 
             throw new SecurityException("No autorizado");
         }
 
-        boolean isAdmin = caller.getRole() != null && "Administrador".equalsIgnoreCase(caller.getRole().getName());
+        boolean isAdmin = caller.getRole() != null && "Coordinador de practicas".equalsIgnoreCase(caller.getRole().getName());
         boolean isSelf = caller.getId() != null && caller.getId().equals(professorId);
 
         if (!isAdmin && !isSelf) {

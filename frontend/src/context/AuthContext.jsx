@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
   const userRole = useMemo(() => user?.role?.name || null, [user]);
 
   // Specific role evaluation helpers (TS-06, FE-03)
-  const isAdmin = useMemo(() => userRole === 'Administrador', [userRole]);
+  const isAdmin = useMemo(() => userRole === 'Coordinador de practicas', [userRole]);
   const isStudent = useMemo(() => userRole === 'Estudiante', [userRole]);
   const isProfessor = useMemo(
     () => ['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole),

@@ -58,7 +58,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
 
     private boolean isUserAdmin(String email) {
         User user = userRepository.findByEmail(email);
-        return user != null && user.getRole() != null && "Administrador".equalsIgnoreCase(user.getRole().getName());
+        return user != null && user.getRole() != null && "Coordinador de practicas".equalsIgnoreCase(user.getRole().getName());
     }
 
     @Override

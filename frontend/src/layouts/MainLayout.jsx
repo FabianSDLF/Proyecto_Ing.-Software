@@ -72,7 +72,7 @@ export default function MainLayout() {
           )}
 
           {/* Opciones exclusivas de Administrador */}
-          {userRole === 'Administrador' && (
+          {userRole === 'Coordinador de practicas' && (
             <div className="mt-8">
               <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-4 px-4 opacity-80">
                 Administración
