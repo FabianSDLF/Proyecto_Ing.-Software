@@ -31,3 +31,18 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### PITAGORAS Security & Project Artifacts (TR-16) ###
+.env
+*.env
+*.env.local
+uploads/
+*.b64
+*.dump
+*.dumpstream
+
+### Node / Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+test-uploads/

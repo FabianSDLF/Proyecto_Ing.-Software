@@ -51,3 +51,96 @@ Producir un reporte único y consolidado que incluya: (a) resumen ejecutivo del 
 ### Restricciones
 - [ ] No se modificó ni creó ningún archivo de código fuente
 - [ ] No se ejecutaron comandos que modifiquen el estado del repositorio git
+
+## 2026-09-23T18:55:17Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo Completo (Full Team)
+
+Usa un equipo grande de agentes (Full Team). Implementar progresivamente todas las fases de refactorización para resolver los 95 problemas detallados en los archivos `reporte_codigo.md` y `PROJECT.md`. El trabajo debe realizarse aisladamente en la rama `fabian`.
+
+Working directory: c:/Users/Fabián Sepúlveda/Desktop/UBB/2026-2/Ingenieria Software/Proyecto_Documentacion/5_Desarrollo/Proyecto_IngSoft_Practicas
+Integrity mode: development
+
+## Requirements
+
+### R1. Gestión de Ramas
+El equipo debe realizar un `git checkout -b fabian` (o cambiar a ella si ya existe) antes de hacer cualquier modificación al código. Todos los commits deben ir a esta rama.
+
+### R2. Implementación Completa
+Aplicar las soluciones teóricas de los 95 hallazgos listados en `reporte_codigo.md`, siguiendo el orden de las 4 fases de `PROJECT.md`.
+
+## Acceptance Criteria
+
+### Integridad del Repositorio
+- [ ] Todo el trabajo de refactorización se encuentra versionado (commiteado) exclusivamente en la rama `fabian`.
+- [ ] No existen archivos modificados sin commitear en el árbol de trabajo al finalizar.
+
+### Verificación de Compilación
+- [ ] El backend de Spring Boot compila exitosamente sin errores de sintaxis tras los cambios.
+- [ ] El frontend compila exitosamente (ej: `npm run build` o equivalente) sin errores fatales.
+
+## 2026-09-23T20:30:19Z
+
+URGENT: The user has requested to PAUSE all work immediately after Phase 2 is completely finished and committed. Do NOT proceed to Phase 3. Once Phase 2 is committed and passes its Gate Review, halt orchestration and report back to me so we can pause the project.
+
+## 2026-09-24T00:44:29Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo Completo (Full Team)
+
+Usa un equipo grande de agentes (Full Team). Continuar con el plan de refactorización detallado en `PROJECT.md`, ejecutando las Fases 3 y 4 hasta concluir completamente con todos los hallazgos. El trabajo debe continuar en la rama `fabian`.
+
+Working directory: c:/Users/Fabián Sepúlveda/Desktop/UBB/2026-2/Ingenieria Software/Proyecto_Documentacion/5_Desarrollo/Proyecto_IngSoft_Practicas
+Integrity mode: development
+
+## Requirements
+
+### R1. Continuación en Rama Existente
+Asegurarse de trabajar sobre la rama `fabian` que ya contiene los avances de las Fases 1 y 2. Todos los nuevos commits deben ir a esta rama.
+
+### R2. Ejecución Final (Fases 3 y 4)
+Implementar los cambios correspondientes a la Fase 3 y Fase 4 descritas en `PROJECT.md` y `reporte_codigo.md` para cerrar la totalidad de los problemas encontrados.
+
+## Acceptance Criteria
+
+### Verificación de Compilación
+- [ ] El backend de Spring Boot compila exitosamente sin errores (`mvn compile`).
+- [ ] El frontend compila exitosamente (`npm run build`).
+
+## 2026-09-24T11:31:54Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo Completo (Full Team)
+
+Usa un equipo grande de agentes (Full Team). Finalizar la implementación de la Fase 4 del proyecto (Quality Assurance & Automated Tests). Existen archivos sin commitear en el árbol de trabajo dejados por una ejecución previa interrumpida; el equipo debe continuar desde este punto, arreglar los tests si es necesario, y cerrar la Fase 4.
+
+Working directory: c:/Users/Fabián Sepúlveda/Desktop/UBB/2026-2/Ingenieria Software/Proyecto_Documentacion/5_Desarrollo/Proyecto_IngSoft_Practicas
+Integrity mode: development
+
+## Requirements
+
+### R1. Retomar Trabajo Inconcluso
+Identificar el estado de los archivos modificados y no rastreados (tests de backend, frontend, Playwright) en la rama `fabian`. No descartar el código útil ya escrito por la ejecución anterior.
+
+### R2. Finalizar Fase 4
+Hacer que todas las pruebas automatizadas pasen exitosamente, solucionando cualquier error de compilación o de ejecución de tests que haya quedado pendiente.
+
+## Acceptance Criteria
+
+### Verificación Total
+- [ ] `mvn clean test` ejecuta y pasa todas las pruebas en el backend sin errores.
+- [ ] Las pruebas del frontend compilan y pasan correctamente.
+- [ ] Los cambios finales quedan versionados (commit) en la rama `fabian` y el árbol queda limpio.
+
+
+
