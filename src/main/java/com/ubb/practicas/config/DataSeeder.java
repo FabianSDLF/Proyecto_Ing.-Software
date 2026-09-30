@@ -51,7 +51,7 @@ public class DataSeeder {
                 System.out.println("SEMILLAS DE DATOS: Usuarios de prueba creados exitosamente.");
             }
 
-            // 3. Crear Periodo Académico
+            / / 3. Crear Periodo Académico
             if (periodRepository.count() == 0) {
                 AcademicPeriod periodo = new AcademicPeriod();
                 periodo.setName("Primer Semestre 2026");
