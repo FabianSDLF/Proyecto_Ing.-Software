@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import authService from '../services/authService';
+import { Input, Button } from '../components/ui';
 import loginImage from '../assets/loginImage.jpeg';
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
     const navigate = useNavigate();
+    const timerRef = useRef(null);
 
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+        };
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -36,22 +47,11 @@ export default function ResetPassword() {
         setMessage(null);
 
         try {
-            const res = await fetch('http://localhost:8080/api/auth/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, newPassword })
-            });
-
-            const data = await res.json();
-            
-            if (res.ok) {
-                setMessage(data.message);
-                setTimeout(() => navigate('/'), 3000); // Redirigir al login después de 3s
-            } else {
-                setError(data.message || 'Error al restablecer la contraseña.');
-            }
+            const data = await authService.resetPassword({ token, newPassword });
+            setMessage(data.message || 'Contraseña restablecida exitosamente.');
+            timerRef.current = setTimeout(() => navigate('/'), 3000);
         } catch (err) {
-            setError('Error de conexión con el servidor.');
+            setError(err.message || 'Error al restablecer la contraseña.');
         } finally {
             setLoading(false);
         }
@@ -77,48 +77,48 @@ export default function ResetPassword() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
-                            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r">
                                 <p className="text-red-700 text-sm font-semibold">{error}</p>
                             </div>
                         )}
                         
                         {message && (
-                            <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+                            <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded-r">
                                 <p className="text-green-700 text-sm font-semibold">{message}</p>
                                 <p className="text-xs text-gray-600 mt-2">Redirigiendo al inicio de sesión...</p>
                             </div>
                         )}
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Nueva Contraseña</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                required
-                            />
-                        </div>
+                        <Input
+                            label="Nueva Contraseña"
+                            type="password"
+                            placeholder="••••••••"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                        />
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar Nueva Contraseña</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                            />
-                        </div>
+                        <Input
+                            label="Confirmar Nueva Contraseña"
+                            type="password"
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                        />
 
-                        <button type="submit" disabled={loading || message !== null} className="w-full bg-orange-600 text-white p-3 rounded-xl hover:bg-orange-700 font-bold text-lg shadow-md transition-all disabled:opacity-50">
-                            {loading ? 'Guardando...' : 'Guardar y Entrar'}
-                        </button>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            size="lg"
+                            className="w-full bg-orange-600 hover:bg-orange-700 font-bold"
+                            isLoading={loading}
+                        >
+                            Guardar nueva contraseña
+                        </Button>
                         
                         <div className="text-center mt-6">
-                            <Link to="/" className="text-sm text-blue-600 hover:text-orange-500 font-medium">Cancelar</Link>
+                            <Link to="/" className="text-sm text-blue-600 hover:text-orange-500 font-medium">Volver a Iniciar Sesión</Link>
                         </div>
                     </form>
                 </div>

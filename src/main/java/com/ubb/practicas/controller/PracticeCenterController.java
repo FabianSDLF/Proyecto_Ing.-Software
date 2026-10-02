@@ -1,22 +1,22 @@
 package com.ubb.practicas.controller;
 
 import com.ubb.practicas.model.PracticeCenter;
-import com.ubb.practicas.repository.PracticeCenterRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ubb.practicas.service.PracticeCenterService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/centros")
+@RequiredArgsConstructor
 public class PracticeCenterController {
 
-    @Autowired
-    private PracticeCenterRepository centerRepository;
+    private final PracticeCenterService practiceCenterService;
 
     @GetMapping
-    public List<PracticeCenter> listarCentros() {
-        return centerRepository.findAll();
+    public ResponseEntity<List<PracticeCenter>> listarCentros() {
+        return ResponseEntity.ok(practiceCenterService.listarCentros());
     }
 }

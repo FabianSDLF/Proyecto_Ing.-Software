@@ -1,224 +1,106 @@
 package com.ubb.practicas.controller;
 
+import com.ubb.practicas.dto.DownloadedDocument;
+import com.ubb.practicas.exception.UnauthorizedException;
+import com.ubb.practicas.model.LessonPlan;
 import com.ubb.practicas.model.PortfolioDocument;
-import com.ubb.practicas.model.PracticeAssignment;
-import com.ubb.practicas.repository.PortfolioDocumentRepository;
-import com.ubb.practicas.repository.PracticeAssignmentRepository;
-import com.ubb.practicas.service.FileStorageService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ubb.practicas.service.LessonPlanService;
+import com.ubb.practicas.service.PortfolioService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.Optional;
-
-import com.ubb.practicas.model.LessonPlan;
-import com.ubb.practicas.repository.LessonPlanRepository;
-import org.springframework.web.multipart.MultipartFile;
-import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/portafolio")
+@RequiredArgsConstructor
 public class PortfolioController {
 
-    @DeleteMapping("/planificaciones/{id}")
-    public ResponseEntity<?> eliminarPlanificacion(@PathVariable Long id, Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
-
-        Optional<LessonPlan> planOpt = lessonPlanRepository.findById(id);
-        if (planOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        LessonPlan plan = planOpt.get();
-        if (!plan.getPracticeAssignment().getStudent().getEmail().equals(principal.getName())) {
-            return ResponseEntity.status(403).build();
-        }
-        
-        try {
-            if (plan.getDocument() != null) {
-                fileStorageService.deleteFile(plan.getDocument().getStoredFileName());
-                // The cascade or manual delete of document will happen
-            }
-            lessonPlanRepository.delete(plan);
-            return ResponseEntity.ok("Planificación eliminada");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al eliminar planificación: " + e.getMessage());
-        }
-    }
-
-    @Autowired
-    private PortfolioDocumentRepository portfolioDocumentRepository;
-
-    @Autowired
-    private PracticeAssignmentRepository practiceAssignmentRepository;
-
-    @Autowired
-    private LessonPlanRepository lessonPlanRepository;
-
-    @Autowired
-    private FileStorageService fileStorageService;
+    private final PortfolioService portfolioService;
+    private final LessonPlanService lessonPlanService;
 
     @GetMapping("/evidencias")
-    public ResponseEntity<?> obtenerMisEvidencias(Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
-        List<PortfolioDocument> documentos = portfolioDocumentRepository.findByPracticeAssignment_Student_Email(principal.getName())
-            .stream().filter(d -> d.getType() == com.ubb.practicas.model.enums.DocumentType.EVIDENCIA_APRENDIZAJE).toList();
+    public ResponseEntity<List<PortfolioDocument>> obtenerMisEvidencias(Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        List<PortfolioDocument> documentos = portfolioService.obtenerMisEvidencias(principal.getName());
         return ResponseEntity.ok(documentos);
     }
 
     @GetMapping("/planificaciones")
-    public ResponseEntity<?> obtenerMisPlanificaciones(Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
-        List<LessonPlan> planificaciones = lessonPlanRepository.findByPracticeAssignment_Student_Email(principal.getName());
+    public ResponseEntity<List<LessonPlan>> obtenerMisPlanificaciones(Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        List<LessonPlan> planificaciones = lessonPlanService.obtenerMisPlanificaciones(principal.getName());
         return ResponseEntity.ok(planificaciones);
     }
 
+    @GetMapping("/documentos/{id}/descargar")
+    public ResponseEntity<Resource> descargarDocumento(@PathVariable Long id, Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+
+        DownloadedDocument downloaded = portfolioService.descargarDocumento(id, principal.getName());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(downloaded.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloaded.fileName() + "\"")
+                .body(downloaded.resource());
+    }
+
     @PostMapping("/evidencias/upload")
-    public ResponseEntity<?> subirEvidencia(Principal principal, @RequestParam("file") MultipartFile file) {
-        if (principal == null) return ResponseEntity.status(401).build();
+    public ResponseEntity<PortfolioDocument> subirEvidencia(
+            Principal principal,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "assignmentId", required = false) Long assignmentId) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
 
-        try {
-            List<PracticeAssignment> assignments = practiceAssignmentRepository.findByStudentEmail(principal.getName());
-            if (assignments.isEmpty()) return ResponseEntity.badRequest().body("No tienes una asignación de práctica activa.");
-
-            String storedFileName = fileStorageService.storeFile(file);
-
-            PortfolioDocument doc = new PortfolioDocument();
-            doc.setPracticeAssignment(assignments.get(0));
-            doc.setType(com.ubb.practicas.model.enums.DocumentType.EVIDENCIA_APRENDIZAJE);
-            doc.setFileName(file.getOriginalFilename());
-            doc.setStoredFileName(storedFileName);
-            doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar"); // ID is null initially, will update after save
-            doc.setContentType(file.getContentType());
-            doc.setSizeBytes(file.getSize());
-            doc.setUploadDate(LocalDateTime.now());
-
-            portfolioDocumentRepository.save(doc);
-            
-            // Update URL with actual ID
-            doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
-            portfolioDocumentRepository.save(doc);
-
-            return ResponseEntity.ok(doc);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al subir archivo: " + e.getMessage());
-        }
+        PortfolioDocument doc = portfolioService.subirEvidencia(principal.getName(), assignmentId, file);
+        return ResponseEntity.ok(doc);
     }
 
     @PostMapping("/planificaciones/upload")
-    public ResponseEntity<?> crearPlanificacion(
+    public ResponseEntity<LessonPlan> crearPlanificacion(
             Principal principal,
             @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "assignmentId", required = false) Long assignmentId,
             @RequestParam("schoolGrade") String schoolGrade,
             @RequestParam("mathAxis") String mathAxis,
             @RequestParam("objective") String objective,
             @RequestParam(value = "specificObjectives", required = false) String specificObjectives,
             @RequestParam(value = "classActivities", required = false) String classActivities) {
-        
-        if (principal == null) return ResponseEntity.status(401).build();
 
-        try {
-            List<PracticeAssignment> assignments = practiceAssignmentRepository.findByStudentEmail(principal.getName());
-            if (assignments.isEmpty()) return ResponseEntity.badRequest().body("No tienes una asignación de práctica activa.");
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
 
-            LessonPlan plan = new LessonPlan();
-            plan.setPracticeAssignment(assignments.get(0));
-            plan.setStatus(com.ubb.practicas.model.enums.PlanStatus.BORRADOR);
-            plan.setSchoolGrade(schoolGrade);
-            plan.setMathAxis(com.ubb.practicas.model.enums.MathAxis.valueOf(mathAxis));
-            plan.setBaseLearningObjective(objective);
-            plan.setObjectives(specificObjectives);
-            plan.setContentJson(classActivities);
-            plan.setCreatedAt(LocalDateTime.now());
-            plan.setUpdatedAt(LocalDateTime.now());
-
-            if (file != null && !file.isEmpty() && file.getSize() > 0) {
-                if (!"planificacion_sin_archivo.txt".equals(file.getOriginalFilename())) {
-                    String storedFileName = fileStorageService.storeFile(file);
-                    PortfolioDocument doc = new PortfolioDocument();
-                    doc.setPracticeAssignment(assignments.get(0));
-                    doc.setType(com.ubb.practicas.model.enums.DocumentType.PLANIFICACION);
-                    doc.setFileName(file.getOriginalFilename());
-                    doc.setStoredFileName(storedFileName);
-                    doc.setContentType(file.getContentType());
-                    doc.setSizeBytes(file.getSize());
-                    doc.setUploadDate(LocalDateTime.now());
-
-                    portfolioDocumentRepository.save(doc);
-                    doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
-                    portfolioDocumentRepository.save(doc);
-                    
-                    plan.setDocument(doc);
-                }
-            }
-
-            lessonPlanRepository.save(plan);
-            return ResponseEntity.ok(plan);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al crear planificación: " + e.getMessage());
-        }
+        LessonPlan plan = lessonPlanService.crearPlanificacion(
+                principal.getName(),
+                assignmentId,
+                schoolGrade,
+                mathAxis,
+                objective,
+                specificObjectives,
+                classActivities,
+                file
+        );
+        return ResponseEntity.ok(plan);
     }
 
-    @GetMapping("/documentos/{id}/descargar")
-    public ResponseEntity<Resource> descargarDocumento(@PathVariable Long id, Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
+    @DeleteMapping("/planificaciones/{id}")
+    public ResponseEntity<Map<String, String>> eliminarPlanificacion(@PathVariable Long id, Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
 
-        Optional<PortfolioDocument> docOpt = portfolioDocumentRepository.findById(id);
-        if (docOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        PortfolioDocument doc = docOpt.get();
-        // Nota de seguridad: aquí se debería validar que el principal tenga permiso para ver este documento
-        
-        Resource resource = fileStorageService.loadFileAsResource(doc.getStoredFileName());
-        
-        String contentType = doc.getContentType();
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + doc.getFileName() + "\"")
-                .body(resource);
+        lessonPlanService.eliminarPlanificacion(id, principal.getName());
+        return ResponseEntity.ok(Map.of("message", "Planificación eliminada exitosamente"));
     }
-    
+
     @DeleteMapping("/documentos/{id}")
-    public ResponseEntity<?> eliminarDocumento(@PathVariable Long id, Principal principal) {
-        if (principal == null) return ResponseEntity.status(401).build();
+    public ResponseEntity<Map<String, String>> eliminarDocumento(@PathVariable Long id, Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
 
-        Optional<PortfolioDocument> docOpt = portfolioDocumentRepository.findById(id);
-        if (docOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        PortfolioDocument doc = docOpt.get();
-        
-        try {
-            fileStorageService.deleteFile(doc.getStoredFileName());
-            
-            // Si es planificación, eliminarla
-            if (doc.getType() == com.ubb.practicas.model.enums.DocumentType.PLANIFICACION) {
-                // Find and delete the related LessonPlan first due to foreign key
-                List<LessonPlan> plans = lessonPlanRepository.findByPracticeAssignment_Student_Email(principal.getName());
-                for (LessonPlan plan : plans) {
-                    if (plan.getDocument().getId().equals(doc.getId())) {
-                        lessonPlanRepository.delete(plan);
-                        break;
-                    }
-                }
-            }
-            
-            portfolioDocumentRepository.delete(doc);
-            return ResponseEntity.ok("Documento eliminado");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al eliminar documento: " + e.getMessage());
-        }
+        portfolioService.eliminarDocumento(id, principal.getName());
+        return ResponseEntity.ok(Map.of("message", "Documento eliminado exitosamente"));
     }
 }

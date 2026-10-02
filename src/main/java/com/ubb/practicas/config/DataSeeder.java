@@ -7,6 +7,7 @@ import com.ubb.practicas.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Configuration
+@Profile("!test")
 public class DataSeeder {
 
     @Bean
@@ -28,7 +30,7 @@ public class DataSeeder {
         return args -> {
             // 1. Crear Roles
             if (roleRepository.count() == 0) {
-                Role admin = new Role(); admin.setName("Administrador");
+                Role admin = new Role(); admin.setName("Coordinador de practicas");
                 Role estudiante = new Role(); estudiante.setName("Estudiante");
                 Role profesor = new Role(); profesor.setName("Profesor de Asignatura");
                 Role colaborador = new Role(); colaborador.setName("Profesor Colaborador");
@@ -39,7 +41,7 @@ public class DataSeeder {
 
             // 2. Crear Usuarios (Uno de cada tipo para Testing)
             if (userRepository.count() == 0) {
-                User admin = createUser("Administrador Sistema", "admin@ubb.cl", roleRepository.findByName("Administrador"), passwordEncoder);
+                User admin = createUser("Administrador Sistema", "admin@ubb.cl", roleRepository.findByName("Coordinador de practicas"), passwordEncoder);
                 User estudiante = createUser("Estudiante Prueba", "estudiante@ubb.cl", roleRepository.findByName("Estudiante"), passwordEncoder);
                 User profeAsig = createUser("Profesor Asignatura Prueba", "profesor@ubb.cl", roleRepository.findByName("Profesor de Asignatura"), passwordEncoder);
                 User profeColab = createUser("Colaborador Prueba", "colaborador@ubb.cl", roleRepository.findByName("Profesor Colaborador"), passwordEncoder);
