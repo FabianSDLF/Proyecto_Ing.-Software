@@ -12,4 +12,5 @@ public interface PracticeAssignmentService {
     void eliminarAsignacion(Long id);
     PracticeAssignment resolveActiveAssignment(String studentEmail, Long explicitAssignmentId);
     List<PracticeAssignment> obtenerEstudiantesPorProfesor(Long professorId, String callerEmail);
+    List<PracticeAssignment> obtenerMisAsignaciones(String studentEmail);
 }
