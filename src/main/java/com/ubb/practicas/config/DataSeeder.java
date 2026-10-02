@@ -41,7 +41,7 @@ public class DataSeeder {
 
             // 2. Crear Usuarios (Uno de cada tipo para Testing)
             if (userRepository.count() == 0) {
-                User admin = createUser("Administrador Sistema", "admin@ubb.cl", roleRepository.findByName("Coordinador de practicas"), passwordEncoder);
+                User admin = createUser("Coordinador de practicas", "coordinador@ubb.cl", roleRepository.findByName("Coordinador de practicas"), passwordEncoder);
                 User estudiante = createUser("Estudiante Prueba", "estudiante@ubb.cl", roleRepository.findByName("Estudiante"), passwordEncoder);
                 User profeAsig = createUser("Profesor Asignatura Prueba", "profesor@ubb.cl", roleRepository.findByName("Profesor de Asignatura"), passwordEncoder);
                 User profeColab = createUser("Colaborador Prueba", "colaborador@ubb.cl", roleRepository.findByName("Profesor Colaborador"), passwordEncoder);
