@@ -69,11 +69,42 @@ export default function MisEstudiantes() {
             ),
         },
     ], []);
+    const handleDescargarZip = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const respuesta = await fetch('http://localhost:8080/api/portafolio/download-zip', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (respuesta.ok) {
+                const blob = await respuesta.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'informes_finales.zip');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link);
+            } else {
+                alert("Error al descargar el ZIP.");
+            }
+        } catch (error) {
+            console.error("Error al descargar:", error);
+        }
+    };
 
     return (
         <div className="p-8 max-w-6xl mx-auto space-y-8">
             <div>
-                <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Mis Estudiantes</h1>
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-800">Mis Estudiantes</h1>
+                    <button
+                        onClick={handleDescargarZip}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Descargar Todos los Informes (ZIP)
+                    </button>
+                </div>
                 <p className="text-gray-500 mt-1">Lleva el control y seguimiento de los estudiantes asignados a tu tutela.</p>
             </div>
 

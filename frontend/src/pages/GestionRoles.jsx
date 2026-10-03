@@ -15,6 +15,11 @@ export default function GestionRoles() {
     const [editingUserId, setEditingUserId] = useState(null);
     const [formData, setFormData] = useState({ fullName: '', email: '', password: '', role: '' });
     const [isSaving, setIsSaving] = useState(false);
+    const [filtroRol, setFiltroRol] = useState('TODOS');
+
+    const usuariosFiltrados = filtroRol === 'TODOS'
+        ? usuarios
+        : usuarios.filter(u => u.role && u.role.name === filtroRol);
 
     const cargarDatos = useCallback(async (signal) => {
         setLoadingUsuarios(true);
@@ -262,14 +267,26 @@ export default function GestionRoles() {
 
             {/* Tabla de Usuarios */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="flex items-center space-x-3 mb-4">
+                    <label className="font-semibold text-gray-700">Filtrar por Rol:</label>
+                    <select
+                        className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer w-auto shadow-sm"
+                        value={filtroRol}
+                        onChange={(e) => setFiltroRol(e.target.value)}
+                    >
+                        <option value="TODOS">Todos los roles</option>
+                        {roleOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                </div>
                 <DataTable
                     columns={columns}
-                    data={usuarios}
+                    data={usuariosFiltrados}
                     isLoading={loadingUsuarios}
                     emptyMessage="No se encontraron usuarios registrados."
                     keyField="id"
                 />
             </div>
+
         </div>
     );
 }
