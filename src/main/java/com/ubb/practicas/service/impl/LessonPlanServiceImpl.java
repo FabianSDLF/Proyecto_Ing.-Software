@@ -21,9 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -58,7 +56,11 @@ public class LessonPlanServiceImpl implements LessonPlanService {
 
     private boolean isUserAdmin(String email) {
         User user = userRepository.findByEmail(email);
-        return user != null && user.getRole() != null && "Coordinador de practicas".equalsIgnoreCase(user.getRole().getName());
+        if (user == null || user.getRole() == null) return false;
+        String roleName = user.getRole().getName();
+        return "Coordinador de practicas".equalsIgnoreCase(roleName) ||
+               "Administrador".equalsIgnoreCase(roleName) ||
+               "Admin".equalsIgnoreCase(roleName);
     }
 
     @Override
@@ -87,6 +89,8 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         LessonPlan plan = new LessonPlan();
         plan.setPracticeAssignment(assignment);
         plan.setStatus(PlanStatus.BORRADOR);
+        plan.setVersion(1);
+        plan.setParentPlan(null);
         plan.setSchoolGrade(schoolGrade);
         plan.setMathAxis(MathAxis.valueOf(mathAxis));
         plan.setBaseLearningObjective(objective);
@@ -133,5 +137,206 @@ public class LessonPlanServiceImpl implements LessonPlanService {
             storageService.deleteFile(plan.getDocument().getStoredFileName());
         }
         lessonPlanRepository.delete(plan);
+    }
+
+    @Override
+    @Transactional
+    public LessonPlan editarPlanificacion(
+            Long id,
+            String studentEmail,
+            String schoolGrade,
+            String mathAxis,
+            String objective,
+            String specificObjectives,
+            String classActivities,
+            MultipartFile file) {
+
+        LessonPlan existing = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada: " + id));
+
+        boolean isAdmin = isUserAdmin(studentEmail);
+        if (!isAdmin && !existing.isOwnedBy(studentEmail)) {
+            throw new AccessDeniedException("No tiene permisos para editar esta planificación");
+        }
+
+        if (existing.getStatus() == PlanStatus.BORRADOR) {
+            // Edición in-situ
+            if (schoolGrade != null && !schoolGrade.isBlank()) {
+                existing.setSchoolGrade(schoolGrade);
+            }
+            if (mathAxis != null && !mathAxis.isBlank()) {
+                existing.setMathAxis(MathAxis.valueOf(mathAxis));
+            }
+            if (objective != null && !objective.isBlank()) {
+                existing.setBaseLearningObjective(objective);
+            }
+            if (specificObjectives != null && !specificObjectives.isBlank()) {
+                existing.setObjectives(specificObjectives);
+            }
+            if (classActivities != null && !classActivities.isBlank()) {
+                existing.setContentJson(classActivities);
+            }
+            existing.setUpdatedAt(LocalDateTime.now());
+
+            if (file != null && !file.isEmpty() && file.getSize() > 0) {
+                if (!"planificacion_sin_archivo.txt".equals(file.getOriginalFilename())) {
+                    String storedFileName = storageService.store(file);
+                    PortfolioDocument doc = existing.getDocument();
+                    if (doc == null) {
+                        doc = new PortfolioDocument();
+                        doc.setPracticeAssignment(existing.getPracticeAssignment());
+                        doc.setType(DocumentType.PLANIFICACION);
+                    }
+                    doc.setFileName(file.getOriginalFilename());
+                    doc.setStoredFileName(storedFileName);
+                    doc.setContentType(file.getContentType());
+                    doc.setSizeBytes(file.getSize());
+                    doc.setUploadDate(LocalDateTime.now());
+                    portfolioDocumentRepository.save(doc);
+                    doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
+                    portfolioDocumentRepository.save(doc);
+                    existing.setDocument(doc);
+                }
+            }
+
+            return lessonPlanRepository.save(existing);
+        } else {
+            // Edición sobre versión enviada/evaluada: Preservar existing intacto y generar nueva versión
+            LessonPlan newPlan = new LessonPlan();
+            newPlan.setPracticeAssignment(existing.getPracticeAssignment());
+            newPlan.setParentPlan(existing);
+            newPlan.setVersion((existing.getVersion() != null ? existing.getVersion() : 1) + 1);
+            newPlan.setStatus(PlanStatus.BORRADOR);
+
+            newPlan.setSchoolGrade((schoolGrade != null && !schoolGrade.isBlank()) ? schoolGrade : existing.getSchoolGrade());
+            newPlan.setMathAxis((mathAxis != null && !mathAxis.isBlank()) ? MathAxis.valueOf(mathAxis) : existing.getMathAxis());
+            newPlan.setBaseLearningObjective((objective != null && !objective.isBlank()) ? objective : existing.getBaseLearningObjective());
+            newPlan.setObjectives((specificObjectives != null && !specificObjectives.isBlank()) ? specificObjectives : existing.getObjectives());
+            newPlan.setContentJson((classActivities != null && !classActivities.isBlank()) ? classActivities : existing.getContentJson());
+            newPlan.setCreatedAt(LocalDateTime.now());
+            newPlan.setUpdatedAt(LocalDateTime.now());
+
+            if (file != null && !file.isEmpty() && file.getSize() > 0) {
+                if (!"planificacion_sin_archivo.txt".equals(file.getOriginalFilename())) {
+                    String storedFileName = storageService.store(file);
+                    PortfolioDocument doc = new PortfolioDocument();
+                    doc.setPracticeAssignment(existing.getPracticeAssignment());
+                    doc.setType(DocumentType.PLANIFICACION);
+                    doc.setFileName(file.getOriginalFilename());
+                    doc.setStoredFileName(storedFileName);
+                    doc.setContentType(file.getContentType());
+                    doc.setSizeBytes(file.getSize());
+                    doc.setUploadDate(LocalDateTime.now());
+                    portfolioDocumentRepository.save(doc);
+                    doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
+                    portfolioDocumentRepository.save(doc);
+                    newPlan.setDocument(doc);
+                }
+            } else {
+                newPlan.setDocument(null);
+            }
+
+            return lessonPlanRepository.save(newPlan);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LessonPlan obtenerPlanificacionPorId(Long id, String userEmail) {
+        LessonPlan plan = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada: " + id));
+
+        boolean isAdmin = isUserAdmin(userEmail);
+        if (!isAdmin && !plan.isOwnedBy(userEmail)) {
+            throw new AccessDeniedException("No tiene permisos para ver esta planificación");
+        }
+
+        return plan;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LessonPlan> obtenerHistorialPlanificacion(Long id, String userEmail) {
+        LessonPlan target = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada: " + id));
+
+        boolean isAdmin = isUserAdmin(userEmail);
+        if (!isAdmin && !target.isOwnedBy(userEmail)) {
+            throw new AccessDeniedException("No tiene permisos para ver esta planificación");
+        }
+
+        if (target.getPracticeAssignment() == null) {
+            return List.of(target);
+        }
+
+        List<LessonPlan> allPlans = lessonPlanRepository.findByPracticeAssignmentId(target.getPracticeAssignment().getId());
+        Map<Long, LessonPlan> planMap = new HashMap<>();
+        for (LessonPlan p : allPlans) {
+            planMap.put(p.getId(), p);
+        }
+        if (!planMap.containsKey(target.getId())) {
+            planMap.put(target.getId(), target);
+            allPlans.add(target);
+        }
+
+        // Trace root node
+        LessonPlan curr = target;
+        Set<Long> visited = new HashSet<>();
+        visited.add(curr.getId());
+        while (curr.getParentPlan() != null && curr.getParentPlan().getId() != null) {
+            Long parentId = curr.getParentPlan().getId();
+            if (visited.contains(parentId)) {
+                break;
+            }
+            visited.add(parentId);
+            LessonPlan parent = planMap.get(parentId);
+            if (parent == null) {
+                parent = lessonPlanRepository.findById(parentId).orElse(null);
+            }
+            if (parent != null) {
+                curr = parent;
+            } else {
+                break;
+            }
+        }
+        Long rootId = curr.getId();
+
+        List<LessonPlan> lineage = new ArrayList<>();
+        for (LessonPlan p : allPlans) {
+            if (p.getId().equals(rootId)) {
+                lineage.add(p);
+                continue;
+            }
+            LessonPlan walker = p;
+            Set<Long> traceVisited = new HashSet<>();
+            traceVisited.add(walker.getId());
+            boolean inLineage = false;
+            while (walker.getParentPlan() != null && walker.getParentPlan().getId() != null) {
+                Long pId = walker.getParentPlan().getId();
+                if (pId.equals(rootId)) {
+                    inLineage = true;
+                    break;
+                }
+                if (traceVisited.contains(pId)) {
+                    break;
+                }
+                traceVisited.add(pId);
+                LessonPlan pParent = planMap.get(pId);
+                if (pParent == null) {
+                    pParent = lessonPlanRepository.findById(pId).orElse(null);
+                }
+                if (pParent != null) {
+                    walker = pParent;
+                } else {
+                    break;
+                }
+            }
+            if (inLineage) {
+                lineage.add(p);
+            }
+        }
+
+        lineage.sort(Comparator.comparingInt(p -> p.getVersion() != null ? p.getVersion() : 1));
+        return lineage;
     }
 }

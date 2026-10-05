@@ -1,5 +1,7 @@
 package com.ubb.practicas.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ubb.practicas.model.enums.MathAxis;
 import com.ubb.practicas.model.enums.PlanStatus;
 import jakarta.persistence.*;
@@ -60,7 +62,13 @@ public class LessonPlan {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_plan_id")
     @ToString.Exclude
+    @JsonIgnore
     private LessonPlan parentPlan;
+
+    @JsonProperty("parentPlanId")
+    public Long getParentPlanId() {
+        return parentPlan != null ? parentPlan.getId() : null;
+    }
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

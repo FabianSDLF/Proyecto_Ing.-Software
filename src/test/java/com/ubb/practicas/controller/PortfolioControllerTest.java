@@ -209,4 +209,91 @@ public class PortfolioControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.practiceAssignment.id").value(assignment.getId()));
     }
+
+    @Test
+    public void testSubirDocumentoFinal_Success() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "informe.pdf", "application/pdf", "data".getBytes());
+
+        mockMvc.perform(multipart("/api/portafolio/documentos-finales/upload")
+                .file(file)
+                .param("type", "INFORME_FINAL")
+                .principal(() -> student.getEmail()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("INFORME_FINAL"))
+                .andExpect(jsonPath("$.fileName").value("informe.pdf"));
+    }
+
+    @Test
+    public void testSubirDocumentoFinal_SinConfirmacion_Retorna409() throws Exception {
+        PortfolioDocument initialDoc = new PortfolioDocument();
+        initialDoc.setPracticeAssignment(assignment);
+        initialDoc.setType(DocumentType.INFORME_FINAL);
+        initialDoc.setFileName("previo.pdf");
+        initialDoc.setStoredFileName("uuid-previo.pdf");
+        initialDoc.setUploadDate(LocalDateTime.now());
+        portfolioDocumentRepository.save(initialDoc);
+
+        MockMultipartFile file = new MockMultipartFile("file", "nuevo.pdf", "application/pdf", "data".getBytes());
+
+        mockMvc.perform(multipart("/api/portafolio/documentos-finales/upload")
+                .file(file)
+                .param("type", "INFORME_FINAL")
+                .param("replace", "false")
+                .principal(() -> student.getEmail()))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    public void testSubirDocumentoFinal_ConReemplazo_Retorna200() throws Exception {
+        PortfolioDocument initialDoc = new PortfolioDocument();
+        initialDoc.setPracticeAssignment(assignment);
+        initialDoc.setType(DocumentType.INFORME_FINAL);
+        initialDoc.setFileName("previo.pdf");
+        initialDoc.setStoredFileName("uuid-previo.pdf");
+        initialDoc.setUploadDate(LocalDateTime.now());
+        portfolioDocumentRepository.save(initialDoc);
+
+        MockMultipartFile file = new MockMultipartFile("file", "reemplazo.pdf", "application/pdf", "nuevo contenido".getBytes());
+
+        mockMvc.perform(multipart("/api/portafolio/documentos-finales/upload")
+                .file(file)
+                .param("type", "INFORME_FINAL")
+                .param("replace", "true")
+                .principal(() -> student.getEmail()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fileName").value("reemplazo.pdf"));
+    }
+
+    @Test
+    public void testObtenerDocumentosFinales_RetornaLista() throws Exception {
+        PortfolioDocument finalDoc = new PortfolioDocument();
+        finalDoc.setPracticeAssignment(assignment);
+        finalDoc.setType(DocumentType.INFORME_FINAL);
+        finalDoc.setFileName("informe_registrado.pdf");
+        finalDoc.setStoredFileName("uuid-reg.pdf");
+        finalDoc.setUploadDate(LocalDateTime.now());
+        portfolioDocumentRepository.save(finalDoc);
+
+        mockMvc.perform(get("/api/portafolio/documentos-finales")
+                .principal(() -> student.getEmail()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].fileName").value("informe_registrado.pdf"))
+                .andExpect(jsonPath("$[0].type").value("INFORME_FINAL"));
+    }
+
+    @Test
+    public void testEliminarDocumentoFinal_Success() throws Exception {
+        PortfolioDocument finalDoc = new PortfolioDocument();
+        finalDoc.setPracticeAssignment(assignment);
+        finalDoc.setType(DocumentType.INFORME_FINAL);
+        finalDoc.setFileName("informe_para_borrar.pdf");
+        finalDoc.setStoredFileName("uuid-borrar.pdf");
+        finalDoc.setUploadDate(LocalDateTime.now());
+        finalDoc = portfolioDocumentRepository.save(finalDoc);
+
+        mockMvc.perform(delete("/api/portafolio/documentos-finales/" + finalDoc.getId())
+                .principal(() -> student.getEmail()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Documento final eliminado exitosamente"));
+    }
 }

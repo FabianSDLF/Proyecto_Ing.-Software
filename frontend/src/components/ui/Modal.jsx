@@ -32,8 +32,12 @@ export default function Modal({
       }
     };
 
+    window.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   // Lock body scroll when modal is active

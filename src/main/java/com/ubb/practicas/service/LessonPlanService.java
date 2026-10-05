@@ -18,4 +18,16 @@ public interface LessonPlanService {
             MultipartFile file
     );
     void eliminarPlanificacion(Long id, String userEmail);
+    LessonPlan editarPlanificacion(
+            Long id,
+            String studentEmail,
+            String schoolGrade,
+            String mathAxis,
+            String objective,
+            String specificObjectives,
+            String classActivities,
+            MultipartFile file
+    );
+    LessonPlan obtenerPlanificacionPorId(Long id, String userEmail);
+    List<LessonPlan> obtenerHistorialPlanificacion(Long id, String userEmail);
 }

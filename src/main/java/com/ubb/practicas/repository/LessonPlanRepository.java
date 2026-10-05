@@ -28,4 +28,10 @@ public interface LessonPlanRepository extends JpaRepository<LessonPlan, Long> {
 
     @EntityGraph(attributePaths = {"practiceAssignment", "document"})
     Optional<LessonPlan> findByDocumentId(Long documentId);
+
+    @Query("SELECT lp FROM LessonPlan lp " +
+           "LEFT JOIN FETCH lp.document " +
+           "JOIN FETCH lp.practiceAssignment pa " +
+           "WHERE pa.id = :assignmentId")
+    List<LessonPlan> findByPracticeAssignmentId(@Param("assignmentId") Long assignmentId);
 }
