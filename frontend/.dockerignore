@@ -1,3 +1,13 @@
+# Control de versiones y editores
+.git
+.idea
+.vscode
+
+# Dependencias y artefactos
 node_modules
 dist
 .env
+.env.local
+coverage
+playwright-report
+test-results
