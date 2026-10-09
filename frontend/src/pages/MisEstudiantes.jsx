@@ -10,7 +10,7 @@ export default function MisEstudiantes() {
     const [loading, setLoading] = useState(true);
     const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState(null);
-    const [evaluationData, setEvaluationData] = useState({ score: '', comments: '' });
+    const [evaluationData, setEvaluationData] = useState({ score: '', comments: '', isFinalized: false, digitalSignature: '' });
 
     const cargarEstudiantes = useCallback(async (signal) => {
         if (!user) return;
@@ -45,7 +45,7 @@ export default function MisEstudiantes() {
 
     const handleOpenEvaluation = (assignment) => {
         setSelectedAssignment(assignment);
-        setEvaluationData({ score: '', comments: '' });
+        setEvaluationData({ score: '', comments: '', isFinalized: false, digitalSignature: '' });
         setIsEvaluationModalOpen(true);
     };
 
@@ -63,6 +63,8 @@ export default function MisEstudiantes() {
                 type: 'PAUTA_OBSERVACION_COLABORADOR',
                 score: parseFloat(evaluationData.score),
                 qualitativeComments: evaluationData.comments,
+                isFinalized: evaluationData.isFinalized,
+                digitalSignature: evaluationData.isFinalized ? evaluationData.digitalSignature : null,
                 criteria: [
                     { criteriaName: 'Responsabilidad y Puntualidad', achievementLevel: 'LOGRO_ALTO', points: 25.0, justification: 'Evaluado general' },
                     { criteriaName: 'Dominio del Grupo', achievementLevel: 'LOGRO_ADECUADO', points: 20.0, justification: 'Evaluado general' }
@@ -178,9 +180,37 @@ export default function MisEstudiantes() {
                             ></textarea>
                         </div>
 
+                        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <label className="flex items-center space-x-3 mb-3">
+                                <input 
+                                    type="checkbox" 
+                                    className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                                    checked={evaluationData.isFinalized}
+                                    onChange={(e) => setEvaluationData({...evaluationData, isFinalized: e.target.checked})}
+                                />
+                                <span className="text-gray-800 font-medium">Finalizar evaluación definitivamente</span>
+                            </label>
+                            
+                            {evaluationData.isFinalized && (
+                                <div className="mt-3">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Firma Digital (Escriba su nombre completo)</label>
+                                    <Input 
+                                        type="text" 
+                                        required={evaluationData.isFinalized}
+                                        value={evaluationData.digitalSignature}
+                                        onChange={(e) => setEvaluationData({...evaluationData, digitalSignature: e.target.value})}
+                                        placeholder="Firma electrónica"
+                                    />
+                                    <p className="text-xs text-red-600 mt-1">Atención: Una vez enviada con firma digital, esta evaluación será inamovible y se registrará como la calificación oficial.</p>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex justify-end gap-3 pt-4 border-t">
                             <Button type="button" variant="outline" onClick={handleCloseEvaluation}>Cancelar</Button>
-                            <Button type="submit" variant="primary">Guardar Pauta</Button>
+                            <Button type="submit" variant="primary">
+                                {evaluationData.isFinalized ? 'Firmar y Enviar' : 'Guardar Pauta'}
+                            </Button>
                         </div>
                     </form>
                 )}

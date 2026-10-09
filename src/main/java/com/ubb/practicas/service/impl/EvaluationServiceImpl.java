@@ -44,6 +44,10 @@ public class EvaluationServiceImpl implements EvaluationService {
         evaluation.setType(dto.getType());
         evaluation.setScore(dto.getScore());
         evaluation.setQualitativeComments(dto.getQualitativeComments());
+        if (dto.getIsFinalized() != null) {
+            evaluation.setIsFinalized(dto.getIsFinalized());
+        }
+        evaluation.setDigitalSignature(dto.getDigitalSignature());
         evaluation.setEvaluationDate(LocalDateTime.now());
         evaluation.setCreatedAt(LocalDateTime.now());
 

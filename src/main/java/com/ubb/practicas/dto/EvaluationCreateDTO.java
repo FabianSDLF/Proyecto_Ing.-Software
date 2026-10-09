@@ -11,5 +11,7 @@ public class EvaluationCreateDTO {
     private EvaluationType type;
     private Float score;
     private String qualitativeComments;
+    private Boolean isFinalized;
+    private String digitalSignature;
     private List<EvaluationCriteriaDTO> criteria;
 }
