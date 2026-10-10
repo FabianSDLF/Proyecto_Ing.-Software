@@ -10,6 +10,7 @@ import com.ubb.practicas.repository.LessonPlanRepository;
 import com.ubb.practicas.repository.PortfolioDocumentRepository;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
 import com.ubb.practicas.repository.UserRepository;
+import com.ubb.practicas.service.EmailService;
 import com.ubb.practicas.service.PortfolioService;
 import com.ubb.practicas.service.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final LessonPlanRepository lessonPlanRepository;
     private final UserRepository userRepository;
     private final StorageService storageService;
+    private final EmailService emailService;
 
     private PracticeAssignment resolveAssignment(String email, Long explicitAssignmentId) {
         if (explicitAssignmentId != null) {
@@ -109,6 +111,7 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         portfolioDocumentRepository.save(doc);
         doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
+        emailService.enviarComprobante(studentEmail, file.getOriginalFilename());
         return portfolioDocumentRepository.save(doc);
     }
 
