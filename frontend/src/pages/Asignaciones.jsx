@@ -4,19 +4,36 @@ import assignmentService from '../services/assignmentService';
 import userService from '../services/userService';
 import subjectService from '../services/subjectService';
 import centerService from '../services/centerService';
-import { DataTable, Modal, ConfirmDialog, Select, Button, Badge } from '../components/ui';
+import { DataTable, Modal, ConfirmDialog, Select, Input, Button, Badge } from '../components/ui';
 
 export default function Asignaciones() {
+    // Pestaña activa ('ASIGNACIONES' | 'DUPLAS')
+    const [activeTab, setActiveTab] = useState('ASIGNACIONES');
+
+    // Datos generales de asignaciones individuales
     const [asignaciones, setAsignaciones] = useState([]);
     const [estudiantes, setEstudiantes] = useState([]);
     const [asignaturas, setAsignaturas] = useState([]);
     const [centros, setCentros] = useState([]);
     const [profesores, setProfesores] = useState([]);
     const [tutores, setTutores] = useState([]);
-    
+
+    // Datos de duplas (HU9)
+    const [duplas, setDuplas] = useState([]);
+    const [estudiantesDisponiblesDupla, setEstudiantesDisponiblesDupla] = useState([]);
+    const [isDuplaModalOpen, setIsDuplaModalOpen] = useState(false);
+    const [filtroDupla, setFiltroDupla] = useState('');
+    const [loadingCrearDupla, setLoadingCrearDupla] = useState(false);
+    const [duplaFormData, setDuplaFormData] = useState({
+        assignment1Id: '',
+        assignment2Id: '',
+    });
+
+    // Estados de modales y cargas
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
+    const [loadingDuplas, setLoadingDuplas] = useState(false);
 
     const [assignmentToDelete, setAssignmentToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -29,6 +46,7 @@ export default function Asignaciones() {
         tutorId: ''
     });
 
+    // Cargar datos del sistema para asignaciones individuales
     const cargarDatos = useCallback(async (signal) => {
         setLoadingData(true);
         try {
@@ -65,12 +83,46 @@ export default function Asignaciones() {
         }
     }, []);
 
+    // Cargar datos de duplas y estudiantes disponibles de ciclo intermedio (HU9)
+    const cargarDatosDuplas = useCallback(async (signal) => {
+        setLoadingDuplas(true);
+        try {
+            const [duplasRes, dispRes] = await Promise.allSettled([
+                assignmentService.getDuplas(undefined, { signal }),
+                assignmentService.getEstudiantesDisponiblesDupla(undefined, { signal }),
+            ]);
+
+            if (duplasRes.status === 'fulfilled') {
+                setDuplas(Array.isArray(duplasRes.value) ? duplasRes.value : []);
+            }
+            if (dispRes.status === 'fulfilled') {
+                setEstudiantesDisponiblesDupla(Array.isArray(dispRes.value) ? dispRes.value : []);
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                toast.error('Error al cargar información de duplas');
+                console.error(error);
+            }
+        } finally {
+            setLoadingDuplas(false);
+        }
+    }, []);
+
     useEffect(() => {
         const controller = new AbortController();
         cargarDatos(controller.signal);
+        cargarDatosDuplas(controller.signal);
         return () => controller.abort();
-    }, [cargarDatos]);
+    }, [cargarDatos, cargarDatosDuplas]);
 
+    // Recargar duplas al cambiar de pestaña
+    useEffect(() => {
+        if (activeTab === 'DUPLAS') {
+            cargarDatosDuplas();
+        }
+    }, [activeTab, cargarDatosDuplas]);
+
+    // Manejo de formulario Asignación Individual
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -99,6 +151,7 @@ export default function Asignaciones() {
             setIsModalOpen(false);
             setFormData({ studentId: '', subjectId: '', centerId: '', collaboratorId: '', tutorId: '' });
             cargarDatos();
+            cargarDatosDuplas();
         } catch (error) {
             console.error('Error al guardar asignación:', error);
             toast.error(error.message || 'Error al guardar asignación');
@@ -116,6 +169,7 @@ export default function Asignaciones() {
             toast.success('Asignación eliminada exitosamente');
             setAssignmentToDelete(null);
             cargarDatos();
+            cargarDatosDuplas();
         } catch (error) {
             console.error('Error al eliminar asignación:', error);
             toast.error(error.message || 'Error al eliminar asignación');
@@ -124,6 +178,60 @@ export default function Asignaciones() {
         }
     };
 
+    // Manejo de creación de Duplas (HU9)
+    const handleDuplaInputChange = (e) => {
+        const { name, value } = e.target;
+        setDuplaFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleOpenCrearDuplaModal = () => {
+        setDuplaFormData({ assignment1Id: '', assignment2Id: '' });
+        setFiltroDupla('');
+        setIsDuplaModalOpen(true);
+        cargarDatosDuplas();
+    };
+
+    const handleSubmitDupla = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+
+        const { assignment1Id, assignment2Id } = duplaFormData;
+
+        if (!assignment1Id || !assignment2Id) {
+            toast.error('Debe seleccionar ambos estudiantes para conformar la dupla.');
+            return;
+        }
+
+        if (String(assignment1Id) === String(assignment2Id)) {
+            toast.error('No se puede crear una dupla con el mismo estudiante.');
+            return;
+        }
+
+        // Obtener periodo de las asignaciones disponibles seleccionadas
+        const asig1 = estudiantesDisponiblesDupla.find(a => String(a.id) === String(assignment1Id));
+        const periodId = asig1?.period?.id || asig1?.periodId || 1;
+
+        setLoadingCrearDupla(true);
+        try {
+            await assignmentService.crearDupla({
+                assignment1Id: Number(assignment1Id),
+                assignment2Id: Number(assignment2Id),
+                periodId: Number(periodId),
+            });
+
+            toast.success('Dupla creada exitosamente');
+            setIsDuplaModalOpen(false);
+            setDuplaFormData({ assignment1Id: '', assignment2Id: '' });
+            setFiltroDupla('');
+            cargarDatosDuplas();
+        } catch (error) {
+            console.error('Error al crear dupla:', error);
+            toast.error(error.message || 'Error al conformar la dupla de estudiantes');
+        } finally {
+            setLoadingCrearDupla(false);
+        }
+    };
+
+    // Opciones para asignaciones individuales
     const studentOptions = useMemo(() => (
         estudiantes.map(e => ({ value: e.id, label: `${e.fullName} (${e.email})` }))
     ), [estudiantes]);
@@ -144,7 +252,76 @@ export default function Asignaciones() {
         tutores.map(t => ({ value: t.id, label: t.fullName }))
     ), [tutores]);
 
-    const columns = useMemo(() => [
+    // Opciones y filtrado para Modal de Duplas (HU9)
+    const estudiantesDuplaFiltrados = useMemo(() => {
+        if (!filtroDupla.trim()) return estudiantesDisponiblesDupla;
+        const term = filtroDupla.toLowerCase();
+        return estudiantesDisponiblesDupla.filter(item => {
+            const name = item.student?.fullName || item.studentName || item.name || '';
+            const email = item.student?.email || item.studentEmail || item.email || '';
+            return name.toLowerCase().includes(term) || email.toLowerCase().includes(term);
+        });
+    }, [estudiantesDisponiblesDupla, filtroDupla]);
+
+    // Selector Estudiante 1 (excluye al seleccionado en Estudiante 2, preserva selección actual)
+    const opcionesEstudiante1 = useMemo(() => {
+        return estudiantesDisponiblesDupla
+            .filter(item => {
+                const itemIdStr = String(item.id);
+                if (itemIdStr === String(duplaFormData.assignment2Id)) return false;
+                if (itemIdStr === String(duplaFormData.assignment1Id)) return true;
+                if (!filtroDupla.trim()) return true;
+                const term = filtroDupla.toLowerCase();
+                const name = item.student?.fullName || item.studentName || item.name || '';
+                const email = item.student?.email || item.studentEmail || item.email || '';
+                return name.toLowerCase().includes(term) || email.toLowerCase().includes(term);
+            })
+            .map(item => {
+                const name = item.student?.fullName || item.studentName || 'Estudiante';
+                const email = item.student?.email || item.studentEmail || '';
+                const subject = item.subject?.name || item.subjectName || 'Ciclo Intermedio';
+                return {
+                    value: item.id,
+                    label: `${name} (${email}) - ${subject}`,
+                };
+            });
+    }, [estudiantesDisponiblesDupla, duplaFormData.assignment1Id, duplaFormData.assignment2Id, filtroDupla]);
+
+    // Selector Estudiante 2 (excluye al seleccionado en Estudiante 1, preserva selección actual)
+    const opcionesEstudiante2 = useMemo(() => {
+        return estudiantesDisponiblesDupla
+            .filter(item => {
+                const itemIdStr = String(item.id);
+                if (itemIdStr === String(duplaFormData.assignment1Id)) return false;
+                if (itemIdStr === String(duplaFormData.assignment2Id)) return true;
+                if (!filtroDupla.trim()) return true;
+                const term = filtroDupla.toLowerCase();
+                const name = item.student?.fullName || item.studentName || item.name || '';
+                const email = item.student?.email || item.studentEmail || item.email || '';
+                return name.toLowerCase().includes(term) || email.toLowerCase().includes(term);
+            })
+            .map(item => {
+                const name = item.student?.fullName || item.studentName || 'Estudiante';
+                const email = item.student?.email || item.studentEmail || '';
+                const subject = item.subject?.name || item.subjectName || 'Ciclo Intermedio';
+                return {
+                    value: item.id,
+                    label: `${name} (${email}) - ${subject}`,
+                };
+            });
+    }, [estudiantesDisponiblesDupla, duplaFormData.assignment1Id, duplaFormData.assignment2Id, filtroDupla]);
+
+    // Validación para habilitar botón confirmar dupla
+    const isConfirmDuplaDisabled = useMemo(() => {
+        const { assignment1Id, assignment2Id } = duplaFormData;
+        if (!assignment1Id || !assignment2Id) return true;
+        if (String(assignment1Id) === String(assignment2Id)) return true;
+        if (loadingCrearDupla) return true;
+        return false;
+    }, [duplaFormData, loadingCrearDupla]);
+
+    // Columnas de Asignaciones Individuales
+    const columnsAsignaciones = useMemo(() => [
         {
             header: 'Estudiante',
             render: (row) => (
@@ -195,32 +372,166 @@ export default function Asignaciones() {
         },
     ], []);
 
+    // Columnas de Duplas (HU9: estrictamente SIN botones de editar ni eliminar)
+    const columnsDuplas = useMemo(() => [
+        {
+            header: 'Estudiante 1',
+            render: (row) => {
+                const st = row.assignment1?.student || row.student1;
+                const name = st?.fullName || row.student1Name || 'N/A';
+                const email = st?.email || row.student1Email || '';
+                return (
+                    <div>
+                        <p className="font-semibold text-gray-900">{name}</p>
+                        <p className="text-xs text-gray-500">{email}</p>
+                    </div>
+                );
+            },
+        },
+        {
+            header: 'Estudiante 2',
+            render: (row) => {
+                const st = row.assignment2?.student || row.student2;
+                const name = st?.fullName || row.student2Name || 'N/A';
+                const email = st?.email || row.student2Email || '';
+                return (
+                    <div>
+                        <p className="font-semibold text-gray-900">{name}</p>
+                        <p className="text-xs text-gray-500">{email}</p>
+                    </div>
+                );
+            },
+        },
+        {
+            header: 'Asignatura / Ciclo',
+            render: (row) => {
+                const subjectName = row.assignment1?.subject?.name || row.subjectName || 'Práctica Intermedia';
+                const cycle = row.assignment1?.subject?.cycle || row.cycle || 'INTERMEDIO';
+                return (
+                    <div>
+                        <p className="font-medium text-gray-800">{subjectName}</p>
+                        <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded mt-0.5">
+                            Ciclo {cycle}
+                        </span>
+                    </div>
+                );
+            },
+        },
+        {
+            header: 'Centro de Práctica',
+            render: (row) => {
+                const centerName = row.assignment1?.center?.name || row.centerName || row.assignment2?.center?.name;
+                return centerName ? (
+                    <span className="text-gray-700">{centerName}</span>
+                ) : (
+                    <span className="text-gray-400 italic">No asignado</span>
+                );
+            },
+        },
+        {
+            header: 'Fecha',
+            render: (row) => {
+                const dateVal = row.createdAt;
+                return (
+                    <span className="text-sm text-gray-600">
+                        {dateVal ? new Date(dateVal).toLocaleDateString('es-CL') : 'N/A'}
+                    </span>
+                );
+            },
+        },
+        {
+            header: 'Estado',
+            align: 'center',
+            render: () => (
+                <Badge variant="info">
+                    Definitiva
+                </Badge>
+            ),
+        },
+    ], []);
+
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
+        <div className="p-8 max-w-7xl mx-auto space-y-6">
+            {/* Encabezado */}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaciones</h1>
-                    <p className="text-gray-500 mt-1">Vincula estudiantes con asignaturas, centros de práctica y docentes supervisores.</p>
+                    <p className="text-gray-500 mt-1">Vincula estudiantes con asignaturas, duplas pedagógicas, centros de práctica y supervisores.</p>
                 </div>
-                <Button 
-                    variant="primary"
-                    onClick={() => setIsModalOpen(true)}
+                {activeTab === 'ASIGNACIONES' ? (
+                    <Button 
+                        variant="primary"
+                        onClick={() => setIsModalOpen(true)}
+                    >
+                        + Nueva Asignación
+                    </Button>
+                ) : (
+                    <Button 
+                        variant="primary"
+                        onClick={handleOpenCrearDuplaModal}
+                    >
+                        + Nueva Dupla
+                    </Button>
+                )}
+            </div>
+
+            {/* Pestañas de Navegación */}
+            <div className="flex border-b border-gray-200 gap-4" role="tablist">
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'ASIGNACIONES'}
+                    onClick={() => setActiveTab('ASIGNACIONES')}
+                    className={`py-2 px-4 font-semibold border-b-2 transition-colors cursor-pointer ${
+                        activeTab === 'ASIGNACIONES'
+                            ? 'border-orange-600 text-orange-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
                 >
-                    + Nueva Asignación
-                </Button>
+                    Asignaciones Individuales
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'DUPLAS'}
+                    onClick={() => setActiveTab('DUPLAS')}
+                    className={`py-2 px-4 font-semibold border-b-2 transition-colors cursor-pointer ${
+                        activeTab === 'DUPLAS'
+                            ? 'border-orange-600 text-orange-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Duplas (Ciclo Intermedio)
+                </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <DataTable
-                    columns={columns}
-                    data={asignaciones}
-                    isLoading={loadingData}
-                    emptyMessage="No hay asignaciones registradas en el sistema."
-                    keyField="id"
-                />
-            </div>
+            {/* Pestaña: Asignaciones Individuales */}
+            {activeTab === 'ASIGNACIONES' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                    <DataTable
+                        columns={columnsAsignaciones}
+                        data={asignaciones}
+                        isLoading={loadingData}
+                        emptyMessage="No hay asignaciones registradas en el sistema."
+                        keyField="id"
+                    />
+                </div>
+            )}
 
-            {/* Modal Nueva Asignación (FE-18) */}
+            {/* Pestaña: Duplas de Ciclo Intermedio (HU9) */}
+            {activeTab === 'DUPLAS' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                    <DataTable
+                        columns={columnsDuplas}
+                        data={duplas}
+                        isLoading={loadingDuplas}
+                        emptyMessage="No hay duplas de estudiantes registradas en el ciclo intermedio."
+                        keyField="id"
+                    />
+                </div>
+            )}
+
+            {/* Modal Nueva Asignación Individual */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -295,7 +606,101 @@ export default function Asignaciones() {
                 </form>
             </Modal>
 
-            {/* Diálogo de Confirmación Accesible (FE-19) */}
+            {/* Modal Crear Dupla (HU9) */}
+            <Modal
+                isOpen={isDuplaModalOpen}
+                onClose={() => setIsDuplaModalOpen(false)}
+                title="Crear Dupla de Práctica (Ciclo Intermedio)"
+                size="lg"
+                footer={
+                    <div className="flex justify-end space-x-3">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsDuplaModalOpen(false)}
+                            disabled={loadingCrearDupla}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleSubmitDupla}
+                            isLoading={loadingCrearDupla}
+                            disabled={isConfirmDuplaDisabled}
+                        >
+                            Crear Dupla
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-5">
+                    {/* Alerta de advertencia permanente obligatoria */}
+                    <div
+                        role="alert"
+                        className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-xl text-amber-900 text-sm flex items-start gap-3"
+                    >
+                        <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                            <p className="font-bold text-amber-900">Advertencia Importante</p>
+                            <p className="mt-0.5 text-xs text-amber-800 font-medium">
+                                Las duplas de práctica son definitivas durante el semestre y no podrán modificarse ni desvincularse.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Buscador en vivo de estudiantes */}
+                    <div>
+                        <Input
+                            label="Buscar Estudiante"
+                            name="filtroDupla"
+                            placeholder="Buscar por nombre o correo electrónico..."
+                            value={filtroDupla}
+                            onChange={(e) => setFiltroDupla(e.target.value)}
+                            helperText={
+                                filtroDupla.trim()
+                                    ? `Resultados filtrados: ${estudiantesDuplaFiltrados.length} estudiante(s) encontrado(s)`
+                                    : 'Filtra la lista de opciones para ambos selectores'
+                            }
+                        />
+                    </div>
+
+                    {/* Desplegable Estudiante 1 */}
+                    <div>
+                        <Select
+                            label="Estudiante 1 (Ciclo Intermedio)"
+                            name="assignment1Id"
+                            value={duplaFormData.assignment1Id}
+                            onChange={handleDuplaInputChange}
+                            options={opcionesEstudiante1}
+                            placeholder="-- Seleccione Primer Estudiante --"
+                            required
+                        />
+                    </div>
+
+                    {/* Desplegable Estudiante 2 */}
+                    <div>
+                        <Select
+                            label="Estudiante 2 (Ciclo Intermedio)"
+                            name="assignment2Id"
+                            value={duplaFormData.assignment2Id}
+                            onChange={handleDuplaInputChange}
+                            options={opcionesEstudiante2}
+                            placeholder="-- Seleccione Segundo Estudiante --"
+                            required
+                        />
+                    </div>
+
+                    {/* Mensaje informativo si no hay estudiantes disponibles */}
+                    {estudiantesDisponiblesDupla.length === 0 && !loadingDuplas && (
+                        <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            No hay estudiantes disponibles en Ciclo Intermedio sin pareja para este periodo.
+                        </p>
+                    )}
+                </div>
+            </Modal>
+
+            {/* Diálogo de Confirmación para Asignación Individual */}
             <ConfirmDialog
                 isOpen={Boolean(assignmentToDelete)}
                 onClose={() => setAssignmentToDelete(null)}

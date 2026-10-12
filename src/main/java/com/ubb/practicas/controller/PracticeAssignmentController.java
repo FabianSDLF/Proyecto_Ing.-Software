@@ -9,12 +9,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping("/api/asignaciones")
 @RequiredArgsConstructor
 public class PracticeAssignmentController {
 
     private final PracticeAssignmentService assignmentService;
+
+    @GetMapping("/mis-asignaciones")
+    public ResponseEntity<List<PracticeAssignment>> obtenerMisAsignaciones(Principal principal) {
+        return ResponseEntity.ok(assignmentService.obtenerMisAsignaciones(principal.getName()));
+    }
 
     @GetMapping
     public ResponseEntity<List<PracticeAssignment>> listarAsignaciones() {

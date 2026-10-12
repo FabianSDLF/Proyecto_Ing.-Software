@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,4 +42,30 @@ public interface PortfolioDocumentRepository extends JpaRepository<PortfolioDocu
             @Param("email") String email,
             @Param("type") DocumentType type
     );
+
+    // ==========================================
+    // HU19: Métodos de Documentos Finales
+    // ==========================================
+
+    @Query("SELECT d FROM PortfolioDocument d " +
+           "JOIN FETCH d.practiceAssignment pa " +
+           "WHERE pa.id = :assignmentId AND d.type IN :types")
+    List<PortfolioDocument> findByPracticeAssignment_IdAndTypeIn(
+            @Param("assignmentId") Long assignmentId,
+            @Param("types") Collection<DocumentType> types
+    );
+
+    @Query("SELECT d FROM PortfolioDocument d " +
+           "JOIN FETCH d.practiceAssignment pa " +
+           "JOIN FETCH pa.student s " +
+           "WHERE s.email = :email AND d.type IN :types")
+    List<PortfolioDocument> findByPracticeAssignment_Student_EmailAndTypeIn(
+            @Param("email") String email,
+            @Param("types") Collection<DocumentType> types
+    );
+
+    @Query("SELECT d FROM PortfolioDocument d " +
+           "JOIN FETCH d.practiceAssignment pa " +
+           "WHERE pa.id = :assignmentId")
+    List<PortfolioDocument> findByPracticeAssignment_Id(@Param("assignmentId") Long assignmentId);
 }

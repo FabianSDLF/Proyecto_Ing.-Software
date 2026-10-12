@@ -4,6 +4,7 @@ import com.ubb.practicas.dto.DownloadedDocument;
 import com.ubb.practicas.exception.UnauthorizedException;
 import com.ubb.practicas.model.LessonPlan;
 import com.ubb.practicas.model.PortfolioDocument;
+import com.ubb.practicas.model.enums.DocumentType;
 import com.ubb.practicas.service.LessonPlanService;
 import com.ubb.practicas.service.PortfolioService;
 import lombok.RequiredArgsConstructor;
@@ -96,6 +97,61 @@ public class PortfolioController {
 
         lessonPlanService.eliminarPlanificacion(id, principal.getName());
         return ResponseEntity.ok(Map.of("message", "Planificación eliminada exitosamente"));
+    }
+
+    // ==========================================
+    // HU30: Endpoints de Versionado e Historial
+    // ==========================================
+
+    @PostMapping(value = {"/planificaciones/{id}/editar", "/planificaciones/{id}"})
+    public ResponseEntity<LessonPlan> editarPlanificacion(
+            @PathVariable Long id,
+            Principal principal,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "schoolGrade", required = false) String schoolGrade,
+            @RequestParam(value = "mathAxis", required = false) String mathAxis,
+            @RequestParam(value = "objective", required = false) String objective,
+            @RequestParam(value = "baseLearningObjective", required = false) String baseLearningObjective,
+            @RequestParam(value = "specificObjectives", required = false) String specificObjectives,
+            @RequestParam(value = "objectives", required = false) String objectives,
+            @RequestParam(value = "classActivities", required = false) String classActivities,
+            @RequestParam(value = "contentJson", required = false) String contentJson) {
+
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+
+        String finalObjective = objective != null ? objective : baseLearningObjective;
+        String finalSpecificObjectives = specificObjectives != null ? specificObjectives : objectives;
+        String finalClassActivities = classActivities != null ? classActivities : contentJson;
+
+        LessonPlan plan = lessonPlanService.editarPlanificacion(
+                id,
+                principal.getName(),
+                schoolGrade,
+                mathAxis,
+                finalObjective,
+                finalSpecificObjectives,
+                finalClassActivities,
+                file
+        );
+        return ResponseEntity.ok(plan);
+    }
+
+    @GetMapping("/planificaciones/{id}")
+    public ResponseEntity<LessonPlan> obtenerPlanificacionPorId(
+            @PathVariable Long id,
+            Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        LessonPlan plan = lessonPlanService.obtenerPlanificacionPorId(id, principal.getName());
+        return ResponseEntity.ok(plan);
+    }
+
+    @GetMapping("/planificaciones/{id}/historial")
+    public ResponseEntity<List<LessonPlan>> obtenerHistorialPlanificacion(
+            @PathVariable Long id,
+            Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        List<LessonPlan> historial = lessonPlanService.obtenerHistorialPlanificacion(id, principal.getName());
+        return ResponseEntity.ok(historial);
     }
 
     @DeleteMapping("/documentos/{id}")

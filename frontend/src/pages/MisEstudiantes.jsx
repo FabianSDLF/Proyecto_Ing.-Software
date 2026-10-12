@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import assignmentService from '../services/assignmentService';
-import { DataTable, Badge } from '../components/ui';
+import { DataTable, Badge, Modal, Button, Input } from '../components/ui';
 
 export default function MisEstudiantes() {
     const { user, userRole } = useAuth();
     const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
+    const [evaluationData, setEvaluationData] = useState({ score: '', comments: '', isFinalized: false, digitalSignature: '' });
 
     const cargarEstudiantes = useCallback(async (signal) => {
         if (!user) return;
@@ -40,6 +43,51 @@ export default function MisEstudiantes() {
         return () => controller.abort();
     }, [cargarEstudiantes]);
 
+    const handleOpenEvaluation = (assignment) => {
+        setSelectedAssignment(assignment);
+        setEvaluationData({ score: '', comments: '', isFinalized: false, digitalSignature: '' });
+        setIsEvaluationModalOpen(true);
+    };
+
+    const handleCloseEvaluation = () => {
+        setIsEvaluationModalOpen(false);
+        setSelectedAssignment(null);
+    };
+
+    const handleSubmitEvaluation = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const payload = {
+                practiceAssignmentId: selectedAssignment.id,
+                type: 'PAUTA_OBSERVACION_COLABORADOR',
+                score: parseFloat(evaluationData.score),
+                qualitativeComments: evaluationData.comments,
+                isFinalized: evaluationData.isFinalized,
+                digitalSignature: evaluationData.isFinalized ? evaluationData.digitalSignature : null,
+                criteria: [
+                    { criteriaName: 'Responsabilidad y Puntualidad', achievementLevel: 'LOGRO_ALTO', points: 25.0, justification: 'Evaluado general' },
+                    { criteriaName: 'Dominio del Grupo', achievementLevel: 'LOGRO_ADECUADO', points: 20.0, justification: 'Evaluado general' }
+                ]
+            };
+            const res = await fetch('http://localhost:8080/api/evaluaciones', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) throw new Error('Error al guardar la evaluación');
+            toast.success('Pauta de evaluación guardada con éxito');
+            handleCloseEvaluation();
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message);
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: 'Estudiante',
@@ -68,29 +116,18 @@ export default function MisEstudiantes() {
                 </Badge>
             ),
         },
-    ], []);
-    const handleDescargarZip = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const respuesta = await fetch('http://localhost:8080/api/portafolio/download-zip', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (respuesta.ok) {
-                const blob = await respuesta.blob();
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'informes_finales.zip');
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode.removeChild(link);
-            } else {
-                alert("Error al descargar el ZIP.");
-            }
-        } catch (error) {
-            console.error("Error al descargar:", error);
-        }
-    };
+        {
+            header: 'Acciones',
+            align: 'right',
+            render: (row) => (
+                userRole === 'Profesor Colaborador' && (
+                    <Button variant="primary" size="sm" onClick={() => handleOpenEvaluation(row)}>
+                        Evaluar (Pauta)
+                    </Button>
+                )
+            ),
+        },
+    ], [userRole]);
 
     return (
         <div className="p-8 max-w-6xl mx-auto space-y-8">
@@ -117,6 +154,76 @@ export default function MisEstudiantes() {
                     keyField="id"
                 />
             </div>
+
+            <Modal isOpen={isEvaluationModalOpen} onClose={handleCloseEvaluation} title="Pauta de Evaluación Digital">
+                {selectedAssignment && (
+                    <form onSubmit={handleSubmitEvaluation} className="space-y-4">
+                        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                            <p className="font-bold text-blue-900">Estudiante: {selectedAssignment.student?.fullName}</p>
+                            <p className="text-sm text-blue-700">Asignatura: {selectedAssignment.subject?.name}</p>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Calificación Final (1.0 - 7.0)</label>
+                            <Input 
+                                type="number" 
+                                step="0.1" 
+                                min="1.0" 
+                                max="7.0" 
+                                required 
+                                value={evaluationData.score}
+                                onChange={(e) => setEvaluationData({...evaluationData, score: e.target.value})}
+                                placeholder="Ej: 6.5"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios Cualitativos y Retroalimentación</label>
+                            <textarea 
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                rows="4"
+                                required
+                                value={evaluationData.comments}
+                                onChange={(e) => setEvaluationData({...evaluationData, comments: e.target.value})}
+                                placeholder="Escriba sus observaciones sobre el desempeño del estudiante en el aula..."
+                            ></textarea>
+                        </div>
+
+                        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <label className="flex items-center space-x-3 mb-3">
+                                <input 
+                                    type="checkbox" 
+                                    className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                                    checked={evaluationData.isFinalized}
+                                    onChange={(e) => setEvaluationData({...evaluationData, isFinalized: e.target.checked})}
+                                />
+                                <span className="text-gray-800 font-medium">Finalizar evaluación definitivamente</span>
+                            </label>
+                            
+                            {evaluationData.isFinalized && (
+                                <div className="mt-3">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Firma Digital (Escriba su nombre completo)</label>
+                                    <Input 
+                                        type="text" 
+                                        required={evaluationData.isFinalized}
+                                        value={evaluationData.digitalSignature}
+                                        onChange={(e) => setEvaluationData({...evaluationData, digitalSignature: e.target.value})}
+                                        placeholder="Firma electrónica"
+                                    />
+                                    <p className="text-xs text-red-600 mt-1">Atención: Una vez enviada con firma digital, esta evaluación será inamovible y se registrará como la calificación oficial.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t">
+                            <Button type="button" variant="outline" onClick={handleCloseEvaluation}>Cancelar</Button>
+                            <Button type="submit" variant="primary">
+                                {evaluationData.isFinalized ? 'Firmar y Enviar' : 'Guardar Pauta'}
+                            </Button>
+                        </div>
+                    </form>
+                )}
+            </Modal>
         </div>
     );
 }

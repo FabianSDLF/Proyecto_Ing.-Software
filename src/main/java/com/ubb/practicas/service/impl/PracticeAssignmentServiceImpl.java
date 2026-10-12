@@ -30,6 +30,12 @@ public class PracticeAssignmentServiceImpl implements PracticeAssignmentService 
 
     @Override
     @Transactional(readOnly = true)
+    public List<PracticeAssignment> obtenerMisAsignaciones(String studentEmail) {
+        return assignmentRepository.findByStudentEmail(studentEmail);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PracticeAssignment> listarAsignaciones() {
         return assignmentRepository.findAll();
     }
