@@ -50,6 +50,19 @@ services:
       - backend
     restart: unless-stopped
 
+  # Chatbot IA (Python FastAPI)
+  chatbot:
+    build: ./chatbot
+    container_name: practicas_chatbot
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=AQ.Ab8RN6JhrIapC4vz3cDEHeiptnJC66g-oOBgmX6PahPK85cEhw
+    volumes:
+      - chatbot_recursos:/app/recursos
+    restart: unless-stopped
+
 volumes:
   db_data:
   backend_uploads:
+  chatbot_recursos:
