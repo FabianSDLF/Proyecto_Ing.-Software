@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Base de datos MySQL
   db:
@@ -14,15 +12,18 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     restart: unless-stopped
 
   # Backend Spring Boot
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: practicas_backend:latest
     container_name: practicas_backend
     ports:
       - "8080:8080"
@@ -42,7 +43,10 @@ services:
 
   # Frontend React (Vite + Nginx)
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: practicas_frontend:latest
     container_name: practicas_frontend
     ports:
       - "80:80"

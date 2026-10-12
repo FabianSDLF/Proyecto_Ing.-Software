@@ -55,6 +55,10 @@ public class SecurityConfig {
                 )
                 .requestMatchers("/api/asignaciones/**").hasRole("Coordinador de practicas")
                 .requestMatchers("/api/carga-masiva/**").hasRole("Coordinador de practicas")
+                .requestMatchers("/api/duplas/**").hasAnyRole(
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
+                )
                 .requestMatchers("/api/portafolio/**", "/api/profesor/**").authenticated()
                 .anyRequest().authenticated()
             )

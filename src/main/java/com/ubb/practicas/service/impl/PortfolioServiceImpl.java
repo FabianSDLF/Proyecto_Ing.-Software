@@ -1,6 +1,8 @@
 package com.ubb.practicas.service.impl;
 
 import com.ubb.practicas.dto.DownloadedDocument;
+import com.ubb.practicas.exception.BadRequestException;
+import com.ubb.practicas.exception.ResourceConflictException;
 import com.ubb.practicas.model.PortfolioDocument;
 import com.ubb.practicas.model.PracticeAssignment;
 import com.ubb.practicas.model.User;
@@ -17,6 +19,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -27,6 +30,13 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class PortfolioServiceImpl implements PortfolioService {
+
+    private static final long MAX_FINAL_DOCUMENT_SIZE = 20L * 1024L * 1024L; // 20 MB (20,971,520 bytes)
+    private static final List<String> ALLOWED_FINAL_EXTENSIONS = List.of(".pdf", ".doc", ".docx");
+    private static final List<DocumentType> FINAL_DOCUMENT_TYPES = List.of(
+            DocumentType.INFORME_FINAL,
+            DocumentType.PROYECTO_INTERVENCION
+    );
 
     private final PortfolioDocumentRepository portfolioDocumentRepository;
     private final PracticeAssignmentRepository practiceAssignmentRepository;
@@ -56,8 +66,19 @@ public class PortfolioServiceImpl implements PortfolioService {
     }
 
     private boolean isUserAdmin(String email) {
+        if (email == null) {
+            return false;
+        }
         User user = userRepository.findByEmail(email);
-        return user != null && user.getRole() != null && "Coordinador de practicas".equalsIgnoreCase(user.getRole().getName());
+        return isUserAdmin(user);
+    }
+
+    private boolean isUserAdmin(User user) {
+        if (user == null || user.getRole() == null || user.getRole().getName() == null) {
+            return false;
+        }
+        String roleName = user.getRole().getName();
+        return "coordinador de practicas".equalsIgnoreCase(roleName) || "administrador".equalsIgnoreCase(roleName);
     }
 
     @Override
@@ -129,6 +150,177 @@ public class PortfolioServiceImpl implements PortfolioService {
             lessonPlanRepository.findByDocumentId(doc.getId()).ifPresent(lessonPlanRepository::delete);
         }
 
+        portfolioDocumentRepository.delete(doc);
+    }
+
+    // ==========================================
+    // HU19: Métodos de Documentos de Término
+    // ==========================================
+
+    private void validarDocumentoFinal(MultipartFile file, DocumentType type) {
+        if (file == null || file.isEmpty() || file.getSize() == 0) {
+            throw new BadRequestException("El archivo no puede ser nulo o vacío.");
+        }
+        if (file.getSize() > MAX_FINAL_DOCUMENT_SIZE) {
+            throw new BadRequestException("El archivo excede el tamaño máximo permitido de 20 MB.");
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            throw new BadRequestException("El nombre del archivo no es válido.");
+        }
+        String cleanFilename = StringUtils.cleanPath(originalFilename).trim();
+        int lastDot = cleanFilename.lastIndexOf('.');
+        if (lastDot < 0) {
+            throw new BadRequestException("El archivo debe poseer una extensión válida (.pdf, .doc, .docx).");
+        }
+        String extension = cleanFilename.substring(lastDot).toLowerCase();
+        if (!ALLOWED_FINAL_EXTENSIONS.contains(extension)) {
+            throw new BadRequestException("Formato no permitido. Solo se admiten archivos PDF (.pdf) y documentos Word (.doc, .docx).");
+        }
+        if (type == null || !FINAL_DOCUMENT_TYPES.contains(type)) {
+            throw new BadRequestException("Tipo de documento inválido para documento de término. Debe ser INFORME_FINAL o PROYECTO_INTERVENCION.");
+        }
+    }
+
+    @Override
+    @Transactional
+    public PortfolioDocument subirDocumentoFinal(MultipartFile file, DocumentType type, Boolean replaceConfirmed, User student) {
+        if (student == null) {
+            throw new IllegalArgumentException("El usuario estudiante no puede ser nulo.");
+        }
+        return procesarSubidaDocumentoFinal(student.getEmail(), null, file, type, replaceConfirmed);
+    }
+
+    @Override
+    @Transactional
+    public PortfolioDocument subirDocumentoFinal(String studentEmail, Long assignmentId, MultipartFile file, DocumentType type, Boolean replaceConfirmed) {
+        return procesarSubidaDocumentoFinal(studentEmail, assignmentId, file, type, replaceConfirmed);
+    }
+
+    private PortfolioDocument procesarSubidaDocumentoFinal(String email, Long assignmentId, MultipartFile file, DocumentType type, Boolean replaceConfirmed) {
+        validarDocumentoFinal(file, type);
+
+        PracticeAssignment assignment = resolveAssignment(email, assignmentId);
+        if (assignment == null) {
+            throw new BadRequestException("No se encontró una asignación de práctica activa para el estudiante.");
+        }
+
+        List<PortfolioDocument> existingFinalDocs = portfolioDocumentRepository.findByPracticeAssignment_IdAndTypeIn(
+                assignment.getId(), FINAL_DOCUMENT_TYPES
+        );
+
+        if (!existingFinalDocs.isEmpty()) {
+            if (!Boolean.TRUE.equals(replaceConfirmed)) {
+                throw new ResourceConflictException("Ya existe un documento final registrado para esta asignación de práctica. Confirme el reemplazo para actualizarlo.");
+            }
+
+            // Caso reemplazo confirmado: actualizar registro existente y reemplazar archivo físico
+            PortfolioDocument docToUpdate = existingFinalDocs.get(0);
+            String oldStoredFileName = docToUpdate.getStoredFileName();
+
+            // Guardar nuevo archivo PRIMERO para garantizar integridad en caso de fallos
+            String storedFileName = storageService.store(file);
+
+            docToUpdate.setType(type);
+            docToUpdate.setFileName(file.getOriginalFilename());
+            docToUpdate.setStoredFileName(storedFileName);
+            docToUpdate.setContentType(file.getContentType());
+            docToUpdate.setSizeBytes(file.getSize());
+            docToUpdate.setUploadDate(LocalDateTime.now());
+            docToUpdate.setFileUrl("/api/portafolio/documentos/" + docToUpdate.getId() + "/descargar");
+
+            PortfolioDocument savedDoc = portfolioDocumentRepository.save(docToUpdate);
+
+            // Una vez guardado exitosamente el nuevo archivo y la entidad, eliminar el archivo previo
+            if (oldStoredFileName != null && !oldStoredFileName.equals(storedFileName)) {
+                try {
+                    storageService.deleteFile(oldStoredFileName);
+                } catch (Exception ignored) {
+                }
+            }
+
+            // Si existiesen duplicados previos, removerlos para mantener unicidad estricta
+            for (int i = 1; i < existingFinalDocs.size(); i++) {
+                PortfolioDocument extra = existingFinalDocs.get(i);
+                if (extra.getStoredFileName() != null) {
+                    try {
+                        storageService.deleteFile(extra.getStoredFileName());
+                    } catch (Exception ignored) {
+                    }
+                }
+                portfolioDocumentRepository.delete(extra);
+            }
+            portfolioDocumentRepository.flush();
+
+            return savedDoc;
+        }
+
+        // Nuevo registro si no existía previo
+        String storedFileName = storageService.store(file);
+
+        PortfolioDocument doc = new PortfolioDocument();
+        doc.setPracticeAssignment(assignment);
+        doc.setType(type);
+        doc.setFileName(file.getOriginalFilename());
+        doc.setStoredFileName(storedFileName);
+        doc.setContentType(file.getContentType());
+        doc.setSizeBytes(file.getSize());
+        doc.setUploadDate(LocalDateTime.now());
+
+        doc = portfolioDocumentRepository.save(doc);
+        doc.setFileUrl("/api/portafolio/documentos/" + doc.getId() + "/descargar");
+        return portfolioDocumentRepository.save(doc);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PortfolioDocument> obtenerMisDocumentosFinales(User student) {
+        if (student == null) {
+            throw new IllegalArgumentException("El usuario estudiante no puede ser nulo.");
+        }
+        return obtenerMisDocumentosFinales(student.getEmail());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PortfolioDocument> obtenerMisDocumentosFinales(String studentEmail) {
+        return portfolioDocumentRepository.findByPracticeAssignment_Student_EmailAndTypeIn(
+                studentEmail, FINAL_DOCUMENT_TYPES
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PortfolioDocument> obtenerDocumentosFinalesPorAsignacion(Long assignmentId) {
+        if (assignmentId == null) {
+            throw new IllegalArgumentException("El ID de asignación no puede ser nulo.");
+        }
+        return portfolioDocumentRepository.findByPracticeAssignment_IdAndTypeIn(
+                assignmentId, FINAL_DOCUMENT_TYPES
+        );
+    }
+
+    @Override
+    @Transactional
+    public void eliminarDocumentoFinal(Long id, String userEmail) {
+        PortfolioDocument doc = portfolioDocumentRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Documento no encontrado"));
+
+        boolean isAdmin = isUserAdmin(userEmail);
+        if (!isAdmin && !doc.isOwnedBy(userEmail)) {
+            throw new AccessDeniedException("No tiene permisos para eliminar este documento");
+        }
+
+        if (!FINAL_DOCUMENT_TYPES.contains(doc.getType())) {
+            throw new BadRequestException("El documento no corresponde a un documento de término.");
+        }
+
+        if (doc.getStoredFileName() != null) {
+            try {
+                storageService.deleteFile(doc.getStoredFileName());
+            } catch (Exception ignored) {
+            }
+        }
         portfolioDocumentRepository.delete(doc);
     }
 }

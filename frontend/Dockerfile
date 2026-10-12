@@ -1,17 +1,22 @@
+# syntax=docker/dockerfile:1
 # Etapa de construcción
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN rm -f package-lock.json
-RUN npm install
+
+# Copiar manifiestos de dependencias
+COPY package.json package-lock.json ./
+
+# Instalar usando package-lock.json y cache de BuildKit (NO borrar package-lock.json)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
+
+# Copiar código fuente y compilar
 COPY . .
 RUN npm run build
 
-# Etapa de servidor web
+# Etapa de servidor web liviana
 FROM nginx:alpine
-# Copiamos la build de React al directorio de nginx
 COPY --from=build /app/dist /usr/share/nginx/html
-# Copiar archivo de conf de Nginx si es necesario para react-router (para que no de error 404 al recargar)
 RUN echo 'server { listen 80; location / { root /usr/share/nginx/html; index index.html index.htm; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

@@ -55,6 +55,38 @@ export const assignmentService = {
   async getByProfessor(professorId, options) {
     return apiClient.get(`/api/profesor/${professorId}/estudiantes`, options);
   },
+
+  /**
+   * HU9: Listar duplas de estudiantes en ciclo intermedio por periodo
+   * @param {number|string|null} [periodId]
+   */
+  async getDuplas(periodId, options = {}) {
+    const params = { ...options?.params };
+    if (periodId !== undefined && periodId !== null && typeof periodId !== 'object') {
+      params.periodId = periodId;
+    }
+    return apiClient.get('/api/duplas', { ...options, params });
+  },
+
+  /**
+   * HU9: Crear una nueva dupla de estudiantes definitiva
+   * @param {{ assignment1Id: number|string, assignment2Id: number|string, periodId?: number|string }} payload
+   */
+  async crearDupla(payload, options = {}) {
+    return apiClient.post('/api/duplas', payload, options);
+  },
+
+  /**
+   * HU9: Listar estudiantes elegibles en ciclo intermedio sin pareja para un periodo
+   * @param {number|string|null} [periodId]
+   */
+  async getEstudiantesDisponiblesDupla(periodId, options = {}) {
+    const params = { ...options?.params };
+    if (periodId !== undefined && periodId !== null && typeof periodId !== 'object') {
+      params.periodId = periodId;
+    }
+    return apiClient.get('/api/duplas/disponibles', { ...options, params });
+  },
 };
 
 export default assignmentService;
