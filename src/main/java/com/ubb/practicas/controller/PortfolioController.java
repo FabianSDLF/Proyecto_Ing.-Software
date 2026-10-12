@@ -26,6 +26,8 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final LessonPlanService lessonPlanService;
+    private final com.ubb.practicas.repository.PortfolioDocumentRepository portfolioDocumentRepository;
+    private final com.ubb.practicas.repository.PracticeAssignmentRepository practiceAssignmentRepository;
 
     @GetMapping("/evidencias")
     public ResponseEntity<List<PortfolioDocument>> obtenerMisEvidencias(Principal principal) {
@@ -159,59 +161,53 @@ public class PortfolioController {
         portfolioService.eliminarDocumento(id, principal.getName());
         return ResponseEntity.ok(Map.of("message", "Documento eliminado exitosamente"));
     }
+    @GetMapping(value = "/download-zip", produces = "application/zip")
+    public void downloadZip(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_OK);
+        response.addHeader("Content-Disposition", "attachment; filename=\"informes_finales.zip\"");
 
-    // ==========================================
-    // HU19: Endpoints de Documentos Finales
-    // ==========================================
+        java.util.List<PortfolioDocument> documentos = portfolioDocumentRepository.findAll().stream()
+                .filter(doc -> doc.getType().name().equals("INFORME_FINAL"))
+                .collect(java.util.stream.Collectors.toList());
 
-    @PostMapping("/documentos-finales/upload")
-    public ResponseEntity<PortfolioDocument> subirDocumentoFinal(
-            Principal principal,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("type") DocumentType type,
-            @RequestParam(value = "assignmentId", required = false) Long assignmentId,
-            @RequestParam(value = "replace", required = false) Boolean replace,
-            @RequestParam(value = "replaceConfirmed", required = false) Boolean replaceConfirmed) {
-
-        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
-
-        boolean confirmed = Boolean.TRUE.equals(replace) || Boolean.TRUE.equals(replaceConfirmed);
-        PortfolioDocument doc = portfolioService.subirDocumentoFinal(principal.getName(), assignmentId, file, type, confirmed);
-        return ResponseEntity.ok(doc);
-    }
-
-    @GetMapping("/documentos-finales")
-    public ResponseEntity<List<PortfolioDocument>> obtenerMisDocumentosFinales(
-            Principal principal,
-            @RequestParam(value = "assignmentId", required = false) Long assignmentId) {
-        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
-
-        List<PortfolioDocument> documentos;
-        if (assignmentId != null) {
-            documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
-        } else {
-            documentos = portfolioService.obtenerMisDocumentosFinales(principal.getName());
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
+            for (PortfolioDocument doc : documentos) {
+                java.io.File file = new java.io.File(doc.getFileUrl());
+                if (file.exists() && !file.isDirectory()) {
+                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/" + file.getName());
+                    zos.putNextEntry(zipEntry);
+                    java.nio.file.Files.copy(file.toPath(), zos);
+                    zos.closeEntry();
+                } else {
+                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/FALTA_" + doc.getFileName() + ".txt");
+                    zos.putNextEntry(zipEntry);
+                    zos.write(("El archivo fisico no se encontro en el servidor.").getBytes());
+                    zos.closeEntry();
+                }
+            }
         }
-        return ResponseEntity.ok(documentos);
     }
 
-    @GetMapping("/documentos-finales/asignacion/{assignmentId}")
-    public ResponseEntity<List<PortfolioDocument>> obtenerDocumentosFinalesPorAsignacion(
-            @PathVariable Long assignmentId,
-            Principal principal) {
-        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+    @GetMapping(value = "/export-csv", produces = "text/csv; charset=utf-8")
+    public void exportToCSV(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=\"reporte_institucional.csv\"");
 
-        List<PortfolioDocument> documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
-        return ResponseEntity.ok(documentos);
-    }
+        java.util.List<com.ubb.practicas.model.PracticeAssignment> asignaciones = practiceAssignmentRepository.findAll();
+        java.io.PrintWriter writer = response.getWriter();
 
-    @DeleteMapping("/documentos-finales/{id}")
-    public ResponseEntity<Map<String, String>> eliminarDocumentoFinal(
-            @PathVariable Long id,
-            Principal principal) {
-        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        writer.println("Estudiante;Asignatura;Periodo;Centro de Practica;Profesor Colaborador;Tutor;Estado");
 
-        portfolioService.eliminarDocumentoFinal(id, principal.getName());
-        return ResponseEntity.ok(Map.of("message", "Documento final eliminado exitosamente"));
+        for (com.ubb.practicas.model.PracticeAssignment asig : asignaciones) {
+            String estudiante = (asig.getStudent() != null) ? asig.getStudent().getFullName() : "N/A";
+            String asignatura = (asig.getSubject() != null) ? asig.getSubject().getName() : "N/A";
+            String periodo = (asig.getPeriod() != null) ? asig.getPeriod().getName() : "N/A";
+            String centro = (asig.getCenter() != null) ? asig.getCenter().getName() : "N/A";
+            String colaborador = (asig.getCollaborator() != null) ? asig.getCollaborator().getFullName() : "N/A";
+            String tutor = (asig.getTutor() != null) ? asig.getTutor().getFullName() : "N/A";
+            String estado = (asig.getStatus() != null) ? asig.getStatus().name() : "N/A";
+
+            writer.println(estudiante + ";" + asignatura + ";" + periodo + ";" + centro + ";" + colaborador + ";" + tutor + ";" + estado);
+        }
     }
 }

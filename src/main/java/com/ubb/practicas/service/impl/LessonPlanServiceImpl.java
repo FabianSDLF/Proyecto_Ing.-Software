@@ -12,6 +12,7 @@ import com.ubb.practicas.repository.LessonPlanRepository;
 import com.ubb.practicas.repository.PortfolioDocumentRepository;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
 import com.ubb.practicas.repository.UserRepository;
+import com.ubb.practicas.service.EmailService;
 import com.ubb.practicas.service.LessonPlanService;
 import com.ubb.practicas.service.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
     private final PortfolioDocumentRepository portfolioDocumentRepository;
     private final UserRepository userRepository;
     private final StorageService storageService;
+    private final EmailService emailService;
 
     private PracticeAssignment resolveAssignment(String email, Long explicitAssignmentId) {
         if (explicitAssignmentId != null) {
@@ -118,7 +120,10 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                 plan.setDocument(doc);
             }
         }
-
+        String nombreEntrega = (file != null && !file.isEmpty() && !"planificacion_sin_archivo.txt".equals(file.getOriginalFilename()))
+                ? file.getOriginalFilename()
+                : "Formulario de Planificación Web";
+        emailService.enviarComprobante(studentEmail, nombreEntrega);
         return lessonPlanRepository.save(plan);
     }
 

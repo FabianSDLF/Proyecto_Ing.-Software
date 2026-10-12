@@ -20,6 +20,7 @@ import GestionRoles from './pages/GestionRoles';
 import GestionAsignaturas from './pages/GestionAsignaturas';
 import Asignaciones from './pages/Asignaciones';
 import MisEstudiantes from './pages/MisEstudiantes';
+import Reportes from './pages/Reportes';
 
 function App() {
   return (
@@ -55,19 +56,15 @@ function App() {
               </Route>
 
               {/* Teacher Routes */}
-              <Route
-                element={
-                  <RoleRoute
-                    allowedRoles={[
-                      'Profesor de Asignatura',
-                      'Profesor Colaborador',
-                      'Tutor',
-                    ]}
-                  />
-                }
-              >
+              <Route element={<RoleRoute allowedRoles={['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor']} />}>
                 <Route path="/mis-estudiantes" element={<MisEstudiantes />} />
               </Route>
+
+              {/* Reportes va AQUÍ ADENTRO, arriba de los dos </Route> de cierre */}
+              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
+                <Route path="/reportes" element={<Reportes />} />
+              </Route>
+
             </Route>
           </Route>
 
