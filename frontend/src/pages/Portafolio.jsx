@@ -304,7 +304,7 @@ export default function Portafolio() {
                 onClose={() => setItemToDelete(null)}
                 onConfirm={confirmDelete}
                 title={itemToDelete?.isPlan ? "Eliminar Planificación" : "Eliminar Evidencia"}
-                message={`¿Seguro que deseas eliminar "${itemToDelete?.name}"? Esta acción no se puede deshacer.`}
+                message={`¿¿Seguro que deseas eliminar "${itemToDelete?.name}"? Esta acción no se puede deshacer.`}
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="danger"

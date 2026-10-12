@@ -43,6 +43,9 @@ public class Evaluation {
     @Column(length = 1000)
     private String qualitativeComments;
 
+    private Boolean isFinalized = false;
+    private String digitalSignature;
+
     private LocalDateTime evaluationDate;
     private LocalDateTime createdAt;
 }
