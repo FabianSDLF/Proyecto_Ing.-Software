@@ -1,50 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import subjectService from '../services/subjectService';
+import { DataTable, ConfirmDialog, Input, Select, Button, Badge } from '../components/ui';
 
 export default function GestionAsignaturas() {
   const [asignaturas, setAsignaturas] = useState([]);
   const [name, setName] = useState('');
   const [cycle, setCycle] = useState('INICIAL');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [loadingData, setLoadingData] = useState(true);
 
-  const fetchAsignaturas = async () => {
+  // Estado para ConfirmDialog
+  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchAsignaturas = useCallback(async (signal) => {
+    setLoadingData(true);
     try {
-      const res = await fetch('http://localhost:8080/api/asignaturas', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
-      if (res.ok) {
-        const data = await res.json();
-        setAsignaturas(data);
-      } else {
-        toast.error('Error cargando asignaturas');
+      const data = await subjectService.getSubjects({ signal });
+      setAsignaturas(Array.isArray(data) ? data : []);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Error cargando asignaturas:', err);
+        toast.error(err.message || 'Error cargando asignaturas');
       }
-    } catch {
-      toast.error('Error cargando asignaturas');
+    } finally {
+      setLoadingData(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Protección de ruta: Solo Administrador
-    const userString = localStorage.getItem('usuarioActivo');
-    if (userString) {
-      try {
-        const user = JSON.parse(userString);
-        if (!user.role || user.role.name !== 'Administrador') {
-          toast.error("Acceso denegado: Solo administradores");
-          navigate('/dashboard');
-          return;
-        }
-      } catch {
-        navigate('/');
-        return;
-      }
-    } else {
-        navigate('/');
-        return;
-    }
-
-    fetchAsignaturas();
-  }, [navigate]);
+    const controller = new AbortController();
+    fetchAsignaturas(controller.signal);
+    return () => controller.abort();
+  }, [fetchAsignaturas]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,126 +44,143 @@ export default function GestionAsignaturas() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/api/asignaturas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-        body: JSON.stringify({ name: name.trim(), cycle })
-      });
-
-      if (res.ok) {
-        toast.success('Asignatura creada exitosamente');
-        setName('');
-        fetchAsignaturas();
-      } else {
-        const errorMsg = await res.text();
-        toast.error(errorMsg || 'Error al crear la asignatura');
-      }
-    } catch {
-      toast.error('Error de conexión con el servidor');
+      await subjectService.createSubject({ name: name.trim(), cycle });
+      toast.success('Asignatura creada exitosamente');
+      setName('');
+      fetchAsignaturas();
+    } catch (err) {
+      console.error('Error creando asignatura:', err);
+      toast.error(err.message || 'Error al crear la asignatura');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar esta asignatura?')) {
-      return;
-    }
+  const confirmDelete = async () => {
+    if (!subjectToDelete) return;
+
+    setIsDeleting(true);
     try {
-      const res = await fetch(`http://localhost:8080/api/asignaturas/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-      });
-      if (res.ok) {
-        toast.success('Asignatura eliminada');
-        fetchAsignaturas();
-      } else {
-        const errorMsg = await res.text();
-        toast.error(errorMsg || 'Error al eliminar');
-      }
-    } catch {
-      toast.error('Error al eliminar');
+      await subjectService.deleteSubject(subjectToDelete.id);
+      toast.success('Asignatura eliminada exitosamente');
+      setSubjectToDelete(null);
+      fetchAsignaturas();
+    } catch (err) {
+      console.error('Error eliminando asignatura:', err);
+      toast.error(err.message || 'Error al eliminar la asignatura');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  const cycleOptions = [
+    { value: 'INICIAL', label: 'Inicial' },
+    { value: 'INTERMEDIO', label: 'Intermedio' },
+    { value: 'AVANZADO', label: 'Avanzado' },
+  ];
+
+  const getCycleBadge = (cycleVal) => {
+    const norm = (cycleVal || '').toUpperCase();
+    if (norm === 'INICIAL') return <Badge variant="success">Inicial</Badge>;
+    if (norm === 'INTERMEDIO') return <Badge variant="warning">Intermedio</Badge>;
+    if (norm === 'AVANZADO') return <Badge variant="primary">Avanzado</Badge>;
+    return <Badge variant="gray">{cycleVal || 'Sin ciclo'}</Badge>;
+  };
+
+  const columns = useMemo(() => [
+    {
+      header: 'ID',
+      accessor: 'id',
+      className: 'w-16 text-gray-500 font-mono text-xs',
+    },
+    {
+      header: 'Asignatura',
+      accessor: 'name',
+      className: 'font-medium text-gray-900',
+    },
+    {
+      header: 'Ciclo',
+      render: (row) => getCycleBadge(row.cycle),
+    },
+    {
+      header: 'Acciones',
+      align: 'right',
+      render: (row) => (
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => setSubjectToDelete(row)}
+        >
+          Eliminar
+        </Button>
+      ),
+    },
+  ], []);
+
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Gestión de Asignaturas (Ciclos)</h1>
-      
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Nueva Asignatura</h2>
-        <form onSubmit={handleSubmit} className="flex gap-4 items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-            <input 
-              type="text" 
-              className="w-full border p-2 rounded" 
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaturas (Ciclos)</h1>
+        <p className="text-gray-500 mt-1">Configura las asignaturas correspondientes a los diferentes ciclos de formación práctica.</p>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Nueva Asignatura</h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="md:col-span-1">
+            <Input 
+              label="Nombre"
               placeholder="Ej: Aproximación Escolar"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
             />
           </div>
-          <div className="w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ciclo</label>
-            <select 
-              className="w-full border p-2 rounded"
+          <div>
+            <Select 
+              label="Ciclo"
+              options={cycleOptions}
               value={cycle}
               onChange={(e) => setCycle(e.target.value)}
-            >
-              <option value="INICIAL">Inicial</option>
-              <option value="INTERMEDIO">Intermedio</option>
-              <option value="AVANZADO">Avanzado</option>
-            </select>
+              required
+            />
           </div>
-          <button 
-            type="submit" 
-            disabled={loading}
-            className={`bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 font-bold transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading ? 'Creando...' : 'Crear'}
-          </button>
+          <div>
+            <Button 
+              type="submit" 
+              variant="primary"
+              size="md"
+              className="w-full bg-orange-600 hover:bg-orange-700 font-bold"
+              isLoading={loading}
+            >
+              Crear Asignatura
+            </Button>
+          </div>
         </form>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="p-4 font-semibold text-gray-600">ID</th>
-              <th className="p-4 font-semibold text-gray-600">Asignatura</th>
-              <th className="p-4 font-semibold text-gray-600">Ciclo</th>
-              <th className="p-4 font-semibold text-gray-600">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {asignaturas.map(asig => (
-              <tr key={asig.id} className="border-b hover:bg-gray-50">
-                <td className="p-4">{asig.id}</td>
-                <td className="p-4">{asig.name}</td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    asig.cycle === 'INICIAL' || asig.cycle === 'Inicial' ? 'bg-green-100 text-green-800' :
-                    asig.cycle === 'INTERMEDIO' || asig.cycle === 'Intermedio' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-purple-100 text-purple-800'
-                  }`}>
-                    {asig.cycle === 'INICIAL' || asig.cycle === 'Inicial' ? 'Inicial' :
-                     asig.cycle === 'INTERMEDIO' || asig.cycle === 'Intermedio' ? 'Intermedio' :
-                     asig.cycle === 'AVANZADO' || asig.cycle === 'Avanzado' ? 'Avanzado' : (asig.cycle || 'Sin ciclo')}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <button onClick={() => handleDelete(asig.id)} className="text-red-500 hover:text-red-700">Eliminar</button>
-                </td>
-              </tr>
-            ))}
-            {asignaturas.length === 0 && (
-              <tr>
-                <td colSpan="4" className="p-4 text-center text-gray-500">No hay asignaturas registradas</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <DataTable
+          columns={columns}
+          data={asignaturas}
+          isLoading={loadingData}
+          emptyMessage="No hay asignaturas registradas."
+          keyField="id"
+        />
       </div>
+
+      {/* Diálogo de Confirmación Accesible (FE-19) */}
+      <ConfirmDialog
+        isOpen={Boolean(subjectToDelete)}
+        onClose={() => setSubjectToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar Asignatura"
+        message={`¿Está seguro de que desea eliminar la asignatura "${subjectToDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar Asignatura"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

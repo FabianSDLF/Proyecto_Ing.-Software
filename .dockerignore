@@ -1,0 +1,25 @@
+# Control de versiones y editores
+.git
+.gitignore
+.gitattributes
+.idea
+.vscode
+*.iml
+
+# Artefactos de compilación
+target
+.mvn
+mvnw
+mvnw.cmd
+
+# Archivos de subida y almacenamiento local
+uploads
+test-uploads
+dataset_pruebas
+*.sql
+*.md
+reporte_codigo.md
+
+# Frontend aislado (no enviar al contexto del build de backend)
+frontend
+node_modules

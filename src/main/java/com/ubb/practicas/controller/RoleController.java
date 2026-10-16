@@ -1,9 +1,9 @@
 package com.ubb.practicas.controller;
 
 import com.ubb.practicas.model.Role;
-import com.ubb.practicas.repository.RoleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import com.ubb.practicas.service.RoleService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,15 +11,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/roles")
+@RequiredArgsConstructor
 public class RoleController {
 
-    @Autowired
-    private RoleRepository roleRepository;
+    private final RoleService roleService;
 
     @GetMapping
-    public List<Role> obtenerRoles() {
-        return roleRepository.findAll();
+    public ResponseEntity<List<Role>> obtenerRoles() {
+        return ResponseEntity.ok(roleService.obtenerRoles());
     }
 }

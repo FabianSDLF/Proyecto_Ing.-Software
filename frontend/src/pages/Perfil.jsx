@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import authService from '../services/authService';
+import { Input, Button, Spinner } from '../components/ui';
 
 export default function Perfil() {
+    const { updateUserProfile } = useAuth();
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -11,40 +15,33 @@ export default function Perfil() {
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
-    // Cargar los datos del perfil al abrir la página
     useEffect(() => {
-        const fetchPerfil = async () => {
-            const userStr = localStorage.getItem('usuarioActivo');
-            const token = localStorage.getItem('token');
-            if (!userStr || !token) return;
+        const controller = new AbortController();
 
+        async function fetchPerfil() {
             try {
-                const response = await fetch('http://localhost:8080/api/usuarios/perfil', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
+                const data = await authService.getProfile({ signal: controller.signal });
+                if (data) {
                     setFormData({
                         fullName: data.fullName || '',
                         email: data.email || '',
                         phone: data.phone || '',
-                        password: '' // No mostramos la clave actual
+                        password: ''
                     });
-                } else {
-                    toast.error('Error al cargar tu perfil');
                 }
             } catch (error) {
-                console.error("Error", error);
-                toast.error('Error de conexión');
+                if (error.name !== 'AbortError') {
+                    console.error('Error cargando perfil:', error);
+                    toast.error(error.message || 'Error al cargar tu perfil');
+                }
             } finally {
                 setInitialLoading(false);
             }
-        };
+        }
 
         fetchPerfil();
+
+        return () => controller.abort();
     }, []);
 
     const handleChange = (e) => {
@@ -58,43 +55,29 @@ export default function Perfil() {
         e.preventDefault();
         setLoading(true);
 
-        const userStr = localStorage.getItem('usuarioActivo');
-        const token = localStorage.getItem('token');
-
         try {
-            const response = await fetch('http://localhost:8080/api/usuarios/perfil', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                const updatedUser = await response.json();
-                toast.success('Perfil actualizado correctamente');
-                
-                // Actualizamos también los datos en el localStorage (por si cambió su nombre)
-                const currentUserData = JSON.parse(userStr);
-                currentUserData.fullName = updatedUser.fullName;
-                localStorage.setItem('usuarioActivo', JSON.stringify(currentUserData));
-                
-                // Recargar página para que se actualice el avatar del menú
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                const text = await response.text();
-                toast.error('Error: ' + text);
-            }
+            const updatedUser = await authService.updateProfile(formData);
+            toast.success('Perfil actualizado correctamente');
+            
+            // FE-04: Actualizar el estado global sin recargar el navegador
+            updateUserProfile(updatedUser);
+            setFormData(prev => ({ ...prev, password: '' }));
         } catch (error) {
-            console.error("Error", error);
-            toast.error('Error al comunicarse con el servidor');
+            console.error('Error al actualizar perfil:', error);
+            toast.error(error.message || 'Error al actualizar el perfil');
         } finally {
             setLoading(false);
         }
     };
 
-    if (initialLoading) return <div className="p-8 text-gray-500">Cargando tu información...</div>;
+    if (initialLoading) {
+        return (
+            <div className="flex items-center justify-center p-12">
+                <Spinner size="lg" color="primary" />
+                <span className="ml-3 text-gray-500">Cargando tu información...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-3xl mx-auto p-6">
@@ -102,65 +85,57 @@ export default function Perfil() {
             
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                        <input 
-                            type="text" 
-                            name="fullName"
-                            value={formData.fullName}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                            placeholder="Ej. Juan Pérez"
-                        />
-                    </div>
+                    <Input 
+                        label="Nombre Completo"
+                        type="text" 
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        required
+                        placeholder="Ej. Juan Pérez"
+                    />
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                        <input 
-                            type="email" 
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                            placeholder="juan@ubb.cl"
-                        />
-                    </div>
+                    <Input 
+                        label="Correo Electrónico"
+                        type="email" 
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                        placeholder="juan@ubb.cl"
+                    />
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
-                        <input 
-                            type="text" 
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                            placeholder="+56 9 1234 5678"
-                        />
-                    </div>
+                    <Input 
+                        label="Teléfono (Opcional)"
+                        type="text" 
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+56 9 1234 5678"
+                    />
 
                     <div className="pt-4 border-t border-gray-100">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
-                        <p className="text-xs text-gray-500 mb-2">Déjalo en blanco si no quieres cambiar tu contraseña actual.</p>
-                        <input 
+                        <Input 
+                            label="Nueva Contraseña"
+                            helperText="Déjalo en blanco si no quieres cambiar tu contraseña actual."
                             type="password" 
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
                             placeholder="••••••••"
                         />
                     </div>
 
                     <div className="pt-6 flex justify-end">
-                        <button 
+                        <Button 
                             type="submit" 
-                            disabled={loading}
-                            className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center shadow-md disabled:opacity-50"
+                            variant="primary"
+                            size="md"
+                            isLoading={loading}
+                            className="bg-orange-600 hover:bg-orange-700 font-medium px-6 shadow-md"
                         >
-                            {loading ? 'Guardando...' : 'Guardar Cambios'}
-                        </button>
+                            Guardar Cambios
+                        </Button>
                     </div>
                 </form>
             </div>

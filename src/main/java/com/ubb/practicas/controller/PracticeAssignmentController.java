@@ -1,79 +1,52 @@
 package com.ubb.practicas.controller;
 
 import com.ubb.practicas.model.PracticeAssignment;
-import com.ubb.practicas.repository.PracticeAssignmentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ubb.practicas.service.PracticeAssignmentService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+
+import java.security.Principal;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/asignaciones")
+@RequiredArgsConstructor
 public class PracticeAssignmentController {
 
-    @Autowired
-    private PracticeAssignmentRepository assignmentRepository;
+    private final PracticeAssignmentService assignmentService;
+
+    @GetMapping("/mis-asignaciones")
+    public ResponseEntity<List<PracticeAssignment>> obtenerMisAsignaciones(Principal principal) {
+        return ResponseEntity.ok(assignmentService.obtenerMisAsignaciones(principal.getName()));
+    }
 
     @GetMapping
-    public List<PracticeAssignment> listarAsignaciones() {
-        return assignmentRepository.findAll();
+    public ResponseEntity<List<PracticeAssignment>> listarAsignaciones() {
+        return ResponseEntity.ok(assignmentService.listarAsignaciones());
     }
 
     @GetMapping("/colaborador/{id}")
     public ResponseEntity<List<PracticeAssignment>> listarPorColaborador(@PathVariable Long id) {
-        return ResponseEntity.ok(assignmentRepository.findByCollaboratorId(id));
+        return ResponseEntity.ok(assignmentService.listarPorColaborador(id));
     }
 
     @GetMapping("/tutor/{id}")
     public ResponseEntity<List<PracticeAssignment>> listarPorTutor(@PathVariable Long id) {
-        return ResponseEntity.ok(assignmentRepository.findByTutorId(id));
+        return ResponseEntity.ok(assignmentService.listarPorTutor(id));
     }
 
-    @Autowired
-    private com.ubb.practicas.repository.UserRepository userRepository;
-    
-    @Autowired
-    private com.ubb.practicas.repository.SubjectRepository subjectRepository;
-    
-    @Autowired
-    private com.ubb.practicas.repository.PracticeCenterRepository centerRepository;
-
     @PostMapping
-    public ResponseEntity<?> crearAsignacion(@RequestBody PracticeAssignment assignment) {
-        if (assignment.getStudent() == null || assignment.getStudent().getId() == null) {
-            return ResponseEntity.badRequest().body("El estudiante es obligatorio");
-        }
-        if (assignment.getSubject() == null || assignment.getSubject().getId() == null) {
-            return ResponseEntity.badRequest().body("La asignatura es obligatoria");
-        }
-        
-        if (!userRepository.existsById(assignment.getStudent().getId())) {
-            return ResponseEntity.badRequest().body("El estudiante no existe en la base de datos");
-        }
-        if (!subjectRepository.existsById(assignment.getSubject().getId())) {
-            return ResponseEntity.badRequest().body("La asignatura no existe en la base de datos");
-        }
-        if (assignment.getCenter() != null && assignment.getCenter().getId() != null && !centerRepository.existsById(assignment.getCenter().getId())) {
-            return ResponseEntity.badRequest().body("El centro de práctica no existe");
-        }
-        
-        assignment.setCreatedAt(LocalDateTime.now());
-        if (assignment.getStatus() == null) {
-            assignment.setStatus(com.ubb.practicas.model.enums.AssignmentStatus.ACTIVA);
-        }
-
-        return ResponseEntity.ok(assignmentRepository.save(assignment));
+    public ResponseEntity<PracticeAssignment> crearAsignacion(@RequestBody PracticeAssignment assignment) {
+        PracticeAssignment created = assignmentService.crearAsignacion(assignment);
+        return ResponseEntity.ok(created);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarAsignacion(@PathVariable Long id) {
-        if (!assignmentRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        assignmentRepository.deleteById(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> eliminarAsignacion(@PathVariable Long id) {
+        assignmentService.eliminarAsignacion(id);
+        return ResponseEntity.ok(Map.of("message", "Asignación eliminada exitosamente"));
     }
 }
