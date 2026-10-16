@@ -52,9 +52,9 @@ docker compose down
 Si prefieres ejecutar el código manualmente (por ejemplo, para depurar o desarrollar), sigue estos pasos.
 
 ### Requisitos Previos (Manual)
-* **Java Development Kit (JDK) 21**
-* **Node.js** (versión 18 o superior recomendada) y **npm**
-* **MySQL Server**
+* **Java Development Kit (JDK) 21 (LTS)**
+* **Node.js** 20.x (LTS) y **npm** 10.x
+* **MySQL Server** 8.4 (LTS)
 
 ### 1. Configuración del Backend (Base de Datos)
 1. Abre tu gestor de MySQL y crea una base de datos.
