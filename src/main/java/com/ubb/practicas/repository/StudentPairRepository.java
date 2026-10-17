@@ -55,7 +55,13 @@ public interface StudentPairRepository extends JpaRepository<StudentPair, Long> 
            "AND (sp.assignment1.id = :assignmentId OR sp.assignment2.id = :assignmentId)")
     Optional<StudentPair> findByAssignmentIdAndPeriodId(@Param("assignmentId") Long assignmentId, @Param("periodId") Long periodId);
 
-    @Query("SELECT pa FROM PracticeAssignment pa " +
+    @Query("SELECT DISTINCT pa FROM PracticeAssignment pa " +
+           "LEFT JOIN FETCH pa.student s " +
+           "LEFT JOIN FETCH s.role " +
+           "LEFT JOIN FETCH pa.subject sub " +
+           "LEFT JOIN FETCH sub.professor " +
+           "LEFT JOIN FETCH pa.center " +
+           "LEFT JOIN FETCH pa.period " +
            "WHERE pa.period.id = :periodId " +
            "AND pa.status = com.ubb.practicas.model.enums.AssignmentStatus.ACTIVA " +
            "AND pa.subject.cycle = com.ubb.practicas.model.enums.PracticeCycle.INTERMEDIO " +
@@ -67,6 +73,5 @@ public interface StudentPairRepository extends JpaRepository<StudentPair, Long> 
            "    SELECT sp.assignment2.student.id FROM StudentPair sp " +
            "    WHERE sp.period.id = :periodId AND sp.assignment2.student.id IS NOT NULL" +
            ")")
-    @EntityGraph(attributePaths = {"student", "student.role", "subject", "subject.professor", "center", "period"})
     List<PracticeAssignment> findAvailableUnpairedIntermediateAssignments(@Param("periodId") Long periodId);
 }

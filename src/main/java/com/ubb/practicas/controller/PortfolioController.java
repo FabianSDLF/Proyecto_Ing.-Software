@@ -210,4 +210,59 @@ public class PortfolioController {
             writer.println(estudiante + ";" + asignatura + ";" + periodo + ";" + centro + ";" + colaborador + ";" + tutor + ";" + estado);
         }
     }
+
+    // ==========================================
+    // HU19: Endpoints de Documentos Finales
+    // ==========================================
+
+    @PostMapping("/documentos-finales/upload")
+    public ResponseEntity<PortfolioDocument> subirDocumentoFinal(
+            Principal principal,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("type") DocumentType type,
+            @RequestParam(value = "assignmentId", required = false) Long assignmentId,
+            @RequestParam(value = "replace", required = false) Boolean replace,
+            @RequestParam(value = "replaceConfirmed", required = false) Boolean replaceConfirmed) {
+
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+
+        boolean confirmed = Boolean.TRUE.equals(replace) || Boolean.TRUE.equals(replaceConfirmed);
+        PortfolioDocument doc = portfolioService.subirDocumentoFinal(principal.getName(), assignmentId, file, type, confirmed);
+        return ResponseEntity.ok(doc);
+    }
+
+    @GetMapping("/documentos-finales")
+    public ResponseEntity<List<PortfolioDocument>> obtenerMisDocumentosFinales(
+            Principal principal,
+            @RequestParam(value = "assignmentId", required = false) Long assignmentId) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+
+        List<PortfolioDocument> documentos;
+        if (assignmentId != null) {
+            documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
+        } else {
+            documentos = portfolioService.obtenerMisDocumentosFinales(principal.getName());
+        }
+        return ResponseEntity.ok(documentos);
+    }
+
+    @GetMapping("/documentos-finales/asignacion/{assignmentId}")
+    public ResponseEntity<List<PortfolioDocument>> obtenerDocumentosFinalesPorAsignacion(
+            @PathVariable Long assignmentId,
+            Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+
+        List<PortfolioDocument> documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
+        return ResponseEntity.ok(documentos);
+    }
+
+    @DeleteMapping("/documentos-finales/{id}")
+    public ResponseEntity<Map<String, String>> eliminarDocumentoFinal(
+            @PathVariable Long id,
+            Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+
+        portfolioService.eliminarDocumentoFinal(id, principal.getName());
+        return ResponseEntity.ok(Map.of("message", "Documento final eliminado exitosamente"));
+    }
 }

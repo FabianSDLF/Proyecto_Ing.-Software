@@ -2,102 +2,99 @@
 
 Plataforma integral desarrollada para la gestión, seguimiento y evaluación del proceso de prácticas pedagógicas (Inicial, Intermedia y Avanzada). El sistema centraliza la comunicación entre estudiantes, profesores colaboradores, tutores y administradores, e integra herramientas avanzadas como un portafolio digital y validación de planificaciones mediante Inteligencia Artificial (ChatBot).
 
-## 🚀 Tecnologías y Stack
+---
 
-El proyecto es una aplicación **Full-Stack** dividida en dos componentes principales:
-
-### Backend (API REST)
-* **Lenguaje:** Java 21
-* **Framework:** Spring Boot
-* **Persistencia:** Spring Data JPA / Hibernate
-* **Base de Datos:** MySQL
-* **Seguridad:** Spring Security con JSON Web Tokens (JWT)
-* **Librerías Adicionales:** Maven, Lombok, Apache POI (para carga masiva vía Excel)
-
-### Frontend (Cliente Web)
-* **Framework:** React
-* **Build Tool:** Vite
-* **Estilos:** Tailwind CSS
-* **Enrutamiento:** React Router Dom
-* **Servidor Web:** Nginx (en entorno Dockerizado)
+## Requisitos
+- **Java:** 21 (LTS)
+- **MySQL:** 8.4 (LTS)
+- **Node.js:** 20 (LTS) y **npm** 10.x
 
 ---
 
-## 🐳 Ejecución Rápida con Docker (Recomendado)
-
-La forma más sencilla y recomendada de levantar todo el proyecto (Base de datos, Backend y Frontend) sin necesidad de instalar Java, Node o MySQL manualmente en tu máquina o servidor, es utilizando **Docker**.
-
-### Requisitos Previos (Docker)
-* Tener instalado [Docker Desktop](https://www.docker.com/products/docker-desktop/) (o Docker Engine en Linux).
-
-### Pasos para ejecutar
-1. Abre una terminal en la raíz del proyecto (`Proyecto_IngSoft_Practicas`).
-2. Ejecuta el siguiente comando para construir y levantar todos los contenedores en segundo plano:
-   ```bash
-   docker compose up -d --build
+## Configuración
+1. **Variables de entorno (Backend):** Copiar `.env.example` como `.env` en la raíz del proyecto y completar `DB_PASSWORD` y `MAIL_PASSWORD`:
+   ```powershell
+   Copy-Item .env.example .env
    ```
-3. ¡Listo! Una vez finalizado el proceso de construcción, la aplicación estará disponible en:
-   * **Frontend:** [http://localhost](http://localhost)
-   * **Backend (API):** [http://localhost:8080](http://localhost:8080)
-
-Para detener los contenedores, simplemente ejecuta:
-```bash
-docker compose down
-```
+2. **Variables de entorno (Front-end):** Copiar `frontend/.env.example` como `frontend/.env`:
+   ```powershell
+   Copy-Item frontend/.env.example frontend/.env
+   ```
+3. **Crear la base de datos:** Ejecutar el script `docs/crear-usuario-bd.sql` en MySQL (el esquema de tablas se aplica automáticamente con **Flyway** desde `src/main/resources/db/migration/V1__esquema_inicial.sql`), o bien levantar con Docker:
+   ```powershell
+   docker compose up -d
+   ```
 
 ---
 
-## 🛠️ Instalación y Ejecución Manual (Modo Desarrollo)
+## Ejecutar
+- **Backend:**
+  ```powershell
+  .\mvnw.cmd spring-boot:run
+  ```
+  *(Arranca por defecto con el perfil `dev` en `http://localhost:8080`)*
 
-Si prefieres ejecutar el código manualmente (por ejemplo, para depurar o desarrollar), sigue estos pasos.
+- **Front-end:**
+  ```powershell
+  cd frontend
+  npm ci
+  npm run dev
+  ```
+  *(Disponible en `http://localhost:5173`)*
 
-### Requisitos Previos (Manual)
-* **Java Development Kit (JDK) 21**
-* **Node.js** (versión 18 o superior recomendada) y **npm**
-* **MySQL Server**
+- **Ejecución completa con Docker (Opcional):**
+  ```powershell
+  docker compose up -d --build
+  ```
+  * **Frontend:** [http://localhost](http://localhost)
+  * **Backend (API):** [http://localhost:8080](http://localhost:8080)
 
-### 1. Configuración del Backend (Base de Datos)
-1. Abre tu gestor de MySQL y crea una base de datos.
-2. Verifica que las credenciales de conexión en tu archivo `src/main/resources/application.properties` sean correctas.
-3. Ejecuta el servidor Backend. Si usas la consola:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-   *El servidor Spring Boot se iniciará en `http://localhost:8080`.*
+---
 
-### 2. Ejecución del Frontend
-1. Abre una nueva terminal y navega a la carpeta del frontend:
-   ```bash
-   cd frontend
-   ```
-2. Instala las dependencias del proyecto:
-   ```bash
-   npm install
-   ```
-3. Inicia el servidor de desarrollo de React:
-   ```bash
-   npm run dev
-   ```
-   *La aplicación web estará disponible, por defecto, en `http://localhost:5173`.*
+## Pruebas
+- **Pruebas Backend (JUnit 5 + Mockito, perfil `test` aislado):**
+  ```powershell
+  .\mvnw.cmd test
+  ```
+- **Pruebas Front-end (Vitest):**
+  ```powershell
+  cd frontend
+  npm test
+  ```
+
+---
+
+## Versiones entregadas
+- `v1.0.0`: Incremento 1
+- `v1.1.0`: Incremento 2 + configuración revisada
 
 ---
 
 ## 📂 Estructura Principal del Proyecto
 
 ```text
-Proyecto_IngSoft_Practicas/
-├── src/main/java/.../practicas/
+Proyecto_Ing.-Software/
+├── src/main/java/com/ubb/practicas/
 │   ├── controller/      # Endpoints REST (API)
 │   ├── model/           # Entidades JPA (Base de Datos)
 │   ├── repository/      # Interfaces de acceso a datos
 │   ├── security/        # Configuración JWT y filtros de seguridad
 │   └── service/         # Lógica de negocio
+├── src/main/resources/
+│   ├── db/migration/    # Scripts SQL versionados con Flyway (V1__esquema_inicial.sql)
+│   ├── application.properties       # Configuración común (perfil por defecto: dev)
+│   ├── application-dev.properties   # Configuración de desarrollo
+│   └── application-prod.properties  # Configuración de producción
 ├── frontend/
 │   ├── src/
 │   │   ├── components/  # Componentes UI reutilizables
 │   │   ├── pages/       # Vistas de la aplicación (Login, Dashboard, Portafolio)
 │   │   └── App.jsx      # Enrutamiento principal
-├── uploads/             # Almacenamiento local de archivos y evidencias
+│   ├── .env.example     # Plantilla de variables de entorno del cliente
+│   └── .nvmrc           # Versión fijada de Node.js (20)
+├── docs/
+│   └── crear-usuario-bd.sql # Script inicial de creación de base y usuario MySQL
+├── .env.example         # Plantilla de variables de entorno del servidor
 ├── docker-compose.yml   # Configuración y orquestación de Docker
 ├── Dockerfile           # Imagen del Backend
 └── pom.xml              # Dependencias de Maven

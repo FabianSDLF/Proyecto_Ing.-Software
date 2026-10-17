@@ -51,6 +51,9 @@ public class PortfolioServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private PortfolioServiceImpl portfolioService;
 
