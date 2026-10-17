@@ -45,16 +45,29 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/usuarios/perfil").authenticated()
-                .requestMatchers("/api/usuarios/carga-masiva").hasRole("Coordinador de practicas")
-                .requestMatchers("/api/usuarios/**").hasRole("Coordinador de practicas")
+                .requestMatchers("/api/usuarios/carga-masiva").hasAnyRole(
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
+                )
+                .requestMatchers("/api/usuarios/**").hasAnyRole(
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
+                )
                 .requestMatchers("/api/asignaciones/colaborador/**", "/api/asignaciones/tutor/**").hasAnyRole(
-                    "Coordinador de practicas",
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS",
                     "PROFESOR_COLABORADOR", "Profesor Colaborador",
                     "TUTOR", "Tutor",
                     "PROFESOR_DE_ASIGNATURA", "Profesor de Asignatura"
                 )
-                .requestMatchers("/api/asignaciones/**").hasRole("Coordinador de practicas")
-                .requestMatchers("/api/carga-masiva/**").hasRole("Coordinador de practicas")
+                .requestMatchers("/api/asignaciones/**").hasAnyRole(
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
+                )
+                .requestMatchers("/api/carga-masiva/**").hasAnyRole(
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
+                )
                 .requestMatchers("/api/duplas/**").hasAnyRole(
                     "Administrador", "ADMINISTRADOR",
                     "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
