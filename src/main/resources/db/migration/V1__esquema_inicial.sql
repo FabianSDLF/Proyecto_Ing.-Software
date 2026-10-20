@@ -1,43 +1,50 @@
 CREATE TABLE IF NOT EXISTS roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE
+    name VARCHAR(255) UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS usuarios (
-     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    phone VARCHAR(255),
+    password_hash VARCHAR(255),
     active BOOLEAN DEFAULT TRUE,
     role_id BIGINT,
-    created_at DATETIME,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
     CONSTRAINT fk_usuarios_roles FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
 CREATE TABLE IF NOT EXISTS Periodos_Academicos (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    year INT NOT NULL,
-    semester_number INT NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    status VARCHAR(50) NOT NULL
+    name VARCHAR(255),
+    `year` INT,
+    semester_number INT,
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS Centro_Practicas (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255),
+    dependency VARCHAR(50),
     address VARCHAR(255),
-    contact_person VARCHAR(255),
-    contact_phone VARCHAR(50),
+    city VARCHAR(255),
+    district VARCHAR(255),
+    phone VARCHAR(255),
+    contact_name VARCHAR(255),
     contact_email VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS Asignaturas (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    academic_level VARCHAR(50)
+    name VARCHAR(255),
+    cycle VARCHAR(50),
+    code VARCHAR(255),
+    professor_id BIGINT,
+    CONSTRAINT fk_asignaturas_prof FOREIGN KEY (professor_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE IF NOT EXISTS Asignacion_Practicas (
@@ -48,8 +55,8 @@ CREATE TABLE IF NOT EXISTS Asignacion_Practicas (
     collaborator_id BIGINT,
     tutor_id BIGINT,
     period_id BIGINT,
-    status VARCHAR(50) NOT NULL,
-    created_at DATETIME,
+    status VARCHAR(50),
+    created_at DATETIME(6),
     CONSTRAINT fk_asig_student FOREIGN KEY (student_id) REFERENCES usuarios(id),
     CONSTRAINT fk_asig_subject FOREIGN KEY (subject_id) REFERENCES Asignaturas(id),
     CONSTRAINT fk_asig_center FOREIGN KEY (center_id) REFERENCES Centro_Practicas(id),
@@ -58,44 +65,48 @@ CREATE TABLE IF NOT EXISTS Asignacion_Practicas (
     CONSTRAINT fk_asig_period FOREIGN KEY (period_id) REFERENCES Periodos_Academicos(id)
 );
 
-CREATE TABLE IF NOT EXISTS Duplas (
+CREATE TABLE IF NOT EXISTS DUPLAS_ESTUDIANTES (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    student1_id BIGINT,
-    student2_id BIGINT,
-    period_id BIGINT,
-    created_at DATETIME,
-    CONSTRAINT fk_duplas_s1 FOREIGN KEY (student1_id) REFERENCES usuarios(id),
-    CONSTRAINT fk_duplas_s2 FOREIGN KEY (student2_id) REFERENCES usuarios(id),
+    assignment1_id BIGINT NOT NULL,
+    assignment2_id BIGINT NOT NULL,
+    period_id BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_duplas_asig1 FOREIGN KEY (assignment1_id) REFERENCES Asignacion_Practicas(id),
+    CONSTRAINT fk_duplas_asig2 FOREIGN KEY (assignment2_id) REFERENCES Asignacion_Practicas(id),
     CONSTRAINT fk_duplas_period FOREIGN KEY (period_id) REFERENCES Periodos_Academicos(id)
 );
 
 CREATE TABLE IF NOT EXISTS Documentos (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     practice_assignment_id BIGINT,
-    type VARCHAR(50) NOT NULL,
-    file_name VARCHAR(255) NOT NULL,
-    stored_file_name VARCHAR(255),
+    type VARCHAR(50),
+    file_name VARCHAR(255),
     file_url VARCHAR(500),
+    stored_file_name VARCHAR(255),
     content_type VARCHAR(100),
     size_bytes BIGINT,
-    upload_date DATETIME,
+    upload_date DATETIME(6),
     CONSTRAINT fk_doc_asig FOREIGN KEY (practice_assignment_id) REFERENCES Asignacion_Practicas(id)
 );
 
 CREATE TABLE IF NOT EXISTS Planificaciones (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     practice_assignment_id BIGINT,
-    document_id BIGINT,
-    school_grade VARCHAR(50),
+    document_id BIGINT UNIQUE,
+    status VARCHAR(50),
+    school_grade VARCHAR(255),
     math_axis VARCHAR(50),
-    base_learning_objective TEXT,
-    objectives TEXT,
-    content_json LONGTEXT,
-    status VARCHAR(50) NOT NULL,
-    created_at DATETIME,
-    updated_at DATETIME,
+    base_learning_objective VARCHAR(255),
+    objectives VARCHAR(2000),
+    content_json TEXT,
+    teacher_feedback VARCHAR(2000),
+    version INT,
+    parent_plan_id BIGINT,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
     CONSTRAINT fk_plan_asig FOREIGN KEY (practice_assignment_id) REFERENCES Asignacion_Practicas(id),
-    CONSTRAINT fk_plan_doc FOREIGN KEY (document_id) REFERENCES Documentos(id)
+    CONSTRAINT fk_plan_doc FOREIGN KEY (document_id) REFERENCES Documentos(id),
+    CONSTRAINT fk_plan_parent FOREIGN KEY (parent_plan_id) REFERENCES Planificaciones(id)
 );
 
 CREATE TABLE IF NOT EXISTS Evaluaciones (
@@ -105,8 +116,10 @@ CREATE TABLE IF NOT EXISTS Evaluaciones (
     type VARCHAR(50),
     score FLOAT,
     qualitative_comments VARCHAR(1000),
-    evaluation_date DATETIME,
-    created_at DATETIME,
+    is_finalized BOOLEAN DEFAULT FALSE,
+    digital_signature VARCHAR(255),
+    evaluation_date DATETIME(6),
+    created_at DATETIME(6),
     CONSTRAINT fk_eval_asig FOREIGN KEY (practice_assignment_id) REFERENCES Asignacion_Practicas(id),
     CONSTRAINT fk_eval_evaluator FOREIGN KEY (evaluator_id) REFERENCES usuarios(id)
 );
@@ -114,7 +127,7 @@ CREATE TABLE IF NOT EXISTS Evaluaciones (
 CREATE TABLE IF NOT EXISTS Criterios_Evaluacion (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     evaluation_id BIGINT,
-    criteria_name VARCHAR(255) NOT NULL,
+    criteria_name VARCHAR(255),
     achievement_level VARCHAR(50),
     points FLOAT,
     justification VARCHAR(1000),
@@ -123,35 +136,40 @@ CREATE TABLE IF NOT EXISTS Criterios_Evaluacion (
 
 CREATE TABLE IF NOT EXISTS Notificaciones (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
+    target_user_id BIGINT,
+    type VARCHAR(50),
+    message VARCHAR(255),
     is_read BOOLEAN DEFAULT FALSE,
-    created_at DATETIME,
-    CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES usuarios(id)
+    created_at DATETIME(6),
+    reference_id BIGINT,
+    reference_type VARCHAR(255),
+    CONSTRAINT fk_notif_user FOREIGN KEY (target_user_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE IF NOT EXISTS Password_Reset_Tokens (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    token VARCHAR(255) NOT NULL UNIQUE,
-    expiry_date DATETIME NOT NULL,
+    token VARCHAR(255),
+    user_id BIGINT,
+    expiry_date DATETIME(6),
     CONSTRAINT fk_token_user FOREIGN KEY (user_id) REFERENCES usuarios(id)
 );
 
 CREATE TABLE IF NOT EXISTS Registros_Chatbot (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT,
-    query TEXT,
-    response TEXT,
-    timestamp DATETIME,
-    CONSTRAINT fk_chatbot_user FOREIGN KEY (user_id) REFERENCES usuarios(id)
+    lesson_plan_id BIGINT,
+    ai_feedback VARCHAR(1000),
+    ai_approved BOOLEAN,
+    iteration_number INT,
+    review_date DATETIME(6),
+    CONSTRAINT fk_chatbot_plan FOREIGN KEY (lesson_plan_id) REFERENCES Planificaciones(id)
 );
 
 CREATE TABLE IF NOT EXISTS Mensajes_Chatbot (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    session_id VARCHAR(255),
-    role VARCHAR(50),
+    chatbot_log_id BIGINT,
+    sender_role VARCHAR(50),
     content TEXT,
-    timestamp DATETIME
+    order_num INT,
+    timestamp DATETIME(6),
+    CONSTRAINT fk_msg_chatbot FOREIGN KEY (chatbot_log_id) REFERENCES Registros_Chatbot(id)
 );
