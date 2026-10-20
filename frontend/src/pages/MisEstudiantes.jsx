@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { BASE_URL } from '../services/apiClient';
 import assignmentService from '../services/assignmentService';
 import { DataTable, Badge, Modal, Button, Input } from '../components/ui';
 
@@ -70,7 +71,7 @@ export default function MisEstudiantes() {
                     { criteriaName: 'Dominio del Grupo', achievementLevel: 'LOGRO_ADECUADO', points: 20.0, justification: 'Evaluado general' }
                 ]
             };
-            const res = await fetch('http://localhost:8080/api/evaluaciones', {
+            const res = await fetch(`${BASE_URL}/api/evaluaciones`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
