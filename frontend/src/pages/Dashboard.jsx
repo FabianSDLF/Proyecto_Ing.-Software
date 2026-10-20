@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BASE_URL } from '../services/apiClient';
 import assignmentService from '../services/assignmentService';
 import centerService from '../services/centerService';
 
@@ -14,7 +15,7 @@ export default function Dashboard() {
             const fetchAsignaciones = async () => {
                 try {
                     const token = localStorage.getItem('token');
-                    const res = await fetch('http://localhost:8080/api/asignaciones/mis-asignaciones', {
+                    const res = await fetch(`${BASE_URL}/api/asignaciones/mis-asignaciones`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (res.ok) {
