@@ -18,6 +18,7 @@ import NuevaPlanificacion from './pages/NuevaPlanificacion';
 import CargaMasiva from './pages/CargaMasiva';
 import GestionRoles from './pages/GestionRoles';
 import GestionAsignaturas from './pages/GestionAsignaturas';
+import CiclosPractica from './pages/CiclosPractica';
 import Asignaciones from './pages/Asignaciones';
 import MisEstudiantes from './pages/MisEstudiantes';
 import Reportes from './pages/Reportes';
@@ -51,6 +52,7 @@ function App() {
               <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
                 <Route path="/carga-masiva" element={<CargaMasiva />} />
                 <Route path="/gestion-roles" element={<GestionRoles />} />
+                <Route path="/ciclos" element={<CiclosPractica />} />
                 <Route path="/asignaturas" element={<GestionAsignaturas />} />
                 <Route path="/asignaciones" element={<Asignaciones />} />
               </Route>

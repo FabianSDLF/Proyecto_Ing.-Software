@@ -110,6 +110,16 @@ export default function MainLayout() {
                 </Link>
 
                 <Link
+                  to="/ciclos"
+                  className={`${baseLinkClass} ${isActive('/ciclos') ? activeLinkClass : inactiveLinkClass}`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h10M4 18h6"></path>
+                  </svg>
+                  Ciclos de Práctica
+                </Link>
+
+                <Link
                   to="/asignaturas"
                   className={`${baseLinkClass} ${isActive('/asignaturas') ? activeLinkClass : inactiveLinkClass}`}
                 >
