@@ -135,9 +135,9 @@ export default function Dashboard() {
                             RetroPlani Mate (IA)
                         </h3>
                         <p className="text-gray-600 mt-3">Valida tus planificaciones con el asistente virtual antes de enviarlas al profesor colaborador.</p>
-                        <span className="inline-block mt-4 px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg text-sm">
-                            Próximamente disponible
-                        </span>
+                        <Link to="/retroplani" className="inline-block mt-4 px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition-colors text-sm">
+                            Ir a RetroPlani Mate (IA)
+                        </Link>
                     </div>
                 </div>
             )}

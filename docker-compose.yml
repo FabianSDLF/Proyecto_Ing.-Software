@@ -36,6 +36,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=admin
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     volumes:
       # Volumen para que los archivos subidos persistan si el contenedor se reinicia
       - backend_uploads:/app/uploads
@@ -61,12 +62,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_API_KEY=AQ.Ab8RN6JhrIapC4vz3cDEHeiptnJC66g-oOBgmX6PahPK85cEhw
-    volumes:
-      - chatbot_recursos:/app/recursos
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
     restart: unless-stopped
 
 volumes:
   db_data:
   backend_uploads:
-  chatbot_recursos:
+

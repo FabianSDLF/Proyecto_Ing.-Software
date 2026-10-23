@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 @ToString
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
+@SuppressWarnings("JpaDataSourceORMInspection")
 @Table(name = "Planificaciones")
 public class LessonPlan {
     @Id
@@ -33,7 +34,7 @@ public class LessonPlan {
     @ToString.Exclude
     private PracticeAssignment practiceAssignment;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(cascade = {CascadeType.MERGE, CascadeType.REFRESH}, fetch = FetchType.LAZY)
     @JoinColumn(name = "document_id")
     @ToString.Exclude
     private PortfolioDocument document;
