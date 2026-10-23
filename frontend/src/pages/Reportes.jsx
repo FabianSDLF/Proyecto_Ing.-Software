@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BASE_URL } from '../services/apiClient';
 
 export default function Reportes() {
     const [asignaciones, setAsignaciones] = useState([]);
@@ -9,7 +10,7 @@ export default function Reportes() {
         const fetchDatos = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const respuesta = await fetch('http://localhost:8080/api/asignaciones', {
+                const respuesta = await fetch(`${BASE_URL}/api/asignaciones`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (respuesta.ok) {
@@ -28,7 +29,7 @@ export default function Reportes() {
     const handleExportarExcel = async () => {
         try {
             const token = localStorage.getItem('token');
-            const respuesta = await fetch('http://localhost:8080/api/portafolio/export-csv', {
+            const respuesta = await fetch(`${BASE_URL}/api/portafolio/export-csv`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (respuesta.ok) {

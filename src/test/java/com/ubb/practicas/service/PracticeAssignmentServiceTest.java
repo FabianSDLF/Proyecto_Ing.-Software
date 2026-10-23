@@ -210,7 +210,7 @@ public class PracticeAssignmentServiceTest {
         User admin = new User();
         admin.setId(99L);
         admin.setEmail("admin@ubb.cl");
-        admin.setRole(new Role(4L, "Administrador"));
+        admin.setRole(new Role(4L, "Coordinador de practicas"));
 
         when(userRepository.findById(10L)).thenReturn(Optional.of(teacher));
         when(userRepository.findByEmail("admin@ubb.cl")).thenReturn(admin);

@@ -49,6 +49,9 @@ public class LessonPlanServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private LessonPlanServiceImpl lessonPlanService;
 

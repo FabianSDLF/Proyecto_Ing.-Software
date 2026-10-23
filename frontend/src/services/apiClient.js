@@ -4,7 +4,7 @@
  * FE-14 (AbortController signal), FE-23 (Environment baseUrl), FE-24 (File download)
  */
 
-const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const RAW_BASE_URL = import.meta.env.VITE_API_URL !== undefined ? import.meta.env.VITE_API_URL : 'http://localhost:8080';
 export const BASE_URL = RAW_BASE_URL.replace(/\/+$/, '');
 
 export class ApiError extends Error {
