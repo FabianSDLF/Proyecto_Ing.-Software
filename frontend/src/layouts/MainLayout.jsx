@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoPitagoras from '../assets/logoUBB.png';
+import ChatbotWidget from '../components/ChatbotWidget';
 
 export default function MainLayout() {
   const { user, userRole, logout } = useAuth();
@@ -55,20 +56,37 @@ export default function MainLayout() {
 
           {/* Opciones exclusivas de Estudiantes */}
           {userRole === 'Estudiante' && (
-            <Link
-              to="/portafolio"
-              className={`${baseLinkClass} ${isActive('/portafolio') ? activeLinkClass : inactiveLinkClass}`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                ></path>
-              </svg>
-              Mi Portafolio
-            </Link>
+            <>
+              <Link
+                to="/portafolio"
+                className={`${baseLinkClass} ${isActive('/portafolio') ? activeLinkClass : inactiveLinkClass}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  ></path>
+                </svg>
+                Mi Portafolio
+              </Link>
+
+              <Link
+                to="/retroplani"
+                className={`${baseLinkClass} ${isActive('/retroplani') ? activeLinkClass : inactiveLinkClass}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                  ></path>
+                </svg>
+                RetroPlani Mate (IA)
+              </Link>
+            </>
           )}
 
           {/* Opciones exclusivas de Administrador */}
@@ -220,6 +238,10 @@ export default function MainLayout() {
       <main className="flex-1 p-8">
         <Outlet />
       </main>
+
+      {/* Asistente Flotante de IA */}
+      {!isActive('/retroplani') && <ChatbotWidget />}
     </div>
   );
 }
+

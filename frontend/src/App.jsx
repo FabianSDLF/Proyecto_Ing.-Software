@@ -15,6 +15,7 @@ import Dashboard from './pages/Dashboard';
 import Perfil from './pages/Perfil';
 import Portafolio from './pages/Portafolio';
 import NuevaPlanificacion from './pages/NuevaPlanificacion';
+import RetroPlani from './pages/RetroPlani';
 import CargaMasiva from './pages/CargaMasiva';
 import GestionRoles from './pages/GestionRoles';
 import GestionAsignaturas from './pages/GestionAsignaturas';
@@ -45,6 +46,7 @@ function App() {
               <Route element={<RoleRoute allowedRoles={['Estudiante']} />}>
                 <Route path="/portafolio" element={<Portafolio />} />
                 <Route path="/portafolio/nueva-planificacion" element={<NuevaPlanificacion />} />
+                <Route path="/retroplani" element={<RetroPlani />} />
               </Route>
 
               {/* Administrator Routes */}

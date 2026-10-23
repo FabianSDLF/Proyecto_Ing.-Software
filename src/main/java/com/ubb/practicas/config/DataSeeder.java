@@ -283,7 +283,7 @@ public class DataSeeder {
                     if (evaluationRepository.count() == 0) {
                         User tutorClaudia = asigEstudiante1.getTutor();
                         Evaluation eval1 = new Evaluation(null, asigEstudiante1, tutorClaudia, EvaluationType.PAUTA_OBSERVACION_TUTOR,
-                                6.8f, "Excelente manejo del aula y dominio disciplinar del Teorema de Pitágoras. El clima de aprendizaje fue muy propicio para la participación activa.",
+                                6.8f, "Excelente manejo del aula y dominio disciplinar del Teorema de Pitágoras. El clima de aprendizaje fue muy propicio para la participación activa.", true, "Claudia Tutor",
                                 LocalDateTime.now().minusDays(3), LocalDateTime.now().minusDays(3));
                         eval1 = evaluationRepository.save(eval1);
 
