@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import portfolioService from '../services/portfolioService';
 import { DataTable, ConfirmDialog, Button, Badge, Select, Modal, Input } from '../components/ui';
 
-export default function Portafolio() {
+export default function Portafolio({ isReadOnly = false }) {
     const navigate = useNavigate();
+    const { assignmentId } = useParams();
+    const location = useLocation();
+    const modoSupervision = isReadOnly || Boolean(assignmentId);
     const [activeTab, setActiveTab] = useState('EVIDENCIAS');
-    
+
+
     // Evidencias
     const [evidencias, setEvidencias] = useState([]);
     const [loadingEvidencias, setLoadingEvidencias] = useState(true);
@@ -59,13 +63,86 @@ export default function Portafolio() {
     const [itemToDelete, setItemToDelete] = useState(null); // { id, name, isPlan }
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Estados para el Modal de Retroalimentación Formativa
+    const [feedbackModal, setFeedbackModal] = useState({
+        isOpen: false,
+        tipo: null, // 'DOCUMENTO' | 'PLAN'
+        item: null,
+        comentario: '',
+        readOnly: false,
+        guardando: false,
+    });
+
+    const abrirModalFeedback = (item, tipo, readOnly = false) => {
+        setFeedbackModal({
+            isOpen: true,
+            tipo,
+            item,
+            comentario: item?.teacherFeedback || '',
+            readOnly,
+            guardando: false,
+        });
+    };
+
+    const cerrarModalFeedback = () => {
+        if (feedbackModal.guardando) return;
+        setFeedbackModal({
+            isOpen: false,
+            tipo: null,
+            item: null,
+            comentario: '',
+            readOnly: false,
+            guardando: false,
+        });
+    };
+
+    const guardarRetroalimentacion = async () => {
+        if (!feedbackModal.item || feedbackModal.readOnly) return;
+        if (feedbackModal.comentario.length > 2000) {
+            toast.error('El comentario no puede superar los 2000 caracteres.');
+            return;
+        }
+
+        setFeedbackModal((prev) => ({ ...prev, guardando: true }));
+        try {
+            if (feedbackModal.tipo === 'PLAN') {
+                await portfolioService.agregarRetroalimentacionPlan(
+                    feedbackModal.item.id,
+                    feedbackModal.comentario
+                );
+                await fetchPlanificaciones();
+            } else {
+                await portfolioService.agregarRetroalimentacionDocumento(
+                    feedbackModal.item.id,
+                    feedbackModal.comentario
+                );
+                await fetchEvidencias();
+                await fetchFinalDocuments();
+            }
+            toast.success('Retroalimentación guardada correctamente.');
+            cerrarModalFeedback();
+        } catch (error) {
+            console.error(error);
+            toast.error(error?.message || 'No se pudo guardar la retroalimentación.');
+            setFeedbackModal((prev) => ({ ...prev, guardando: false }));
+        }
+    };
+
+    // Respaldo de datos de la asignación (desde MisEstudiantes o desde las entidades si el docente recarga con F5)
+    const assignment = location.state?.assignment
+        || planificaciones[0]?.practiceAssignment
+        || evidencias[0]?.practiceAssignment
+        || finalDocuments[0]?.practiceAssignment;
+
     const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx'];
     const acceptAttr = allowedExtensions.join(',');
 
     const fetchEvidencias = useCallback(async (signal) => {
         setLoadingEvidencias(true);
         try {
-            const data = await portfolioService.getDocuments({ signal });
+            const data = modoSupervision && assignmentId
+                ? await portfolioService.obtenerEvidenciasPorAsignacion(assignmentId, { signal })
+                : await portfolioService.getDocuments({ signal });
             setEvidencias(Array.isArray(data) ? data : []);
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -75,12 +152,14 @@ export default function Portafolio() {
         } finally {
             setLoadingEvidencias(false);
         }
-    }, []);
+    }, [modoSupervision, assignmentId]);
 
     const fetchPlanificaciones = useCallback(async (signal) => {
         setLoadingPlanificaciones(true);
         try {
-            const data = await portfolioService.getLessonPlans({ signal });
+            const data = modoSupervision && assignmentId
+                ? await portfolioService.obtenerPlanificacionesPorAsignacion(assignmentId, { signal })
+                : await portfolioService.getLessonPlans({ signal });
             setPlanificaciones(Array.isArray(data) ? data : []);
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -90,12 +169,14 @@ export default function Portafolio() {
         } finally {
             setLoadingPlanificaciones(false);
         }
-    }, []);
+    }, [modoSupervision, assignmentId]);
 
     const fetchFinalDocuments = useCallback(async (signal) => {
         setLoadingFinalDocuments(true);
         try {
-            const data = await portfolioService.getFinalDocuments({ signal });
+            const data = modoSupervision && assignmentId
+                ? await portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId, { signal })
+                : await portfolioService.getFinalDocuments({ signal });
             setFinalDocuments(Array.isArray(data) ? data : []);
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -105,7 +186,7 @@ export default function Portafolio() {
         } finally {
             setLoadingFinalDocuments(false);
         }
-    }, []);
+    }, [modoSupervision, assignmentId]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -222,10 +303,10 @@ export default function Portafolio() {
         setShowReplaceConfirm(false);
     };
 
-    const handleDownload = async (doc) => {
+    const handleDownload = useCallback(async (doc) => {
         if (!doc || !doc.fileUrl) return;
         const toastId = toast.loading('Descargando archivo...');
-        
+
         try {
             await portfolioService.downloadDocument(doc.fileUrl, doc.fileName);
             toast.success('Descarga completada', { id: toastId });
@@ -233,8 +314,8 @@ export default function Portafolio() {
             console.error('Error al descargar:', error);
             toast.error(error.message || 'No se pudo descargar el archivo', { id: toastId });
         }
-    };
-    
+    }, []);
+
     const confirmDelete = async () => {
         if (!itemToDelete) return;
 
@@ -258,6 +339,47 @@ export default function Portafolio() {
         }
     };
 
+    const renderBotonRetroalimentacion = (row, tipo = 'DOCUMENTO') => {
+        const tieneComentario = Boolean(row.teacherFeedback && row.teacherFeedback.trim().length > 0);
+
+        if (modoSupervision) {
+            return (
+                <Button
+                    size="sm"
+                    variant={tieneComentario ? 'secondary' : 'primary'}
+                    onClick={() => abrirModalFeedback(row, tipo, false)}
+                    title={tieneComentario ? 'Editar retroalimentación formativa' : 'Agregar retroalimentación formativa'}
+                >
+                    {tieneComentario ? 'Editar Retroalimentación' : 'Retroalimentar'}
+                </Button>
+            );
+        }
+
+        if (tieneComentario) {
+            return (
+                <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => abrirModalFeedback(row, tipo, true)}
+                    aria-label="Ver comentario del profesor"
+                >
+                    💬 Ver comentario
+                </Button>
+            );
+        }
+
+        return (
+            <Button
+                size="sm"
+                variant="outline"
+                disabled
+                className="opacity-60 cursor-default"
+            >
+                Sin comentarios
+            </Button>
+        );
+    };
+
     const evidenciaColumns = useMemo(() => [
         {
             header: 'Nombre del Archivo',
@@ -273,7 +395,8 @@ export default function Portafolio() {
             header: 'Acciones',
             align: 'right',
             render: (row) => (
-                <div className="flex justify-end space-x-2">
+                <div className="flex items-center justify-end space-x-2">
+                    {renderBotonRetroalimentacion(row, 'DOCUMENTO')}
                     <Button
                         variant="outline"
                         size="sm"
@@ -281,17 +404,19 @@ export default function Portafolio() {
                     >
                         Descargar
                     </Button>
-                    <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => setItemToDelete({ id: row.id, name: row.fileName, isPlan: false })}
-                    >
-                        Eliminar
-                    </Button>
+                    {!modoSupervision && (
+                        <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => setItemToDelete({ id: row.id, name: row.fileName, isPlan: false })}
+                        >
+                            Eliminar
+                        </Button>
+                    )}
                 </div>
             ),
         },
-    ], []);
+    ], [handleDownload, modoSupervision]);
 
     const handleOpenHistory = async (plan) => {
         setSelectedPlanForHistory(plan);
@@ -393,7 +518,14 @@ export default function Portafolio() {
             header: 'Acciones',
             align: 'right',
             render: (row) => (
-                <div className="flex justify-end space-x-2">
+                <div className="flex items-center justify-end space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenDetail(row)}
+                    >
+                        Ver Detalle
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"
@@ -401,13 +533,16 @@ export default function Portafolio() {
                     >
                         Historial
                     </Button>
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleOpenEdit(row)}
-                    >
-                        Editar
-                    </Button>
+                    {!modoSupervision && (
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleOpenEdit(row)}
+                        >
+                            Editar
+                        </Button>
+                    )}
+                    {renderBotonRetroalimentacion(row, 'PLAN')}
                     {row.document && (
                         <Button
                             variant="outline"
@@ -417,27 +552,55 @@ export default function Portafolio() {
                             Descargar
                         </Button>
                     )}
-                    <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => setItemToDelete({ id: row.id, name: `Planificación (${row.schoolGrade})`, isPlan: true })}
-                    >
-                        Eliminar
-                    </Button>
+                    {!modoSupervision && (
+                        <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => setItemToDelete({ id: row.id, name: `Planificación (${row.schoolGrade})`, isPlan: true })}
+                        >
+                            Eliminar
+                        </Button>
+                    )}
                 </div>
             ),
         },
-    ], [handleDownload]);
+    ], [handleDownload, modoSupervision]);
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
+            {/* Banner superior cuando un Docente está supervisando */}
+            {modoSupervision && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 mb-1">
+                            Modo Supervisión de Portafolio
+                        </span>
+                        <h2 className="text-xl font-bold text-blue-900">
+                            Estudiante: {assignment?.student?.fullName || 'Estudiante'}
+                        </h2>
+                        <p className="text-sm text-blue-700">
+                            {assignment?.subject?.name || 'Práctica'} • {assignment?.center?.name || 'Centro de práctica'}
+                        </p>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={() => navigate('/mis-estudiantes')}>
+                        ← Volver a Mis Estudiantes
+                    </Button>
+                </div>
+            )}
+
             <div>
-                <h1 className="text-3xl font-extrabold text-[#003B70] tracking-tight">Mi Portafolio Digital</h1>
-                <p className="text-gray-500 mt-1">Sube y organiza tus evidencias de aprendizaje, planificaciones didácticas y documento final de término.</p>
+                <h1 className="text-3xl font-extrabold text-[#003B70] tracking-tight">
+                    {modoSupervision ? 'Portafolio del Estudiante' : 'Mi Portafolio Digital'}
+                </h1>
+                <p className="text-gray-500 mt-1">
+                    {modoSupervision
+                        ? 'Revisa el avance de evidencias, planificaciones y documentos antes de evaluar.'
+                        : 'Sube y organiza tus evidencias de aprendizaje, planificaciones didácticas y documento final de término.'}
+                </p>
             </div>
-            
+
             <div className="flex gap-4 border-b border-gray-200">
-                <button 
+                <button
                     type="button"
                     onClick={() => {
                         setActiveTab('EVIDENCIAS');
@@ -447,7 +610,7 @@ export default function Portafolio() {
                 >
                     Evidencias de Aprendizaje
                 </button>
-                <button 
+                <button
                     type="button"
                     onClick={() => {
                         setActiveTab('PLANIFICACIONES');
@@ -457,7 +620,7 @@ export default function Portafolio() {
                 >
                     Planificaciones
                 </button>
-                <button 
+                <button
                     type="button"
                     onClick={() => {
                         setActiveTab('TERMINO');
@@ -465,31 +628,35 @@ export default function Portafolio() {
                     }}
                     className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'TERMINO' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
-                    Documento de Término
+                    Informe
                 </button>
             </div>
 
             {activeTab === 'EVIDENCIAS' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-gray-800">Tus Evidencias</h2>
-                        <input 
-                            type="file" 
-                            ref={evidenciaInputRef} 
-                            onChange={handleEvidenciaUpload} 
-                            accept={acceptAttr} 
-                            className="hidden" 
+                        <h2 className="text-xl font-bold text-gray-800">
+                            {modoSupervision ? 'Evidencias del Estudiante' : 'Tus Evidencias'}
+                        </h2>
+                        <input
+                            type="file"
+                            ref={evidenciaInputRef}
+                            onChange={handleEvidenciaUpload}
+                            accept={acceptAttr}
+                            className="hidden"
                         />
-                        <Button 
-                            variant="primary"
-                            onClick={() => evidenciaInputRef.current?.click()} 
-                            isLoading={uploadingEvidencia}
-                            className="bg-orange-600 hover:bg-orange-700"
-                        >
-                            Subir Archivo
-                        </Button>
+                        {!modoSupervision && (
+                            <Button
+                                variant="primary"
+                                onClick={() => evidenciaInputRef.current?.click()}
+                                isLoading={uploadingEvidencia}
+                                className="bg-orange-600 hover:bg-orange-700"
+                            >
+                                Subir Archivo
+                            </Button>
+                        )}
                     </div>
-                    
+
                     <DataTable
                         columns={evidenciaColumns}
                         data={evidencias}
@@ -503,21 +670,25 @@ export default function Portafolio() {
             {activeTab === 'PLANIFICACIONES' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-gray-800">Tus Planificaciones</h2>
-                        <Button 
-                            variant="primary"
-                            onClick={() => navigate('/portafolio/nueva-planificacion')} 
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            + Nueva Planificación
-                        </Button>
+                        <h2 className="text-xl font-bold text-gray-800">
+                            {modoSupervision ? 'Planificaciones del Estudiante' : 'Tus Planificaciones'}
+                        </h2>
+                        {!modoSupervision && (
+                            <Button
+                                variant="primary"
+                                onClick={() => navigate('/portafolio/nueva-planificacion')}
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                + Nueva Planificación
+                            </Button>
+                        )}
                     </div>
 
                     <DataTable
                         columns={planColumns}
                         data={planificaciones}
                         isLoading={loadingPlanificaciones}
-                        emptyMessage="No has creado planificaciones."
+                        emptyMessage="No se han registrado planificaciones."
                         keyField="id"
                     />
                 </div>
@@ -526,18 +697,28 @@ export default function Portafolio() {
             {activeTab === 'TERMINO' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800">Documento de Término</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Informe</h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            Sube tu Informe Final o Proyecto de Intervención de práctica profesional. Solo se permite un documento final activo por estudiante (máximo 20 MB en formato PDF o Word).
+                            {modoSupervision
+                                ? 'Consulta o descarga el Informe Final entregado por el estudiante.'
+                                : 'Sube tu Informe Final o Proyecto de Intervención de práctica profesional. Solo se permite un documento final activo por estudiante (máximo 20 MB en formato PDF o Word).'}
                         </p>
                     </div>
+
+                    {loadingFinalDocuments ? (
+                        <div className="py-8 text-center text-gray-500">Cargando Informe...</div>
+                    ) : finalDocuments.length === 0 && modoSupervision ? (
+                        <div className="py-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            El estudiante aún no ha subido el Informe
+                        </div>
+                    ) : null}
 
                     {/* Tarjeta de Documento Existente si ya existe */}
                     {finalDocuments.length > 0 && (
                         <div className="space-y-4">
                             <div className="text-sm font-semibold text-gray-700">Documento de término registrado:</div>
                             {finalDocuments.map((doc) => (
-                                <div 
+                                <div
                                     key={doc.id}
                                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-orange-50/40 border border-orange-200 rounded-xl gap-4"
                                 >
@@ -559,6 +740,7 @@ export default function Portafolio() {
                                     </div>
 
                                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                        {renderBotonRetroalimentacion(doc, 'DOCUMENTO')}
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -566,85 +748,89 @@ export default function Portafolio() {
                                         >
                                             Descargar
                                         </Button>
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            onClick={() => setShowReplaceConfirm(true)}
-                                            className="bg-orange-600 hover:bg-orange-700"
-                                        >
-                                            Reemplazar Documento
-                                        </Button>
+                                        {!modoSupervision && (
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                onClick={() => setShowReplaceConfirm(true)}
+                                                className="bg-orange-600 hover:bg-orange-700"
+                                            >
+                                                Reemplazar Documento
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {/* Formulario de Subida (Disponible en estado vacío o para seleccionar nuevo archivo de reemplazo) */}
-                    <div className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50">
-                        <h3 className="text-base font-semibold text-gray-800">
-                            {finalDocuments.length > 0 ? 'Cargar nuevo archivo para reemplazo' : 'Subir Documento'}
-                        </h3>
+                    {/* Formulario de Subida (Solo visible para el Estudiante) */}
+                    {!modoSupervision && (
+                        <div className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50">
+                            <h3 className="text-base font-semibold text-gray-800">
+                                {finalDocuments.length > 0 ? 'Cargar nuevo archivo para reemplazo' : 'Subir Documento'}
+                            </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Select
-                                label="Tipo de Documento"
-                                id="final-doc-type"
-                                value={finalDocType}
-                                onChange={(e) => setFinalDocType(e.target.value)}
-                                options={[
-                                    { value: 'INFORME_FINAL', label: 'Informe Final' },
-                                    { value: 'PROYECTO_INTERVENCION', label: 'Proyecto de Intervención' },
-                                ]}
-                                placeholder={null}
-                            />
-
-                            <div>
-                                <label htmlFor="final-document-file" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    Seleccionar archivo
-                                </label>
-                                <input
-                                    type="file"
-                                    id="final-document-file"
-                                    ref={finalFileInputRef}
-                                    onChange={handleFinalFileChange}
-                                    accept={FINAL_DOC_ACCEPT}
-                                    aria-label="Seleccionar archivo"
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 border border-gray-300 rounded-xl bg-white p-1 cursor-pointer"
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Select
+                                    label="Tipo de Documento"
+                                    id="final-doc-type"
+                                    value={finalDocType}
+                                    onChange={(e) => setFinalDocType(e.target.value)}
+                                    options={[
+                                        { value: 'INFORME_FINAL', label: 'Informe Final' },
+                                        { value: 'PROYECTO_INTERVENCION', label: 'Proyecto de Intervención' },
+                                    ]}
+                                    placeholder={null}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Formatos permitidos: .pdf, .doc, .docx. Tamaño máximo: 20 MB.
-                                </p>
-                            </div>
-                        </div>
 
-                        {selectedFinalFile && (
-                            <div className="text-xs text-gray-600 bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
-                                <span>Archivo seleccionado: <strong>{selectedFinalFile.name}</strong> ({(selectedFinalFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
-                                <button 
-                                    type="button" 
-                                    onClick={() => {
-                                        setSelectedFinalFile(null);
-                                        if (finalFileInputRef.current) finalFileInputRef.current.value = '';
-                                    }}
-                                    className="text-red-500 hover:text-red-700 text-xs font-semibold ml-2"
+                                <div>
+                                    <label htmlFor="final-document-file" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Seleccionar archivo
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="final-document-file"
+                                        ref={finalFileInputRef}
+                                        onChange={handleFinalFileChange}
+                                        accept={FINAL_DOC_ACCEPT}
+                                        aria-label="Seleccionar archivo"
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 border border-gray-300 rounded-xl bg-white p-1 cursor-pointer"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Formatos permitidos: .pdf, .doc, .docx. Tamaño máximo: 20 MB.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {selectedFinalFile && (
+                                <div className="text-xs text-gray-600 bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+                                    <span>Archivo seleccionado: <strong>{selectedFinalFile.name}</strong> ({(selectedFinalFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedFinalFile(null);
+                                            if (finalFileInputRef.current) finalFileInputRef.current.value = '';
+                                        }}
+                                        className="text-red-500 hover:text-red-700 text-xs font-semibold ml-2"
+                                    >
+                                        Quitar
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end pt-2">
+                                <Button
+                                    variant="primary"
+                                    onClick={() => handleUploadFinalDocument(false)}
+                                    isLoading={uploadingFinalDoc}
+                                    className="bg-orange-600 hover:bg-orange-700"
                                 >
-                                    Quitar
-                                </button>
+                                    Subir Documento
+                                </Button>
                             </div>
-                        )}
-
-                        <div className="flex justify-end pt-2">
-                            <Button
-                                variant="primary"
-                                onClick={() => handleUploadFinalDocument(false)}
-                                isLoading={uploadingFinalDoc}
-                                className="bg-orange-600 hover:bg-orange-700"
-                            >
-                                Subir Documento
-                            </Button>
                         </div>
-                    </div>
+                    )}
 
                     {/* Modal de Confirmación de Reemplazo (ConfirmDialog) */}
                     <ConfirmDialog
@@ -668,7 +854,7 @@ export default function Portafolio() {
                 onClose={() => setItemToDelete(null)}
                 onConfirm={confirmDelete}
                 title={itemToDelete?.isPlan ? "Eliminar Planificación" : "Eliminar Evidencia"}
-                message={`¿¿Seguro que deseas eliminar "${itemToDelete?.name}"? Esta acción no se puede deshacer.`}
+                message={`¿Seguro que deseas eliminar "${itemToDelete?.name}"? Esta acción no se puede deshacer.`}
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="danger"
@@ -756,74 +942,80 @@ export default function Portafolio() {
                     </div>
                 }
             >
-                <div className="p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm mb-4">
-                    Modo solo lectura: Las versiones históricas son inmutables y no pueden editarse ni restaurarse.
-                </div>
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Curso</label>
-                        <input
-                            type="text"
-                            value={detailPlan?.schoolGrade || ''}
-                            disabled
-                            readOnly
-                            className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Eje Matemático</label>
-                        <input
-                            type="text"
-                            value={detailPlan?.mathAxis || ''}
-                            disabled
-                            readOnly
-                            className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivo Basal de Aprendizaje</label>
-                        <textarea
-                            value={detailPlan?.baseLearningObjective || detailPlan?.objective || ''}
-                            disabled
-                            readOnly
-                            rows={3}
-                            className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivos Específicos</label>
-                        <textarea
-                            value={detailPlan?.objectives || detailPlan?.specificObjectives || ''}
-                            disabled
-                            readOnly
-                            rows={3}
-                            className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Actividades de la Clase</label>
-                        <textarea
-                            value={typeof detailPlan?.contentJson === 'string' ? detailPlan.contentJson : JSON.stringify(detailPlan?.contentJson || detailPlan?.classActivities || {})}
-                            disabled
-                            readOnly
-                            rows={3}
-                            className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
-                        />
-                    </div>
-                    {detailPlan?.teacherFeedback && (
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Retroalimentación Docente</label>
-                            <textarea
-                                value={detailPlan.teacherFeedback}
-                                disabled
-                                readOnly
-                                rows={2}
-                                className="w-full text-sm bg-amber-50/70 border border-amber-200 rounded-lg p-2.5 text-amber-900 cursor-not-allowed resize-none"
-                            />
+                {detailLoading ? (
+                    <div className="py-8 text-center text-gray-500">Cargando detalle de la planificación...</div>
+                ) : (
+                    <>
+                        <div className="p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm mb-4">
+                            Modo solo lectura: Las versiones históricas son inmutables y no pueden editarse ni restaurarse.
                         </div>
-                    )}
-                </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Curso</label>
+                                <input
+                                    type="text"
+                                    value={detailPlan?.schoolGrade || ''}
+                                    disabled
+                                    readOnly
+                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Eje Matemático</label>
+                                <input
+                                    type="text"
+                                    value={detailPlan?.mathAxis || ''}
+                                    disabled
+                                    readOnly
+                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivo Basal de Aprendizaje</label>
+                                <textarea
+                                    value={detailPlan?.baseLearningObjective || detailPlan?.objective || ''}
+                                    disabled
+                                    readOnly
+                                    rows={3}
+                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivos Específicos</label>
+                                <textarea
+                                    value={detailPlan?.objectives || detailPlan?.specificObjectives || ''}
+                                    disabled
+                                    readOnly
+                                    rows={3}
+                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Actividades de la Clase</label>
+                                <textarea
+                                    value={typeof detailPlan?.contentJson === 'string' ? detailPlan.contentJson : JSON.stringify(detailPlan?.contentJson || detailPlan?.classActivities || {})}
+                                    disabled
+                                    readOnly
+                                    rows={3}
+                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
+                                />
+                            </div>
+                            {detailPlan?.teacherFeedback && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Retroalimentación Docente</label>
+                                    <textarea
+                                        value={detailPlan.teacherFeedback}
+                                        disabled
+                                        readOnly
+                                        rows={2}
+                                        className="w-full text-sm bg-amber-50/70 border border-amber-200 rounded-lg p-2.5 text-amber-900 cursor-not-allowed resize-none"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </Modal>
 
             {/* Modal de Edición Versionada (HU30) */}
@@ -921,6 +1113,91 @@ export default function Portafolio() {
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal
+                isOpen={feedbackModal.isOpen}
+                onClose={cerrarModalFeedback}
+                title={
+                    feedbackModal.readOnly
+                        ? 'Retroalimentación Formativa del Docente'
+                        : feedbackModal.item?.teacherFeedback
+                            ? 'Editar Retroalimentación Formativa'
+                            : 'Registrar Retroalimentación Formativa'
+                }
+            >
+                <div className="space-y-4">
+                    {feedbackModal.item && (
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm text-gray-700">
+                            <span className="font-semibold">Elemento: </span>
+                            {feedbackModal.item.title || feedbackModal.item.fileName || (feedbackModal.item.schoolGrade ? `Planificación (${feedbackModal.item.schoolGrade})` : 'Documento del portafolio')}
+                            {feedbackModal.item.feedbackDate && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Última actualización:{' '}
+                                    {new Date(feedbackModal.item.feedbackDate).toLocaleString('es-CL', {
+                                        dateStyle: 'medium',
+                                        timeStyle: 'short',
+                                    })}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {feedbackModal.readOnly ? (
+                        <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-lg text-gray-800 whitespace-pre-wrap text-sm leading-relaxed max-h-80 overflow-y-auto">
+                            {feedbackModal.comentario}
+                        </div>
+                    ) : (
+                        <div>
+                            <label
+                                htmlFor="teacher-feedback-textarea"
+                                className="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                                Comentario formativo para el estudiante
+                            </label>
+                            <textarea
+                                id="teacher-feedback-textarea"
+                                rows={6}
+                                maxLength={2000}
+                                value={feedbackModal.comentario}
+                                onChange={(e) =>
+                                    setFeedbackModal((prev) => ({ ...prev, comentario: e.target.value }))
+                                }
+                                placeholder="Escribe aquí tus observaciones, sugerencias de mejora o retroalimentación continua..."
+                                className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                disabled={feedbackModal.guardando}
+                            />
+                            <div className="flex justify-end mt-1">
+                                <span
+                                    className={`text-xs ${
+                                        feedbackModal.comentario.length >= 1950 ? 'text-red-600 font-semibold' : 'text-gray-500'
+                                    }`}
+                                >
+                                    {feedbackModal.comentario.length} / 2000 caracteres
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
+                        <Button
+                            variant="secondary"
+                            onClick={cerrarModalFeedback}
+                            disabled={feedbackModal.guardando}
+                        >
+                            {feedbackModal.readOnly ? 'Cerrar' : 'Cancelar'}
+                        </Button>
+                        {!feedbackModal.readOnly && (
+                            <Button
+                                variant="primary"
+                                onClick={guardarRetroalimentacion}
+                                disabled={feedbackModal.guardando}
+                            >
+                                {feedbackModal.guardando ? 'Guardando...' : 'Guardar Retroalimentación'}
+                            </Button>
+                        )}
+                    </div>
+                </div>
             </Modal>
         </div>
     );

@@ -326,4 +326,60 @@ public class PortfolioServiceImpl implements PortfolioService {
         }
         portfolioDocumentRepository.delete(doc);
     }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public java.util.List<PortfolioDocument> obtenerEvidenciasPorAsignacion(Long assignmentId, String userEmail) {
+        com.ubb.practicas.model.PracticeAssignment assignment = practiceAssignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Asignación no encontrada: " + assignmentId));
+
+        boolean isAdmin = isUserAdmin(userEmail);
+        if (!isAdmin && !assignment.hasParticipant(userEmail)) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para ver las evidencias de esta práctica.");
+        }
+
+        return portfolioDocumentRepository.findByPracticeAssignment_IdAndTypeIn(
+                assignmentId,
+                java.util.List.of(com.ubb.practicas.model.enums.DocumentType.EVIDENCIA_APRENDIZAJE)
+        );
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public PortfolioDocument agregarRetroalimentacion(Long id, String feedback, String userEmail) {
+        PortfolioDocument doc = portfolioDocumentRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Documento no encontrado con ID: " + id));
+
+        com.ubb.practicas.model.PracticeAssignment assignment = doc.getPracticeAssignment();
+        boolean esAdmin = isUserAdmin(userEmail);
+
+        if (assignment != null) {
+            if (assignment.isStudent(userEmail) && !esAdmin) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Los estudiantes no pueden registrar retroalimentación formativa."
+                );
+            }
+
+            boolean esDocenteAutorizado = assignment.isProfessor(userEmail)
+                    || assignment.isCollaborator(userEmail)
+                    || assignment.isTutor(userEmail)
+                    || esAdmin;
+
+            if (!esDocenteAutorizado) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "No tiene permisos para retroalimentar este portafolio."
+                );
+            }
+        } else if (!esAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "El documento no tiene una asignación de práctica válida."
+            );
+        }
+
+        String comentarioLimpio = (feedback != null && !feedback.trim().isEmpty()) ? feedback.trim() : null;
+        doc.setTeacherFeedback(comentarioLimpio);
+        doc.setFeedbackDate(comentarioLimpio != null ? java.time.LocalDateTime.now() : null);
+
+        return portfolioDocumentRepository.save(doc);
+    }
 }

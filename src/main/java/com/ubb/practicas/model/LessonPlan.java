@@ -56,7 +56,7 @@ public class LessonPlan {
 
     @Column(length = 2000)
     private String teacherFeedback;
-
+    private java.time.LocalDateTime feedbackDate;
     private Integer version;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -64,6 +64,37 @@ public class LessonPlan {
     @ToString.Exclude
     @JsonIgnore
     private LessonPlan parentPlan;
+
+    public LessonPlan(
+            Long id,
+            PracticeAssignment practiceAssignment,
+            PortfolioDocument document,
+            com.ubb.practicas.model.enums.PlanStatus status,
+            String schoolGrade,
+            com.ubb.practicas.model.enums.MathAxis mathAxis,
+            String baseLearningObjective,
+            String objectives,
+            String contentJson,
+            String teacherFeedback,
+            Integer version,
+            LessonPlan parentPlan,
+            java.time.LocalDateTime createdAt,
+            java.time.LocalDateTime updatedAt) {
+        this.id = id;
+        this.practiceAssignment = practiceAssignment;
+        this.document = document;
+        this.status = status;
+        this.schoolGrade = schoolGrade;
+        this.mathAxis = mathAxis;
+        this.baseLearningObjective = baseLearningObjective;
+        this.objectives = objectives;
+        this.contentJson = contentJson;
+        this.teacherFeedback = teacherFeedback;
+        this.version = version;
+        this.parentPlan = parentPlan;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 
     @JsonProperty("parentPlanId")
     public Long getParentPlanId() {
@@ -75,6 +106,9 @@ public class LessonPlan {
 
     public boolean isOwnedBy(String email) {
         return email != null && this.practiceAssignment != null && this.practiceAssignment.isStudent(email);
+    }
+    public boolean isAccessibleBy(String email) {
+        return this.practiceAssignment != null && this.practiceAssignment.hasParticipant(email);
     }
 
     public boolean hasDocument(Long documentId) {

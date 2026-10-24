@@ -252,8 +252,8 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                 .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada: " + id));
 
         boolean isAdmin = isUserAdmin(userEmail);
-        if (!isAdmin && !plan.isOwnedBy(userEmail)) {
-            throw new AccessDeniedException("No tiene permisos para ver esta planificación");
+        if (!isAdmin && !plan.isAccessibleBy(userEmail)) {
+            throw new AccessDeniedException("No tienes permiso para acceder a esta planificación");
         }
 
         return plan;
@@ -266,7 +266,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                 .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada: " + id));
 
         boolean isAdmin = isUserAdmin(userEmail);
-        if (!isAdmin && !target.isOwnedBy(userEmail)) {
+        if (!isAdmin && !target.isAccessibleBy(userEmail)) {
             throw new AccessDeniedException("No tiene permisos para ver esta planificación");
         }
 
@@ -343,5 +343,57 @@ public class LessonPlanServiceImpl implements LessonPlanService {
 
         lineage.sort(Comparator.comparingInt(p -> p.getVersion() != null ? p.getVersion() : 1));
         return lineage;
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<LessonPlan> obtenerPlanificacionesPorAsignacion(Long assignmentId, String userEmail) {
+        PracticeAssignment assignment = practiceAssignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new NoSuchElementException("Asignación no encontrada: " + assignmentId));
+
+        // Si en LessonPlanServiceImpl también tienes isUserAdmin(userEmail), inclúyelo:
+        // boolean isAdmin = isUserAdmin(userEmail);
+        if (!assignment.hasParticipant(userEmail)) { // o: if (!isAdmin && !assignment.hasParticipant(userEmail))
+            throw new AccessDeniedException("No tienes permisos para ver las planificaciones de esta práctica.");
+        }
+
+        return lessonPlanRepository.findByPracticeAssignmentId(assignmentId);
+    }
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public com.ubb.practicas.model.LessonPlan agregarRetroalimentacionPlan(Long id, String feedback, String userEmail) {
+        com.ubb.practicas.model.LessonPlan plan = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Planificación no encontrada con ID: " + id));
+
+        com.ubb.practicas.model.PracticeAssignment assignment = plan.getPracticeAssignment();
+        boolean esAdmin = isUserAdmin(userEmail);
+
+        if (assignment != null) {
+            if (assignment.isStudent(userEmail) && !esAdmin) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Los estudiantes no pueden registrar retroalimentación formativa."
+                );
+            }
+
+            boolean esDocenteAutorizado = assignment.isProfessor(userEmail)
+                    || assignment.isCollaborator(userEmail)
+                    || assignment.isTutor(userEmail)
+                    || esAdmin;
+
+            if (!esDocenteAutorizado) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "No tiene permisos para retroalimentar esta planificación."
+                );
+            }
+        } else if (!esAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "La planificación no tiene una asignación de práctica válida."
+            );
+        }
+
+        String comentarioLimpio = (feedback != null && !feedback.trim().isEmpty()) ? feedback.trim() : null;
+        plan.setTeacherFeedback(comentarioLimpio);
+        plan.setFeedbackDate(comentarioLimpio != null ? java.time.LocalDateTime.now() : null);
+
+        return lessonPlanRepository.save(plan);
     }
 }

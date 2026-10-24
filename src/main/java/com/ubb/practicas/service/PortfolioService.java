@@ -22,5 +22,8 @@ public interface PortfolioService {
     List<PortfolioDocument> obtenerMisDocumentosFinales(User student);
     List<PortfolioDocument> obtenerMisDocumentosFinales(String studentEmail);
     List<PortfolioDocument> obtenerDocumentosFinalesPorAsignacion(Long assignmentId);
+    List<PortfolioDocument> obtenerEvidenciasPorAsignacion(Long assignmentId, String userEmail);
     void eliminarDocumentoFinal(Long id, String userEmail);
+    PortfolioDocument agregarRetroalimentacion(Long id, String feedback, String userEmail);
+
 }
