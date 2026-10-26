@@ -39,4 +39,8 @@ public interface PracticeAssignmentRepository extends JpaRepository<PracticeAssi
     List<PracticeAssignment> findByStudentEmailAndStatus(String email, AssignmentStatus status);
 
     boolean existsBySubjectId(Long subjectId);
+
+    boolean existsByCenterId(Long centerId);
+
+    boolean existsByPeriodId(Long periodId);
 }

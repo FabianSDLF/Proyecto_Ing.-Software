@@ -1,15 +1,19 @@
 package com.ubb.practicas.service.impl;
 
+import com.ubb.practicas.model.AcademicPeriod;
 import com.ubb.practicas.model.PracticeAssignment;
 import com.ubb.practicas.model.User;
 import com.ubb.practicas.model.enums.AssignmentStatus;
+import com.ubb.practicas.model.enums.PeriodStatus;
 import com.ubb.practicas.model.enums.TeachingRole;
+import com.ubb.practicas.repository.AcademicPeriodRepository;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
 import com.ubb.practicas.repository.PracticeCenterRepository;
 import com.ubb.practicas.repository.SubjectRepository;
 import com.ubb.practicas.repository.UserRepository;
 import com.ubb.practicas.service.PracticeAssignmentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,9 @@ public class PracticeAssignmentServiceImpl implements PracticeAssignmentService 
     private final UserRepository userRepository;
     private final SubjectRepository subjectRepository;
     private final PracticeCenterRepository centerRepository;
+
+    @Autowired(required = false)
+    private AcademicPeriodRepository periodRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -71,6 +78,13 @@ public class PracticeAssignmentServiceImpl implements PracticeAssignmentService 
         if (assignment.getCenter() != null && assignment.getCenter().getId() != null
                 && !centerRepository.existsById(assignment.getCenter().getId())) {
             throw new IllegalArgumentException("El centro de práctica no existe");
+        }
+
+        if ((assignment.getPeriod() == null || assignment.getPeriod().getId() == null) && periodRepository != null) {
+            List<AcademicPeriod> activos = periodRepository.findByStatus(PeriodStatus.ACTIVO);
+            if (!activos.isEmpty()) {
+                assignment.setPeriod(activos.get(0));
+            }
         }
 
         assignment.setCreatedAt(LocalDateTime.now());

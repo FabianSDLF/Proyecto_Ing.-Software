@@ -10,7 +10,7 @@ export const assignmentService = {
 
   /**
    * Crear una nueva asignación de práctica
-   * @param {{ studentId: number|string, subjectId: number|string, centerId?: number|string, collaboratorId?: number|string, tutorId?: number|string, status?: string }} data
+   * @param {{ studentId: number|string, subjectId: number|string, centerId?: number|string, collaboratorId?: number|string, tutorId?: number|string, periodId?: number|string, status?: string }} data
    */
   async createAssignment(data, options) {
     const payload = {
@@ -19,6 +19,7 @@ export const assignmentService = {
       center: data.centerId ? { id: data.centerId } : null,
       collaborator: data.collaboratorId ? { id: data.collaboratorId } : null,
       tutor: data.tutorId ? { id: data.tutorId } : null,
+      period: data.periodId ? { id: data.periodId } : null,
       status: data.status || 'ACTIVA',
     };
     return apiClient.post('/api/asignaciones', payload, options);

@@ -6,8 +6,17 @@ import subjectService from '../services/subjectService';
 import centerService from '../services/centerService';
 import { DataTable, Modal, ConfirmDialog, Select, Input, Button, Badge } from '../components/ui';
 
+const DEPENDENCY_OPTIONS = [
+    { value: 'PUBLICO_SLEP', label: 'Público / SLEP / Municipal' },
+    { value: 'SUBVENCIONADO', label: 'Particular Subvencionado' },
+    { value: 'PRIVADO', label: 'Particular Pagado' },
+    { value: 'EDUCACION_ESPECIAL', label: 'Educación Especial' },
+    { value: 'ADULTOS', label: 'Educación de Adultos' },
+    { value: 'PENITENCIARIO', label: 'Contexto Penitenciario' },
+];
+
 export default function Asignaciones() {
-    // Pestaña activa ('ASIGNACIONES' | 'DUPLAS')
+    // Pestaña activa ('ASIGNACIONES' | 'DUPLAS' | 'CENTROS')
     const [activeTab, setActiveTab] = useState('ASIGNACIONES');
 
     // Datos generales de asignaciones individuales
@@ -17,6 +26,7 @@ export default function Asignaciones() {
     const [centros, setCentros] = useState([]);
     const [profesores, setProfesores] = useState([]);
     const [tutores, setTutores] = useState([]);
+    const [periodos, setPeriodos] = useState([]);
 
     // Datos de duplas (HU9)
     const [duplas, setDuplas] = useState([]);
@@ -29,7 +39,7 @@ export default function Asignaciones() {
         assignment2Id: '',
     });
 
-    // Estados de modales y cargas
+    // Estados de modales y cargas para Asignaciones
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
@@ -37,42 +47,62 @@ export default function Asignaciones() {
 
     const [assignmentToDelete, setAssignmentToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     const [formData, setFormData] = useState({
         studentId: '',
         subjectId: '',
         centerId: '',
         collaboratorId: '',
-        tutorId: ''
+        tutorId: '',
+        periodId: '',
     });
 
-    // Cargar datos del sistema para asignaciones individuales
+    // Estados para Gestión de Centros de Práctica (Fase 1)
+    const [isCenterModalOpen, setIsCenterModalOpen] = useState(false);
+    const [editingCenter, setEditingCenter] = useState(null);
+    const [savingCenter, setSavingCenter] = useState(false);
+    const [centerToDelete, setCenterToDelete] = useState(null);
+    const [deletingCenter, setDeletingCenter] = useState(false);
+    const [centerForm, setCenterForm] = useState({
+        name: '',
+        dependency: 'PUBLICO_SLEP',
+        address: '',
+        district: '',
+        city: 'Chillán',
+        phone: '',
+        contactName: '',
+        contactEmail: '',
+    });
+
+    // Cargar datos del sistema para asignaciones individuales y centros
     const cargarDatos = useCallback(async (signal) => {
         setLoadingData(true);
         try {
             const [
-                asigRes, 
-                estudRes, 
-                asigListRes, 
-                centrosRes, 
-                profesRes, 
-                tutoresRes
+                asigRes,
+                estudRes,
+                asigListRes,
+                centrosRes,
+                profesRes,
+                tutoresRes,
+                periodosRes,
             ] = await Promise.allSettled([
                 assignmentService.getAssignments({ signal }),
                 userService.getUsersByRole('Estudiante', { signal }),
                 subjectService.getSubjects({ signal }),
                 centerService.getCenters({ signal }),
                 userService.getUsersByRole('Profesor Colaborador', { signal }),
-                userService.getUsersByRole('Tutor', { signal })
+                userService.getUsersByRole('Tutor', { signal }),
+                subjectService.getPeriods ? subjectService.getPeriods({ signal }) : Promise.resolve([]),
             ]);
-            
+
             if (asigRes.status === 'fulfilled') setAsignaciones(Array.isArray(asigRes.value) ? asigRes.value : []);
             if (estudRes.status === 'fulfilled') setEstudiantes(Array.isArray(estudRes.value) ? estudRes.value : []);
             if (asigListRes.status === 'fulfilled') setAsignaturas(Array.isArray(asigListRes.value) ? asigListRes.value : []);
             if (centrosRes.status === 'fulfilled') setCentros(Array.isArray(centrosRes.value) ? centrosRes.value : []);
             if (profesRes.status === 'fulfilled') setProfesores(Array.isArray(profesRes.value) ? profesRes.value : []);
             if (tutoresRes.status === 'fulfilled') setTutores(Array.isArray(tutoresRes.value) ? tutoresRes.value : []);
-            
+            if (periodosRes.status === 'fulfilled') setPeriodos(Array.isArray(periodosRes.value) ? periodosRes.value : []);
         } catch (error) {
             if (error.name !== 'AbortError') {
                 toast.error('Error al cargar datos del sistema');
@@ -115,7 +145,6 @@ export default function Asignaciones() {
         return () => controller.abort();
     }, [cargarDatos, cargarDatosDuplas]);
 
-    // Recargar duplas al cambiar de pestaña
     useEffect(() => {
         if (activeTab === 'DUPLAS') {
             cargarDatosDuplas();
@@ -144,12 +173,13 @@ export default function Asignaciones() {
                 centerId: formData.centerId || null,
                 collaboratorId: formData.collaboratorId || null,
                 tutorId: formData.tutorId || null,
-                status: 'ACTIVA'
+                periodId: formData.periodId || null,
+                status: 'ACTIVA',
             });
 
             toast.success('Asignación creada exitosamente');
             setIsModalOpen(false);
-            setFormData({ studentId: '', subjectId: '', centerId: '', collaboratorId: '', tutorId: '' });
+            setFormData({ studentId: '', subjectId: '', centerId: '', collaboratorId: '', tutorId: '', periodId: '' });
             cargarDatos();
             cargarDatosDuplas();
         } catch (error) {
@@ -175,6 +205,77 @@ export default function Asignaciones() {
             toast.error(error.message || 'Error al eliminar asignación');
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    // Handlers de Centros de Práctica (Fase 1)
+    const handleOpenNewCenter = () => {
+        setEditingCenter(null);
+        setCenterForm({
+            name: '',
+            dependency: 'PUBLICO_SLEP',
+            address: '',
+            district: '',
+            city: 'Chillán',
+            phone: '',
+            contactName: '',
+            contactEmail: '',
+        });
+        setIsCenterModalOpen(true);
+    };
+
+    const handleOpenEditCenter = (center) => {
+        setEditingCenter(center);
+        setCenterForm({
+            name: center.name || '',
+            dependency: center.dependency || 'PUBLICO_SLEP',
+            address: center.address || '',
+            district: center.district || '',
+            city: center.city || '',
+            phone: center.phone || '',
+            contactName: center.contactName || '',
+            contactEmail: center.contactEmail || '',
+        });
+        setIsCenterModalOpen(true);
+    };
+
+    const handleSaveCenter = async (e) => {
+        e.preventDefault();
+        if (!centerForm.name.trim()) {
+            toast.error('El nombre del establecimiento es obligatorio.');
+            return;
+        }
+        setSavingCenter(true);
+        try {
+            if (editingCenter) {
+                await centerService.updateCenter(editingCenter.id, centerForm);
+                toast.success('Centro de práctica actualizado exitosamente');
+            } else {
+                await centerService.createCenter(centerForm);
+                toast.success('Centro de práctica registrado exitosamente');
+            }
+            setIsCenterModalOpen(false);
+            setEditingCenter(null);
+            cargarDatos();
+        } catch (error) {
+            toast.error(error.message || 'Error al guardar el centro de práctica');
+        } finally {
+            setSavingCenter(false);
+        }
+    };
+
+    const confirmDeleteCenter = async () => {
+        if (!centerToDelete) return;
+        setDeletingCenter(true);
+        try {
+            await centerService.deleteCenter(centerToDelete.id);
+            toast.success('Centro de práctica eliminado exitosamente');
+            setCenterToDelete(null);
+            cargarDatos();
+        } catch (error) {
+            toast.error(error.message || 'No se pudo eliminar el centro de práctica');
+        } finally {
+            setDeletingCenter(false);
         }
     };
 
@@ -206,7 +307,6 @@ export default function Asignaciones() {
             return;
         }
 
-        // Obtener periodo de las asignaciones disponibles seleccionadas
         const asig1 = estudiantesDisponiblesDupla.find(a => String(a.id) === String(assignment1Id));
         const periodId = asig1?.period?.id || asig1?.periodId || 1;
 
@@ -252,6 +352,10 @@ export default function Asignaciones() {
         tutores.map(t => ({ value: t.id, label: t.fullName }))
     ), [tutores]);
 
+    const periodOptions = useMemo(() => (
+        periodos.map(p => ({ value: p.id, label: `${p.name} (${p.status})` }))
+    ), [periodos]);
+
     // Opciones y filtrado para Modal de Duplas (HU9)
     const estudiantesDuplaFiltrados = useMemo(() => {
         if (!filtroDupla.trim()) return estudiantesDisponiblesDupla;
@@ -263,7 +367,6 @@ export default function Asignaciones() {
         });
     }, [estudiantesDisponiblesDupla, filtroDupla]);
 
-    // Selector Estudiante 1 (excluye al seleccionado en Estudiante 2, preserva selección actual)
     const opcionesEstudiante1 = useMemo(() => {
         return estudiantesDisponiblesDupla
             .filter(item => {
@@ -287,7 +390,6 @@ export default function Asignaciones() {
             });
     }, [estudiantesDisponiblesDupla, duplaFormData.assignment1Id, duplaFormData.assignment2Id, filtroDupla]);
 
-    // Selector Estudiante 2 (excluye al seleccionado en Estudiante 1, preserva selección actual)
     const opcionesEstudiante2 = useMemo(() => {
         return estudiantesDisponiblesDupla
             .filter(item => {
@@ -297,7 +399,7 @@ export default function Asignaciones() {
                 if (!filtroDupla.trim()) return true;
                 const term = filtroDupla.toLowerCase();
                 const name = item.student?.fullName || item.studentName || item.name || '';
-                const email = item.student?.email || item.studentEmail || item.email || '';
+                const email = item.student?.email || item.studentEmail || '';
                 return name.toLowerCase().includes(term) || email.toLowerCase().includes(term);
             })
             .map(item => {
@@ -311,7 +413,6 @@ export default function Asignaciones() {
             });
     }, [estudiantesDisponiblesDupla, duplaFormData.assignment1Id, duplaFormData.assignment2Id, filtroDupla]);
 
-    // Validación para habilitar botón confirmar dupla
     const isConfirmDuplaDisabled = useMemo(() => {
         const { assignment1Id, assignment2Id } = duplaFormData;
         if (!assignment1Id || !assignment2Id) return true;
@@ -332,9 +433,17 @@ export default function Asignaciones() {
             ),
         },
         {
-            header: 'Asignatura',
-            accessor: 'subject.name',
-            className: 'text-gray-700',
+            header: 'Asignatura / Periodo',
+            render: (row) => (
+                <div>
+                    <p className="text-gray-800 font-medium">{row.subject?.name || 'N/A'}</p>
+                    {row.period?.name && (
+                        <span className="inline-block text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded mt-0.5">
+                            Semestre {row.period.name}
+                        </span>
+                    )}
+                </div>
+            ),
         },
         {
             header: 'Centro Práctica',
@@ -361,7 +470,7 @@ export default function Asignaciones() {
             header: 'Acciones',
             align: 'right',
             render: (row) => (
-                <Button 
+                <Button
                     variant="danger"
                     size="sm"
                     onClick={() => setAssignmentToDelete(row)}
@@ -450,27 +559,97 @@ export default function Asignaciones() {
         },
     ], []);
 
+    // Columnas de Centros de Práctica (Fase 1)
+    const columnsCentros = useMemo(() => [
+        {
+            header: 'Establecimiento',
+            render: (row) => (
+                <div>
+                    <p className="font-semibold text-gray-900">{row.name}</p>
+                    <p className="text-xs text-gray-500">{row.address || 'Sin dirección'}</p>
+                </div>
+            ),
+        },
+        {
+            header: 'Dependencia',
+            render: (row) => (
+                <Badge variant="info">
+                    {row.dependency || 'PUBLICO_SLEP'}
+                </Badge>
+            ),
+        },
+        {
+            header: 'Ubicación',
+            render: (row) => (
+                <span className="text-sm text-gray-700">
+                    {[row.district, row.city].filter(Boolean).join(', ') || 'Sin especificar'}
+                </span>
+            ),
+        },
+        {
+            header: 'Contacto Directivo / UTP',
+            render: (row) => (
+                <div className="text-xs text-gray-600">
+                    <p className="font-medium text-gray-800">{row.contactName || 'Sin contacto'}</p>
+                    {row.contactEmail && <p>{row.contactEmail}</p>}
+                    {row.phone && <p>{row.phone}</p>}
+                </div>
+            ),
+        },
+        {
+            header: 'Acciones',
+            align: 'right',
+            render: (row) => (
+                <div className="flex items-center justify-end gap-2">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenEditCenter(row)}
+                    >
+                        Editar
+                    </Button>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setCenterToDelete(row)}
+                    >
+                        Eliminar
+                    </Button>
+                </div>
+            ),
+        },
+    ], []);
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6">
             {/* Encabezado */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaciones</h1>
+                    <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaciones y Centros</h1>
                     <p className="text-gray-500 mt-1">Vincula estudiantes con asignaturas, duplas pedagógicas, centros de práctica y supervisores.</p>
                 </div>
-                {activeTab === 'ASIGNACIONES' ? (
-                    <Button 
+                {activeTab === 'ASIGNACIONES' && (
+                    <Button
                         variant="primary"
                         onClick={() => setIsModalOpen(true)}
                     >
                         + Nueva Asignación
                     </Button>
-                ) : (
-                    <Button 
+                )}
+                {activeTab === 'DUPLAS' && (
+                    <Button
                         variant="primary"
                         onClick={handleOpenCrearDuplaModal}
                     >
                         + Nueva Dupla
+                    </Button>
+                )}
+                {activeTab === 'CENTROS' && (
+                    <Button
+                        variant="primary"
+                        onClick={handleOpenNewCenter}
+                    >
+                        + Nuevo Centro de Práctica
                     </Button>
                 )}
             </div>
@@ -503,6 +682,19 @@ export default function Asignaciones() {
                 >
                     Duplas (Ciclo Intermedio)
                 </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'CENTROS'}
+                    onClick={() => setActiveTab('CENTROS')}
+                    className={`py-2 px-4 font-semibold border-b-2 transition-colors cursor-pointer ${
+                        activeTab === 'CENTROS'
+                            ? 'border-orange-600 text-orange-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Centros de Práctica ({centros.length})
+                </button>
             </div>
 
             {/* Pestaña: Asignaciones Individuales */}
@@ -526,6 +718,19 @@ export default function Asignaciones() {
                         data={duplas}
                         isLoading={loadingDuplas}
                         emptyMessage="No hay duplas de estudiantes registradas en el ciclo intermedio."
+                        keyField="id"
+                    />
+                </div>
+            )}
+
+            {/* Pestaña: Centros de Práctica (Fase 1) */}
+            {activeTab === 'CENTROS' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                    <DataTable
+                        columns={columnsCentros}
+                        data={centros}
+                        isLoading={loadingData}
+                        emptyMessage="No hay centros de práctica registrados."
                         keyField="id"
                     />
                 </div>
@@ -577,6 +782,17 @@ export default function Asignaciones() {
                         required
                     />
 
+                    {periodOptions.length > 0 && (
+                        <Select
+                            label="Periodo Académico (Semestre)"
+                            name="periodId"
+                            options={periodOptions}
+                            value={formData.periodId}
+                            onChange={handleInputChange}
+                            placeholder="-- Automático (Periodo Activo) --"
+                        />
+                    )}
+
                     <Select
                         label="Centro de Práctica (Opcional)"
                         name="centerId"
@@ -603,6 +819,85 @@ export default function Asignaciones() {
                         onChange={handleInputChange}
                         placeholder="-- Seleccione Tutor --"
                     />
+                </form>
+            </Modal>
+
+            {/* Modal Crear / Editar Centro de Práctica (Fase 1) */}
+            <Modal
+                isOpen={isCenterModalOpen}
+                onClose={() => setIsCenterModalOpen(false)}
+                title={editingCenter ? `Editar Centro: ${editingCenter.name}` : 'Registrar Nuevo Centro de Práctica'}
+                size="lg"
+            >
+                <form onSubmit={handleSaveCenter} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Nombre del Establecimiento"
+                            value={centerForm.name}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Ej: Liceo Bicentenario Marta Brunet"
+                            required
+                        />
+                        <Select
+                            label="Dependencia"
+                            options={DEPENDENCY_OPTIONS}
+                            value={centerForm.dependency}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, dependency: e.target.value }))}
+                            placeholder={null}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input
+                            label="Dirección"
+                            value={centerForm.address}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, address: e.target.value }))}
+                            placeholder="Ej: Av. Libertad 850"
+                        />
+                        <Input
+                            label="Comuna"
+                            value={centerForm.district}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, district: e.target.value }))}
+                            placeholder="Ej: Chillán"
+                        />
+                        <Input
+                            label="Ciudad"
+                            value={centerForm.city}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, city: e.target.value }))}
+                            placeholder="Ej: Chillán"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input
+                            label="Nombre Contacto / Jefe UTP"
+                            value={centerForm.contactName}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, contactName: e.target.value }))}
+                            placeholder="Ej: María González (UTP)"
+                        />
+                        <Input
+                            label="Correo de Contacto"
+                            type="email"
+                            value={centerForm.contactEmail}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, contactEmail: e.target.value }))}
+                            placeholder="utp@colegio.cl"
+                        />
+                        <Input
+                            label="Teléfono"
+                            value={centerForm.phone}
+                            onChange={(e) => setCenterForm(prev => ({ ...prev, phone: e.target.value }))}
+                            placeholder="+56 42 2223344"
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                        <Button type="button" variant="secondary" onClick={() => setIsCenterModalOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" variant="primary" isLoading={savingCenter}>
+                            {editingCenter ? 'Guardar Cambios' : 'Registrar Centro'}
+                        </Button>
+                    </div>
                 </form>
             </Modal>
 
@@ -633,7 +928,6 @@ export default function Asignaciones() {
                 }
             >
                 <div className="space-y-5">
-                    {/* Alerta de advertencia permanente obligatoria */}
                     <div
                         role="alert"
                         className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-xl text-amber-900 text-sm flex items-start gap-3"
@@ -649,7 +943,6 @@ export default function Asignaciones() {
                         </div>
                     </div>
 
-                    {/* Buscador en vivo de estudiantes */}
                     <div>
                         <Input
                             label="Buscar Estudiante"
@@ -665,7 +958,6 @@ export default function Asignaciones() {
                         />
                     </div>
 
-                    {/* Desplegable Estudiante 1 */}
                     <div>
                         <Select
                             label="Estudiante 1 (Ciclo Intermedio)"
@@ -678,7 +970,6 @@ export default function Asignaciones() {
                         />
                     </div>
 
-                    {/* Desplegable Estudiante 2 */}
                     <div>
                         <Select
                             label="Estudiante 2 (Ciclo Intermedio)"
@@ -691,7 +982,6 @@ export default function Asignaciones() {
                         />
                     </div>
 
-                    {/* Mensaje informativo si no hay estudiantes disponibles */}
                     {estudiantesDisponiblesDupla.length === 0 && !loadingDuplas && (
                         <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-lg border border-gray-200">
                             No hay estudiantes disponibles en Ciclo Intermedio sin pareja para este periodo.
@@ -711,6 +1001,19 @@ export default function Asignaciones() {
                 cancelText="Cancelar"
                 variant="danger"
                 isLoading={isDeleting}
+            />
+
+            {/* Diálogo de Confirmación para Eliminar Centro de Práctica */}
+            <ConfirmDialog
+                isOpen={Boolean(centerToDelete)}
+                onClose={() => setCenterToDelete(null)}
+                onConfirm={confirmDeleteCenter}
+                title="Eliminar Centro de Práctica"
+                message={`¿Está seguro de que desea eliminar el establecimiento "${centerToDelete?.name}"?`}
+                confirmText="Eliminar Centro"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={deletingCenter}
             />
         </div>
     );
