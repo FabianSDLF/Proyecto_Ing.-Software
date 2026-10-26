@@ -54,42 +54,16 @@ EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
 '@ | Set-Content -Path (Join-Path $DeployDir "backend\Dockerfile") -Encoding utf8
 
-# Copiar Frontend (dist, Dockerfile liviano y nginx.conf)
+# Copiar Frontend (dist, Dockerfile liviano y nginx.conf sin BOM)
 Copy-Item -Path $DistDir -Destination (Join-Path $DeployDir "frontend\dist") -Recurse
+Copy-Item -Path (Join-Path $RootDir "frontend\nginx.conf") -Destination (Join-Path $DeployDir "frontend\nginx.conf")
 @'
 FROM nginx:alpine
 COPY dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-'@ | Set-Content -Path (Join-Path $DeployDir "frontend\Dockerfile") -Encoding utf8
-
-@'
-server {
-    listen 80;
-    client_max_body_size 50M;
-
-    location / {
-        root /usr/share/nginx/html;
-        index index.html index.htm;
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api/ {
-        proxy_pass http://backend:8080/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /chat {
-        proxy_pass http://chatbot:8000/chat;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-'@ | Set-Content -Path (Join-Path $DeployDir "frontend\nginx.conf") -Encoding utf8
+'@ | Set-Content -Path (Join-Path $DeployDir "frontend\Dockerfile") -Encoding Ascii
 
 # Copiar Chatbot
 $ChatbotSrc = Join-Path $RootDir "chatbot"
