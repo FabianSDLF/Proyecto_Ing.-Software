@@ -73,12 +73,43 @@ export default function Portafolio({ isReadOnly = false }) {
         guardando: false,
     });
 
+    const parseComentarios = useCallback((item) => {
+        const raw = item?.teacherFeedback;
+        if (!raw || typeof raw !== 'string' || !raw.trim()) return [];
+        const trimmed = raw.trim();
+        if (trimmed.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.filter(c => c && typeof c.text === 'string' && c.text.trim());
+                }
+            } catch {
+                // fallback a comentario simple
+            }
+        }
+        return [{
+            id: 'legacy-1',
+            authorName: 'Docente Supervisor',
+            authorRole: 'Docente',
+            authorEmail: '',
+            text: trimmed,
+            date: item?.feedbackDate || item?.updatedAt || item?.createdAt || null,
+        }];
+    }, []);
+
+    const formatFeedbackPlainText = useCallback((item) => {
+        const list = parseComentarios(item);
+        if (list.length === 0) return '';
+        if (list.length === 1 && list[0].id === 'legacy-1') return list[0].text;
+        return list.map(c => `[${c.authorName || 'Docente'} - ${c.authorRole || 'Docente'}]: ${c.text}`).join('\n\n');
+    }, [parseComentarios]);
+
     const abrirModalFeedback = (item, tipo, readOnly = false) => {
         setFeedbackModal({
             isOpen: true,
             tipo,
             item,
-            comentario: item?.teacherFeedback || '',
+            comentario: '',
             readOnly,
             guardando: false,
         });
@@ -98,32 +129,43 @@ export default function Portafolio({ isReadOnly = false }) {
 
     const guardarRetroalimentacion = async () => {
         if (!feedbackModal.item || feedbackModal.readOnly) return;
-        if (feedbackModal.comentario.length > 2000) {
+        const texto = feedbackModal.comentario.trim();
+        if (!texto) {
+            toast.error('Escribe un comentario antes de publicarlo.');
+            return;
+        }
+        if (texto.length > 2000) {
             toast.error('El comentario no puede superar los 2000 caracteres.');
             return;
         }
 
         setFeedbackModal((prev) => ({ ...prev, guardando: true }));
         try {
+            let actualizado = null;
             if (feedbackModal.tipo === 'PLAN') {
-                await portfolioService.agregarRetroalimentacionPlan(
+                actualizado = await portfolioService.agregarRetroalimentacionPlan(
                     feedbackModal.item.id,
-                    feedbackModal.comentario
+                    texto
                 );
                 await fetchPlanificaciones();
             } else {
-                await portfolioService.agregarRetroalimentacionDocumento(
+                actualizado = await portfolioService.agregarRetroalimentacionDocumento(
                     feedbackModal.item.id,
-                    feedbackModal.comentario
+                    texto
                 );
                 await fetchEvidencias();
                 await fetchFinalDocuments();
             }
-            toast.success('Retroalimentación guardada correctamente.');
-            cerrarModalFeedback();
+            toast.success('Comentario personal registrado correctamente.');
+            setFeedbackModal((prev) => ({
+                ...prev,
+                item: actualizado || prev.item,
+                comentario: '',
+                guardando: false,
+            }));
         } catch (error) {
             console.error(error);
-            toast.error(error?.message || 'No se pudo guardar la retroalimentación.');
+            toast.error(error?.message || 'No se pudo guardar el comentario.');
             setFeedbackModal((prev) => ({ ...prev, guardando: false }));
         }
     };
@@ -340,7 +382,9 @@ export default function Portafolio({ isReadOnly = false }) {
     };
 
     const renderBotonRetroalimentacion = (row, tipo = 'DOCUMENTO') => {
-        const tieneComentario = Boolean(row.teacherFeedback && row.teacherFeedback.trim().length > 0);
+        const comentarios = parseComentarios(row);
+        const total = comentarios.length;
+        const tieneComentario = total > 0;
 
         if (modoSupervision) {
             return (
@@ -348,9 +392,9 @@ export default function Portafolio({ isReadOnly = false }) {
                     size="sm"
                     variant={tieneComentario ? 'secondary' : 'primary'}
                     onClick={() => abrirModalFeedback(row, tipo, false)}
-                    title={tieneComentario ? 'Editar retroalimentación formativa' : 'Agregar retroalimentación formativa'}
+                    title="Ver hilo de comentarios y agregar comentario personal"
                 >
-                    {tieneComentario ? 'Editar Retroalimentación' : 'Retroalimentar'}
+                    {tieneComentario ? `💬 Comentarios (${total})` : '💬 Comentar'}
                 </Button>
             );
         }
@@ -361,9 +405,9 @@ export default function Portafolio({ isReadOnly = false }) {
                     size="sm"
                     variant="outline"
                     onClick={() => abrirModalFeedback(row, tipo, true)}
-                    aria-label="Ver comentario del profesor"
+                    aria-label="Ver comentarios docentes"
                 >
-                    💬 Ver comentario
+                    💬 Ver comentarios ({total})
                 </Button>
             );
         }
@@ -906,9 +950,9 @@ export default function Portafolio({ isReadOnly = false }) {
                                         {v.baseLearningObjective || v.objective}
                                     </p>
                                     {v.teacherFeedback && (
-                                        <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                                        <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 whitespace-pre-wrap">
                                             <span className="font-bold">Retroalimentación docente: </span>
-                                            {v.teacherFeedback}
+                                            {formatFeedbackPlainText(v)}
                                         </div>
                                     )}
                                 </div>
@@ -1005,10 +1049,10 @@ export default function Portafolio({ isReadOnly = false }) {
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Retroalimentación Docente</label>
                                     <textarea
-                                        value={detailPlan.teacherFeedback}
+                                        value={formatFeedbackPlainText(detailPlan)}
                                         disabled
                                         readOnly
-                                        rows={2}
+                                        rows={3}
                                         className="w-full text-sm bg-amber-50/70 border border-amber-200 rounded-lg p-2.5 text-amber-900 cursor-not-allowed resize-none"
                                     />
                                 </div>
@@ -1120,10 +1164,8 @@ export default function Portafolio({ isReadOnly = false }) {
                 onClose={cerrarModalFeedback}
                 title={
                     feedbackModal.readOnly
-                        ? 'Retroalimentación Formativa del Docente'
-                        : feedbackModal.item?.teacherFeedback
-                            ? 'Editar Retroalimentación Formativa'
-                            : 'Registrar Retroalimentación Formativa'
+                        ? 'Comentarios y Retroalimentación Docente'
+                        : 'Hilo de Retroalimentación Personal'
                 }
             >
                 <div className="space-y-4">
@@ -1131,39 +1173,77 @@ export default function Portafolio({ isReadOnly = false }) {
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm text-gray-700">
                             <span className="font-semibold">Elemento: </span>
                             {feedbackModal.item.title || feedbackModal.item.fileName || (feedbackModal.item.schoolGrade ? `Planificación (${feedbackModal.item.schoolGrade})` : 'Documento del portafolio')}
-                            {feedbackModal.item.feedbackDate && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Última actualización:{' '}
-                                    {new Date(feedbackModal.item.feedbackDate).toLocaleString('es-CL', {
-                                        dateStyle: 'medium',
-                                        timeStyle: 'short',
-                                    })}
-                                </p>
-                            )}
                         </div>
                     )}
 
-                    {feedbackModal.readOnly ? (
-                        <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-lg text-gray-800 whitespace-pre-wrap text-sm leading-relaxed max-h-80 overflow-y-auto">
-                            {feedbackModal.comentario}
-                        </div>
-                    ) : (
-                        <div>
+                    {/* Hilo de comentarios personales */}
+                    <div className="space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                            Comentarios registrados ({parseComentarios(feedbackModal.item).length})
+                        </h4>
+                        {parseComentarios(feedbackModal.item).length === 0 ? (
+                            <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-lg text-center text-xs text-gray-500">
+                                Aún no se han registrado comentarios en este elemento.
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                                {parseComentarios(feedbackModal.item).map((c, idx) => (
+                                    <div
+                                        key={c.id || idx}
+                                        className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1.5"
+                                    >
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-xs text-blue-900">
+                                                    {c.authorName || 'Docente'}
+                                                </span>
+                                                <Badge
+                                                    variant={
+                                                        c.authorRole?.toLowerCase().includes('tutor')
+                                                            ? 'info'
+                                                            : c.authorRole?.toLowerCase().includes('colaborador')
+                                                            ? 'warning'
+                                                            : 'success'
+                                                    }
+                                                >
+                                                    {c.authorRole || 'Docente'}
+                                                </Badge>
+                                            </div>
+                                            {c.date && (
+                                                <span className="text-[11px] text-gray-500">
+                                                    {new Date(c.date).toLocaleString('es-CL', {
+                                                        dateStyle: 'short',
+                                                        timeStyle: 'short',
+                                                    })}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                            {c.text}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {!feedbackModal.readOnly && (
+                        <div className="pt-2 border-t border-gray-100">
                             <label
                                 htmlFor="teacher-feedback-textarea"
                                 className="block text-sm font-medium text-gray-700 mb-1"
                             >
-                                Comentario formativo para el estudiante
+                                Agregar nuevo comentario personal
                             </label>
                             <textarea
                                 id="teacher-feedback-textarea"
-                                rows={6}
+                                rows={4}
                                 maxLength={2000}
                                 value={feedbackModal.comentario}
                                 onChange={(e) =>
                                     setFeedbackModal((prev) => ({ ...prev, comentario: e.target.value }))
                                 }
-                                placeholder="Escribe aquí tus observaciones, sugerencias de mejora o retroalimentación continua..."
+                                placeholder="Escribe aquí tu comentario personal (se agregará al hilo con tu nombre y rol)..."
                                 className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 disabled={feedbackModal.guardando}
                             />
@@ -1185,15 +1265,15 @@ export default function Portafolio({ isReadOnly = false }) {
                             onClick={cerrarModalFeedback}
                             disabled={feedbackModal.guardando}
                         >
-                            {feedbackModal.readOnly ? 'Cerrar' : 'Cancelar'}
+                            Cerrar
                         </Button>
                         {!feedbackModal.readOnly && (
                             <Button
                                 variant="primary"
                                 onClick={guardarRetroalimentacion}
-                                disabled={feedbackModal.guardando}
+                                disabled={feedbackModal.guardando || !feedbackModal.comentario.trim()}
                             >
-                                {feedbackModal.guardando ? 'Guardando...' : 'Guardar Retroalimentación'}
+                                {feedbackModal.guardando ? 'Publicando...' : 'Publicar Comentario'}
                             </Button>
                         )}
                     </div>

@@ -40,7 +40,7 @@ public class PortfolioDocument {
     private Long sizeBytes;
     private LocalDateTime uploadDate;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String teacherFeedback;
     private java.time.LocalDateTime feedbackDate;
 

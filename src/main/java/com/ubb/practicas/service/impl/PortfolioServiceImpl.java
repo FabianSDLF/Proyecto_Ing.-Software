@@ -377,7 +377,8 @@ public class PortfolioServiceImpl implements PortfolioService {
         }
 
         String comentarioLimpio = (feedback != null && !feedback.trim().isEmpty()) ? feedback.trim() : null;
-        doc.setTeacherFeedback(comentarioLimpio);
+        if (comentarioLimpio == null) throw new BadRequestException("El comentario no puede estar vacío.");
+        doc.setTeacherFeedback(com.ubb.practicas.util.FeedbackThreadHelper.appendComment(doc.getTeacherFeedback(), doc.getFeedbackDate(), comentarioLimpio, userRepository.findByEmail(userEmail), userEmail));
         doc.setFeedbackDate(comentarioLimpio != null ? java.time.LocalDateTime.now() : null);
 
         return portfolioDocumentRepository.save(doc);

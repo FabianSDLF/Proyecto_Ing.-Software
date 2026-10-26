@@ -391,7 +391,8 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         }
 
         String comentarioLimpio = (feedback != null && !feedback.trim().isEmpty()) ? feedback.trim() : null;
-        plan.setTeacherFeedback(comentarioLimpio);
+        if (comentarioLimpio == null) throw new IllegalArgumentException("El comentario no puede estar vacío.");
+        plan.setTeacherFeedback(com.ubb.practicas.util.FeedbackThreadHelper.appendComment(plan.getTeacherFeedback(), plan.getFeedbackDate(), comentarioLimpio, userRepository.findByEmail(userEmail), userEmail));
         plan.setFeedbackDate(comentarioLimpio != null ? java.time.LocalDateTime.now() : null);
 
         return lessonPlanRepository.save(plan);
