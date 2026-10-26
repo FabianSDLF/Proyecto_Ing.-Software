@@ -61,6 +61,7 @@ function App() {
               <Route element={<RoleRoute allowedRoles={['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor']} />}>
                 <Route path="/mis-estudiantes" element={<MisEstudiantes />} />
               </Route>
+              <Route path="/portafolio/estudiante/:assignmentId" element={<Portafolio isReadOnly={true} />} />
 
               {/* Reportes va AQUÍ ADENTRO, arriba de los dos </Route> de cierre */}
               <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
