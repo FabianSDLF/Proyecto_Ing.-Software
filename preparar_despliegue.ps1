@@ -59,8 +59,10 @@ Copy-Item -Path $DistDir -Destination (Join-Path $DeployDir "frontend\dist") -Re
 Copy-Item -Path (Join-Path $RootDir "frontend\nginx.conf") -Destination (Join-Path $DeployDir "frontend\nginx.conf")
 @'
 FROM nginx:alpine
-COPY dist /usr/share/nginx/html
+RUN rm -rf /usr/share/nginx/html/*
+COPY dist/ /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN chmod -R 755 /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 '@ | Set-Content -Path (Join-Path $DeployDir "frontend\Dockerfile") -Encoding Ascii
