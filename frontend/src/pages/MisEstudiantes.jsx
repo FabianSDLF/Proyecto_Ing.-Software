@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { BASE_URL } from '../services/apiClient';
@@ -7,6 +8,7 @@ import { DataTable, Badge, Modal, Button, Input } from '../components/ui';
 
 export default function MisEstudiantes() {
     const { user, userRole } = useAuth();
+    const navigate = useNavigate();
     const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
@@ -44,6 +46,37 @@ export default function MisEstudiantes() {
         return () => controller.abort();
     }, [cargarEstudiantes]);
 
+    // FUNCIÓN QUE FALTABA Y CAUSABA LA PANTALLA EN BLANCO
+    const handleDescargarZip = async () => {
+        const toastId = toast.loading('Generando archivo ZIP...');
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${BASE_URL}/api/portafolio/download-zip`, {
+                method: 'GET',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+
+            if (!res.ok) throw new Error('Error al descargar el archivo ZIP');
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'informes_finales.zip';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('Descarga de informes completada', { id: toastId });
+        } catch (error) {
+            console.error('Error al descargar ZIP:', error);
+            toast.error(error.message || 'No se pudo descargar el ZIP', { id: toastId });
+        }
+    };
+
     const handleOpenEvaluation = (assignment) => {
         setSelectedAssignment(assignment);
         setEvaluationData({ score: '', comments: '', isFinalized: false, digitalSignature: '' });
@@ -79,7 +112,7 @@ export default function MisEstudiantes() {
                 },
                 body: JSON.stringify(payload)
             });
-            
+
             if (!res.ok) throw new Error('Error al guardar la evaluación');
             toast.success('Pauta de evaluación guardada con éxito');
             handleCloseEvaluation();
@@ -101,7 +134,7 @@ export default function MisEstudiantes() {
         },
         {
             header: 'Asignatura',
-            accessor: 'subject.name',
+            render: (row) => row.subject?.name || 'Sin asignatura',
             className: 'text-gray-700',
         },
         {
@@ -121,14 +154,23 @@ export default function MisEstudiantes() {
             header: 'Acciones',
             align: 'right',
             render: (row) => (
-                userRole === 'Profesor Colaborador' && (
-                    <Button variant="primary" size="sm" onClick={() => handleOpenEvaluation(row)}>
-                        Evaluar (Pauta)
+                <div className="flex items-center justify-end gap-2">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => navigate(`/portafolio/estudiante/${row.id}`, { state: { assignment: row } })}
+                    >
+                        Revisar Portafolio
                     </Button>
-                )
+                    {userRole === 'Profesor Colaborador' && (
+                        <Button variant="primary" size="sm" onClick={() => handleOpenEvaluation(row)}>
+                            Evaluar (Pauta)
+                        </Button>
+                    )}
+                </div>
             ),
         },
-    ], [userRole]);
+    ], [navigate, userRole]);
 
     return (
         <div className="p-8 max-w-6xl mx-auto space-y-8">
@@ -136,6 +178,7 @@ export default function MisEstudiantes() {
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-800">Mis Estudiantes</h1>
                     <button
+                        type="button"
                         onClick={handleDescargarZip}
                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2"
                     >
@@ -163,15 +206,15 @@ export default function MisEstudiantes() {
                             <p className="font-bold text-blue-900">Estudiante: {selectedAssignment.student?.fullName}</p>
                             <p className="text-sm text-blue-700">Asignatura: {selectedAssignment.subject?.name}</p>
                         </div>
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Calificación Final (1.0 - 7.0)</label>
-                            <Input 
-                                type="number" 
-                                step="0.1" 
-                                min="1.0" 
-                                max="7.0" 
-                                required 
+                            <Input
+                                type="number"
+                                step="0.1"
+                                min="1.0"
+                                max="7.0"
+                                required
                                 value={evaluationData.score}
                                 onChange={(e) => setEvaluationData({...evaluationData, score: e.target.value})}
                                 placeholder="Ej: 6.5"
@@ -180,7 +223,7 @@ export default function MisEstudiantes() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios Cualitativos y Retroalimentación</label>
-                            <textarea 
+                            <textarea
                                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                 rows="4"
                                 required
@@ -192,20 +235,20 @@ export default function MisEstudiantes() {
 
                         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                             <label className="flex items-center space-x-3 mb-3">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     className="form-checkbox h-5 w-5 text-blue-600 rounded"
                                     checked={evaluationData.isFinalized}
                                     onChange={(e) => setEvaluationData({...evaluationData, isFinalized: e.target.checked})}
                                 />
                                 <span className="text-gray-800 font-medium">Finalizar evaluación definitivamente</span>
                             </label>
-                            
+
                             {evaluationData.isFinalized && (
                                 <div className="mt-3">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Firma Digital (Escriba su nombre completo)</label>
-                                    <Input 
-                                        type="text" 
+                                    <Input
+                                        type="text"
                                         required={evaluationData.isFinalized}
                                         value={evaluationData.digitalSignature}
                                         onChange={(e) => setEvaluationData({...evaluationData, digitalSignature: e.target.value})}
