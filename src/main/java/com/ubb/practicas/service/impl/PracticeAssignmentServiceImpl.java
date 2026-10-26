@@ -97,11 +97,66 @@ public class PracticeAssignmentServiceImpl implements PracticeAssignmentService 
 
     @Override
     @Transactional
+    public PracticeAssignment actualizarAsignacion(Long id, PracticeAssignment datos) {
+        PracticeAssignment existente = assignmentRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Asignación no encontrada"));
+
+        if (datos.getStudent() != null && datos.getStudent().getId() != null) {
+            User student = userRepository.findById(datos.getStudent().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("El estudiante no existe en la base de datos"));
+            existente.setStudent(student);
+        }
+
+        if (datos.getSubject() != null && datos.getSubject().getId() != null) {
+            existente.setSubject(subjectRepository.findById(datos.getSubject().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("La asignatura no existe en la base de datos")));
+        }
+
+        if (datos.getCenter() != null && datos.getCenter().getId() != null) {
+            existente.setCenter(centerRepository.findById(datos.getCenter().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("El centro de práctica no existe")));
+        } else {
+            existente.setCenter(null);
+        }
+
+        if (datos.getCollaborator() != null && datos.getCollaborator().getId() != null) {
+            existente.setCollaborator(userRepository.findById(datos.getCollaborator().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("El profesor colaborador no existe")));
+        } else {
+            existente.setCollaborator(null);
+        }
+
+        if (datos.getTutor() != null && datos.getTutor().getId() != null) {
+            existente.setTutor(userRepository.findById(datos.getTutor().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("El tutor no existe")));
+        } else {
+            existente.setTutor(null);
+        }
+
+        if (datos.getPeriod() != null && datos.getPeriod().getId() != null && periodRepository != null) {
+            existente.setPeriod(periodRepository.findById(datos.getPeriod().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("El periodo académico no existe")));
+        }
+
+        if (datos.getStatus() != null) {
+            existente.setStatus(datos.getStatus());
+        }
+
+        return assignmentRepository.save(existente);
+    }
+
+    @Override
+    @Transactional
     public void eliminarAsignacion(Long id) {
         if (!assignmentRepository.existsById(id)) {
             throw new NoSuchElementException("Asignación no encontrada");
         }
-        assignmentRepository.deleteById(id);
+        try {
+            assignmentRepository.deleteById(id);
+            assignmentRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new IllegalStateException("No se puede eliminar la asignación porque tiene portafolio, planificaciones, evaluaciones o duplas asociadas. Puede editarla y cambiar su estado.");
+        }
     }
 
     @Override

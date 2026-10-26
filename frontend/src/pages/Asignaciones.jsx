@@ -41,6 +41,8 @@ export default function Asignaciones() {
 
     // Estados de modales y cargas para Asignaciones
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingAssignment, setEditingAssignment] = useState(null);
+    const [filtroPeriodo, setFiltroPeriodo] = useState('TODOS');
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
     const [loadingDuplas, setLoadingDuplas] = useState(false);
@@ -55,6 +57,7 @@ export default function Asignaciones() {
         collaboratorId: '',
         tutorId: '',
         periodId: '',
+        status: 'ACTIVA',
     });
 
     // Estados para Gestión de Centros de Práctica (Fase 1)
@@ -157,6 +160,34 @@ export default function Asignaciones() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleOpenNewAssignment = () => {
+        setEditingAssignment(null);
+        setFormData({
+            studentId: '',
+            subjectId: '',
+            centerId: '',
+            collaboratorId: '',
+            tutorId: '',
+            periodId: '',
+            status: 'ACTIVA',
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleOpenEditAssignment = (row) => {
+        setEditingAssignment(row);
+        setFormData({
+            studentId: row.student?.id ? String(row.student.id) : '',
+            subjectId: row.subject?.id ? String(row.subject.id) : '',
+            centerId: row.center?.id ? String(row.center.id) : '',
+            collaboratorId: row.collaborator?.id ? String(row.collaborator.id) : '',
+            tutorId: row.tutor?.id ? String(row.tutor.id) : '',
+            periodId: row.period?.id ? String(row.period.id) : '',
+            status: row.status || 'ACTIVA',
+        });
+        setIsModalOpen(true);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -167,19 +198,27 @@ export default function Asignaciones() {
 
         setLoading(true);
         try {
-            await assignmentService.createAssignment({
+            const payload = {
                 studentId: formData.studentId,
                 subjectId: formData.subjectId,
                 centerId: formData.centerId || null,
                 collaboratorId: formData.collaboratorId || null,
                 tutorId: formData.tutorId || null,
                 periodId: formData.periodId || null,
-                status: 'ACTIVA',
-            });
+                status: formData.status || 'ACTIVA',
+            };
 
-            toast.success('Asignación creada exitosamente');
+            if (editingAssignment) {
+                await assignmentService.updateAssignment(editingAssignment.id, payload);
+                toast.success('Asignación actualizada exitosamente');
+            } else {
+                await assignmentService.createAssignment(payload);
+                toast.success('Asignación creada exitosamente');
+            }
+
             setIsModalOpen(false);
-            setFormData({ studentId: '', subjectId: '', centerId: '', collaboratorId: '', tutorId: '', periodId: '' });
+            setEditingAssignment(null);
+            setFormData({ studentId: '', subjectId: '', centerId: '', collaboratorId: '', tutorId: '', periodId: '', status: 'ACTIVA' });
             cargarDatos();
             cargarDatosDuplas();
         } catch (error) {
@@ -470,16 +509,30 @@ export default function Asignaciones() {
             header: 'Acciones',
             align: 'right',
             render: (row) => (
-                <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => setAssignmentToDelete(row)}
-                >
-                    Eliminar
-                </Button>
+                <div className="flex items-center justify-end gap-2">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenEditAssignment(row)}
+                    >
+                        Editar
+                    </Button>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setAssignmentToDelete(row)}
+                    >
+                        Eliminar
+                    </Button>
+                </div>
             ),
         },
     ], []);
+
+    const asignacionesFiltradas = useMemo(() => {
+        if (filtroPeriodo === 'TODOS') return asignaciones;
+        return asignaciones.filter(a => String(a.period?.id || '') === String(filtroPeriodo));
+    }, [asignaciones, filtroPeriodo]);
 
     // Columnas de Duplas (HU9: estrictamente SIN botones de editar ni eliminar)
     const columnsDuplas = useMemo(() => [
@@ -631,7 +684,7 @@ export default function Asignaciones() {
                 {activeTab === 'ASIGNACIONES' && (
                     <Button
                         variant="primary"
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleOpenNewAssignment}
                     >
                         + Nueva Asignación
                     </Button>
@@ -699,10 +752,27 @@ export default function Asignaciones() {
 
             {/* Pestaña: Asignaciones Individuales */}
             {activeTab === 'ASIGNACIONES' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-4">
+                    {periodos.length > 0 && (
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-semibold text-gray-700">Filtrar por Periodo:</label>
+                            <select
+                                value={filtroPeriodo}
+                                onChange={(e) => setFiltroPeriodo(e.target.value)}
+                                className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            >
+                                <option value="TODOS">Todos los semestres ({asignaciones.length})</option>
+                                {periodos.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        Semestre {p.name} ({p.status})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <DataTable
                         columns={columnsAsignaciones}
-                        data={asignaciones}
+                        data={asignacionesFiltradas}
                         isLoading={loadingData}
                         emptyMessage="No hay asignaciones registradas en el sistema."
                         keyField="id"
@@ -736,17 +806,23 @@ export default function Asignaciones() {
                 </div>
             )}
 
-            {/* Modal Nueva Asignación Individual */}
+            {/* Modal Nueva / Editar Asignación Individual */}
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Nueva Asignación de Práctica"
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingAssignment(null);
+                }}
+                title={editingAssignment ? `Editar Asignación: ${editingAssignment.student?.fullName || ''}` : 'Nueva Asignación de Práctica'}
                 size="lg"
                 footer={
                     <div className="flex justify-end space-x-3">
                         <Button
                             variant="secondary"
-                            onClick={() => setIsModalOpen(false)}
+                            onClick={() => {
+                                setIsModalOpen(false);
+                                setEditingAssignment(null);
+                            }}
                             disabled={loading}
                         >
                             Cancelar
@@ -756,7 +832,7 @@ export default function Asignaciones() {
                             onClick={handleSubmit}
                             isLoading={loading}
                         >
-                            Guardar Asignación
+                            {editingAssignment ? 'Guardar Cambios' : 'Guardar Asignación'}
                         </Button>
                     </div>
                 }
@@ -819,6 +895,22 @@ export default function Asignaciones() {
                         onChange={handleInputChange}
                         placeholder="-- Seleccione Tutor --"
                     />
+
+                    {editingAssignment && (
+                        <Select
+                            label="Estado de la Asignación"
+                            name="status"
+                            options={[
+                                { value: 'ACTIVA', label: 'ACTIVA' },
+                                { value: 'PENDIENTE', label: 'PENDIENTE' },
+                                { value: 'FINALIZADA', label: 'FINALIZADA' },
+                                { value: 'CANCELADA', label: 'CANCELADA' },
+                            ]}
+                            value={formData.status || 'ACTIVA'}
+                            onChange={handleInputChange}
+                            placeholder={null}
+                        />
+                    )}
                 </form>
             </Modal>
 

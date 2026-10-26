@@ -26,6 +26,24 @@ export const assignmentService = {
   },
 
   /**
+   * Actualizar una asignación de práctica existente
+   * @param {number|string} id
+   * @param {{ studentId: number|string, subjectId: number|string, centerId?: number|string, collaboratorId?: number|string, tutorId?: number|string, periodId?: number|string, status?: string }} data
+   */
+  async updateAssignment(id, data, options) {
+    const payload = {
+      student: data.studentId ? { id: Number(data.studentId) } : null,
+      subject: data.subjectId ? { id: Number(data.subjectId) } : null,
+      center: data.centerId ? { id: Number(data.centerId) } : null,
+      collaborator: data.collaboratorId ? { id: Number(data.collaboratorId) } : null,
+      tutor: data.tutorId ? { id: Number(data.tutorId) } : null,
+      period: data.periodId ? { id: Number(data.periodId) } : null,
+      status: data.status || 'ACTIVA',
+    };
+    return apiClient.put(`/api/asignaciones/${id}`, payload, options);
+  },
+
+  /**
    * Eliminar una asignación por ID
    * @param {number|string} id
    */
