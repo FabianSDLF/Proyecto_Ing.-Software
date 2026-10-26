@@ -1,10 +1,9 @@
 # Script para empaquetar la distribución liviana lista para el servidor de la Universidad del Bío-Bío
-# Genera la carpeta autónoma "despliegue_ubb" y el archivo "despliegue_ubb.zip"
+# Genera la carpeta autónoma "despliegue_ubb"
 $ErrorActionPreference = "Stop"
 
 $RootDir = $PSScriptRoot
 $DeployDir = Join-Path $RootDir "despliegue_ubb"
-$ZipFile = Join-Path $RootDir "despliegue_ubb.zip"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " Preparando Paquete de Despliegue para Servidor UBB" -ForegroundColor Cyan
@@ -158,25 +157,16 @@ volumes:
   backend_uploads:
 '@ | Set-Content -Path (Join-Path $DeployDir "docker-compose.yml") -Encoding utf8
 
-# 4. Crear archivo comprimido .ZIP
-Write-Host "`n[4/5] Generando archivo comprimido despliegue_ubb.zip..." -ForegroundColor Yellow
-if (Test-Path $ZipFile) {
-    Remove-Item -Path $ZipFile -Force
-}
-Compress-Archive -Path "$DeployDir\*" -DestinationPath $ZipFile
-
-# 5. Resumen final
-$ZipSize = (Get-Item $ZipFile).Length
-Write-Host "`n[5/5] ¡Paquete de despliegue generado con éxito!" -ForegroundColor Green
+# 4. Resumen final
+Write-Host "`n[4/4] ¡Carpeta de despliegue generada con éxito!" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Carpeta lista: $DeployDir" -ForegroundColor White
-Write-Host " Archivo ZIP:   $ZipFile ($([math]::Round($ZipSize / 1MB, 2)) MB)" -ForegroundColor White
+Write-Host " Carpeta lista:  $DeployDir" -ForegroundColor White
 Write-Host " Puerto expuesto: ÚNICAMENTE EL PUERTO 8008" -ForegroundColor White
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "INSTRUCCIONES PARA EL SERVIDOR:" -ForegroundColor Yellow
-Write-Host " 1. Sube 'despliegue_ubb.zip' al servidor de la UBB."
+Write-Host " 1. Sube la carpeta directamente por SCP:"
+Write-Host "      scp -r despliegue_ubb usuario@servidor.ubiobio.cl:~/"
 Write-Host " 2. En el servidor ejecuta:"
-Write-Host "      unzip despliegue_ubb.zip -d despliegue_ubb"
 Write-Host "      cd despliegue_ubb"
 Write-Host "      docker compose up -d --build"
 Write-Host "==========================================================" -ForegroundColor Cyan
