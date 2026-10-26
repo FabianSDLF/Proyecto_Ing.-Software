@@ -37,6 +37,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=admin
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=false
     volumes:
       # Volumen para que los archivos subidos persistan si el contenedor se reinicia
       - backend_uploads:/app/uploads
