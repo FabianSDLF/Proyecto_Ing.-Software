@@ -40,11 +40,94 @@ export default function Portafolio({ isReadOnly = false }) {
     const [editForm, setEditForm] = useState({
         schoolGrade: '',
         mathAxis: 'NUMEROS',
+        duracion: '90',
         baseLearningObjective: '',
         objectives: '',
+        objetivoActitudinal: '',
+        inicio: '',
+        desarrollo: '',
+        cierre: '',
+        recursos: '',
+        evaluacion: '',
         classActivities: '',
         file: null,
     });
+
+    const parsePlanContent = useCallback((rawContent) => {
+        const empty = {
+            duracion: '90',
+            objetivoActitudinal: '',
+            inicio: '',
+            desarrollo: '',
+            cierre: '',
+            recursos: '',
+            evaluacion: '',
+        };
+        if (!rawContent) return empty;
+
+        let parsed = rawContent;
+        if (typeof rawContent === 'string') {
+            const trimmed = rawContent.trim();
+            if (!trimmed) return empty;
+            try {
+                parsed = JSON.parse(trimmed);
+            } catch {
+                return { ...empty, desarrollo: trimmed };
+            }
+        }
+
+        if (!parsed || typeof parsed !== 'object') {
+            return { ...empty, desarrollo: String(rawContent) };
+        }
+
+        const formatMomento = (val) => {
+            if (!val) return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') {
+                const desc = val.descripcion || val.actividad || '';
+                const mins = val.minutos ? `[${val.minutos} min] ` : '';
+                return `${mins}${desc}`.trim();
+            }
+            return String(val);
+        };
+
+        const calcDuracion = () => {
+            if (parsed.duracion) return String(parsed.duracion);
+            const mInicio = Number(parsed.inicio?.minutos) || 0;
+            const mDes = Number(parsed.desarrollo?.minutos) || 0;
+            const mCierre = Number(parsed.cierre?.minutos) || 0;
+            const total = mInicio + mDes + mCierre;
+            return total > 0 ? String(total) : '90';
+        };
+
+        const calcRecursos = () => {
+            if (typeof parsed.recursos === 'string' && parsed.recursos.trim()) {
+                return parsed.recursos;
+            }
+            if (Array.isArray(parsed.recursos)) {
+                return parsed.recursos.join(', ');
+            }
+            const setRec = new Set();
+            [parsed.inicio?.recursos, parsed.desarrollo?.recursos, parsed.cierre?.recursos].forEach((arr) => {
+                if (Array.isArray(arr)) {
+                    arr.forEach((r) => {
+                        if (r) setRec.add(r);
+                    });
+                }
+            });
+            return Array.from(setRec).join(', ');
+        };
+
+        return {
+            duracion: calcDuracion(),
+            objetivoActitudinal: parsed.objetivoActitudinal || '',
+            inicio: formatMomento(parsed.inicio),
+            desarrollo: formatMomento(parsed.desarrollo),
+            cierre: formatMomento(parsed.cierre),
+            recursos: calcRecursos(),
+            evaluacion: parsed.evaluacion || parsed.adaptaciones_pie || '',
+        };
+    }, []);
 
     // Documentos de Término (HU19)
     const MAX_FINAL_DOC_SIZE = 20 * 1024 * 1024; // 20 MB (20,971,520 bytes)
@@ -492,12 +575,20 @@ export default function Portafolio({ isReadOnly = false }) {
 
     const handleOpenEdit = (plan) => {
         setSelectedPlanToEdit(plan);
+        const structured = parsePlanContent(plan.contentJson || plan.classActivities);
         setEditForm({
             schoolGrade: plan.schoolGrade || '',
             mathAxis: plan.mathAxis || 'NUMEROS',
+            duracion: structured.duracion || '90',
             baseLearningObjective: plan.baseLearningObjective || plan.objective || '',
             objectives: plan.objectives || plan.specificObjectives || '',
-            classActivities: typeof plan.contentJson === 'string' ? plan.contentJson : JSON.stringify(plan.contentJson || {}),
+            objetivoActitudinal: structured.objetivoActitudinal || '',
+            inicio: structured.inicio || '',
+            desarrollo: structured.desarrollo || '',
+            cierre: structured.cierre || '',
+            recursos: structured.recursos || '',
+            evaluacion: structured.evaluacion || '',
+            classActivities: JSON.stringify(structured),
             file: null,
         });
         setShowEditModal(true);
@@ -508,7 +599,20 @@ export default function Portafolio({ isReadOnly = false }) {
         if (!selectedPlanToEdit) return;
         setSavingEdit(true);
         try {
-            await portfolioService.createLessonPlanVersion(selectedPlanToEdit.id, editForm);
+            const structuredActivities = JSON.stringify({
+                objetivoActitudinal: editForm.objetivoActitudinal || '',
+                duracion: editForm.duracion || '90',
+                recursos: editForm.recursos || '',
+                evaluacion: editForm.evaluacion || '',
+                inicio: editForm.inicio || '',
+                desarrollo: editForm.desarrollo || '',
+                cierre: editForm.cierre || '',
+            });
+            const payload = {
+                ...editForm,
+                classActivities: structuredActivities,
+            };
+            await portfolioService.createLessonPlanVersion(selectedPlanToEdit.id, payload);
             toast.success('Nueva versión creada exitosamente');
             setShowEditModal(false);
             fetchPlanificaciones();
@@ -988,159 +1092,356 @@ export default function Portafolio({ isReadOnly = false }) {
             >
                 {detailLoading ? (
                     <div className="py-8 text-center text-gray-500">Cargando detalle de la planificación...</div>
-                ) : (
-                    <>
-                        <div className="p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm mb-4">
-                            Modo solo lectura: Las versiones históricas son inmutables y no pueden editarse ni restaurarse.
-                        </div>
+                ) : (() => {
+                    const detailContent = parsePlanContent(detailPlan?.contentJson || detailPlan?.classActivities);
+                    return (
+                        <div className="max-h-[75vh] overflow-y-auto pr-1 space-y-5">
+                            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm flex flex-wrap items-center justify-between gap-2">
+                                <span>Modo solo lectura: Las versiones históricas son inmutables y no pueden editarse ni restaurarse.</span>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="info">v{detailPlan?.version || 1}</Badge>
+                                    <Badge variant={detailPlan?.status === 'APROBADA' || detailPlan?.status === 'APROBADO' ? 'success' : detailPlan?.status === 'RECHAZADA' || detailPlan?.status === 'RECHAZADO' ? 'danger' : 'warning'}>
+                                        {detailPlan?.status || 'BORRADOR'}
+                                    </Badge>
+                                </div>
+                            </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Curso</label>
-                                <input
-                                    type="text"
-                                    value={detailPlan?.schoolGrade || ''}
-                                    disabled
-                                    readOnly
-                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed"
-                                />
+                            {/* 1. Datos Generales */}
+                            <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">1. Datos Generales</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Curso / Nivel Escolar</label>
+                                        <input
+                                            type="text"
+                                            value={detailPlan?.schoolGrade || ''}
+                                            disabled
+                                            readOnly
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 font-medium cursor-not-allowed"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Eje Matemático</label>
+                                        <input
+                                            type="text"
+                                            value={detailPlan?.mathAxis || ''}
+                                            disabled
+                                            readOnly
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 font-medium cursor-not-allowed"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Duración Estimada (min)</label>
+                                        <input
+                                            type="text"
+                                            value={detailContent.duracion ? `${detailContent.duracion} min` : '90 min'}
+                                            disabled
+                                            readOnly
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 font-medium cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Eje Matemático</label>
-                                <input
-                                    type="text"
-                                    value={detailPlan?.mathAxis || ''}
-                                    disabled
-                                    readOnly
-                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivo Basal de Aprendizaje</label>
-                                <textarea
-                                    value={detailPlan?.baseLearningObjective || detailPlan?.objective || ''}
-                                    disabled
-                                    readOnly
-                                    rows={3}
-                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivos Específicos</label>
-                                <textarea
-                                    value={detailPlan?.objectives || detailPlan?.specificObjectives || ''}
-                                    disabled
-                                    readOnly
-                                    rows={3}
-                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Actividades de la Clase</label>
-                                <textarea
-                                    value={typeof detailPlan?.contentJson === 'string' ? detailPlan.contentJson : JSON.stringify(detailPlan?.contentJson || detailPlan?.classActivities || {})}
-                                    disabled
-                                    readOnly
-                                    rows={3}
-                                    className="w-full text-sm bg-gray-100 border border-gray-200 rounded-lg p-2.5 text-gray-700 cursor-not-allowed resize-none"
-                                />
-                            </div>
-                            {detailPlan?.teacherFeedback && (
+
+                            {/* 2. Objetivos de Aprendizaje */}
+                            <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">2. Objetivos de Aprendizaje</h4>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Retroalimentación Docente</label>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivo de Aprendizaje Basal (OA)</label>
+                                    <textarea
+                                        value={detailPlan?.baseLearningObjective || detailPlan?.objective || ''}
+                                        disabled
+                                        readOnly
+                                        rows={2}
+                                        className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivos Específicos de la Clase</label>
+                                        <textarea
+                                            value={detailPlan?.objectives || detailPlan?.specificObjectives || 'Sin especificar'}
+                                            disabled
+                                            readOnly
+                                            rows={3}
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Objetivo Actitudinal (OAT)</label>
+                                        <textarea
+                                            value={detailContent.objetivoActitudinal || 'Sin especificar'}
+                                            disabled
+                                            readOnly
+                                            rows={3}
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Estructura Didáctica de la Clase */}
+                            <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">3. Estructura Didáctica de la Clase</h4>
+                                <div className="border-l-4 border-indigo-400 pl-3">
+                                    <label className="block text-xs font-bold text-indigo-900 mb-1">Inicio (Activación y Motivación)</label>
+                                    <textarea
+                                        value={detailContent.inicio || 'Sin actividades de inicio registradas'}
+                                        disabled
+                                        readOnly
+                                        rows={2}
+                                        className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                    />
+                                </div>
+                                <div className="border-l-4 border-blue-500 pl-3">
+                                    <label className="block text-xs font-bold text-blue-900 mb-1">Desarrollo (Modelamiento y Práctica)</label>
+                                    <textarea
+                                        value={detailContent.desarrollo || 'Sin actividades de desarrollo registradas'}
+                                        disabled
+                                        readOnly
+                                        rows={3}
+                                        className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                    />
+                                </div>
+                                <div className="border-l-4 border-emerald-500 pl-3">
+                                    <label className="block text-xs font-bold text-emerald-900 mb-1">Cierre (Síntesis y Metacognición)</label>
+                                    <textarea
+                                        value={detailContent.cierre || 'Sin actividades de cierre registradas'}
+                                        disabled
+                                        readOnly
+                                        rows={2}
+                                        className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 4. Recursos, Evaluación y Archivo Adjunto */}
+                            <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">4. Recursos y Evaluación</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Recursos Materiales</label>
+                                        <textarea
+                                            value={detailContent.recursos || 'Sin especificar'}
+                                            disabled
+                                            readOnly
+                                            rows={2}
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Instrumentos de Evaluación / PIE</label>
+                                        <textarea
+                                            value={detailContent.evaluacion || 'Sin especificar'}
+                                            disabled
+                                            readOnly
+                                            rows={2}
+                                            className="w-full text-sm bg-white border border-gray-200 rounded-lg p-2.5 text-gray-800 cursor-not-allowed resize-none"
+                                        />
+                                    </div>
+                                </div>
+                                {detailPlan?.document && (
+                                    <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-2.5 text-xs text-gray-700">
+                                        <span>Archivo adjunto: <strong>{detailPlan.document.fileName}</strong></span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleDownload(detailPlan.document)}
+                                        >
+                                            Descargar Adjunto
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 5. Retroalimentación Docente */}
+                            {detailPlan?.teacherFeedback && (
+                                <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-amber-900">Retroalimentación Docente</label>
                                     <textarea
                                         value={formatFeedbackPlainText(detailPlan)}
                                         disabled
                                         readOnly
                                         rows={3}
-                                        className="w-full text-sm bg-amber-50/70 border border-amber-200 rounded-lg p-2.5 text-amber-900 cursor-not-allowed resize-none"
+                                        className="w-full text-sm bg-white/90 border border-amber-200 rounded-lg p-2.5 text-amber-950 cursor-not-allowed resize-none"
                                     />
                                 </div>
                             )}
                         </div>
-                    </>
-                )}
+                    );
+                })()}
             </Modal>
 
             {/* Modal de Edición Versionada (HU30) */}
             <Modal
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
-                title="Editar Planificación (Nueva Versión)"
+                title={`Editar Planificación (Generar Versión v${(selectedPlanToEdit?.version || 1) + 1})`}
                 size="lg"
             >
-                <form onSubmit={handleSaveEdit} className="space-y-4">
-                    <Input
-                        label="Curso"
-                        name="schoolGrade"
-                        value={editForm.schoolGrade}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, schoolGrade: e.target.value }))}
-                        required
-                    />
-
-                    <Select
-                        label="Eje Matemático"
-                        name="mathAxis"
-                        value={editForm.mathAxis}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, mathAxis: e.target.value }))}
-                        options={[
-                            { value: 'NUMEROS', label: 'Números' },
-                            { value: 'ALGEBRA', label: 'Álgebra' },
-                            { value: 'GEOMETRIA', label: 'Geometría' },
-                            { value: 'PROBABILIDAD_ESTADISTICA', label: 'Probabilidad y Estadística' },
-                        ]}
-                    />
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Objetivo Basal de Aprendizaje <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            value={editForm.baseLearningObjective}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, baseLearningObjective: e.target.value }))}
-                            rows={3}
-                            className="w-full text-sm border border-gray-300 rounded-xl p-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                            required
-                        />
+                <form onSubmit={handleSaveEdit} className="max-h-[75vh] overflow-y-auto pr-1 space-y-5">
+                    <div className="p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs">
+                        Al guardar los cambios se creará automáticamente la <strong>Versión v{(selectedPlanToEdit?.version || 1) + 1}</strong> manteniendo intacta la versión anterior en el historial.
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Objetivos Específicos
-                        </label>
-                        <textarea
-                            value={editForm.objectives}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, objectives: e.target.value }))}
-                            rows={3}
-                            className="w-full text-sm border border-gray-300 rounded-xl p-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
+                    {/* 1. Datos Generales */}
+                    <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">1. Datos Generales</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <Input
+                                label="Curso"
+                                name="schoolGrade"
+                                value={editForm.schoolGrade}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, schoolGrade: e.target.value }))}
+                                required
+                            />
+
+                            <Select
+                                label="Eje Matemático"
+                                name="mathAxis"
+                                value={editForm.mathAxis}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mathAxis: e.target.value }))}
+                                options={[
+                                    { value: 'NUMEROS', label: 'Números y Operaciones' },
+                                    { value: 'ALGEBRA', label: 'Álgebra y Funciones' },
+                                    { value: 'GEOMETRIA', label: 'Geometría' },
+                                    { value: 'PROBABILIDAD_ESTADISTICA', label: 'Probabilidad y Estadística' },
+                                    { value: 'PROBABILIDAD', label: 'Probabilidad' },
+                                ]}
+                            />
+
+                            <Input
+                                label="Duración (Minutos)"
+                                name="duracion"
+                                type="number"
+                                value={editForm.duracion}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, duracion: e.target.value }))}
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Actividades de la Clase
-                        </label>
-                        <textarea
-                            value={editForm.classActivities}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, classActivities: e.target.value }))}
-                            rows={3}
-                            className="w-full text-sm border border-gray-300 rounded-xl p-2.5 text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
+                    {/* 2. Objetivos */}
+                    <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">2. Objetivos de Aprendizaje</h4>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Objetivo Basal de Aprendizaje (OA) <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                value={editForm.baseLearningObjective}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, baseLearningObjective: e.target.value }))}
+                                rows={2}
+                                className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                required
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Objetivos Específicos de la Clase
+                                </label>
+                                <textarea
+                                    value={editForm.objectives}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, objectives: e.target.value }))}
+                                    rows={3}
+                                    className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Objetivo Actitudinal (OAT)
+                                </label>
+                                <textarea
+                                    value={editForm.objetivoActitudinal}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, objetivoActitudinal: e.target.value }))}
+                                    rows={3}
+                                    className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Nuevo Archivo Adjunto (Opcional)
-                        </label>
-                        <input
-                            type="file"
-                            accept={acceptAttr}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, file: e.target.files[0] }))}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-xl p-1"
-                        />
+                    {/* 3. Estructura de la Clase */}
+                    <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">3. Estructura de la Clase (Momentos Didácticos)</h4>
+                        <div className="border-l-4 border-indigo-400 pl-3">
+                            <label className="block text-xs font-bold text-indigo-900 mb-1">
+                                1. Inicio (Activación de conocimientos previos y motivación)
+                            </label>
+                            <textarea
+                                value={editForm.inicio}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, inicio: e.target.value }))}
+                                rows={2}
+                                className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                        </div>
+                        <div className="border-l-4 border-blue-500 pl-3">
+                            <label className="block text-xs font-bold text-blue-900 mb-1">
+                                2. Desarrollo (Modelamiento, práctica guiada e independiente)
+                            </label>
+                            <textarea
+                                value={editForm.desarrollo}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, desarrollo: e.target.value }))}
+                                rows={3}
+                                className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                        </div>
+                        <div className="border-l-4 border-emerald-500 pl-3">
+                            <label className="block text-xs font-bold text-emerald-900 mb-1">
+                                3. Cierre (Síntesis y metacognición)
+                            </label>
+                            <textarea
+                                value={editForm.cierre}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, cierre: e.target.value }))}
+                                rows={2}
+                                className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
+                    {/* 4. Recursos, Evaluación y Archivo */}
+                    <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">4. Anexos, Recursos y Evaluación</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                    Recursos Materiales
+                                </label>
+                                <textarea
+                                    value={editForm.recursos}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, recursos: e.target.value }))}
+                                    rows={2}
+                                    className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                    Instrumentos de Evaluación / PIE
+                                </label>
+                                <textarea
+                                    value={editForm.evaluacion}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, evaluacion: e.target.value }))}
+                                    rows={2}
+                                    className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Nuevo Archivo Adjunto (Opcional — si no adjuntas uno nuevo, se conserva el documento de la versión anterior)
+                            </label>
+                            <input
+                                type="file"
+                                accept={acceptAttr}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, file: e.target.files[0] }))}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-xl p-1 bg-white"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                         <Button
                             type="button"
                             variant="secondary"

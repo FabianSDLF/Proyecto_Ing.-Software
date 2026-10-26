@@ -16,6 +16,7 @@ public interface LessonPlanRepository extends JpaRepository<LessonPlan, Long> {
 
     @Query("SELECT lp FROM LessonPlan lp " +
            "LEFT JOIN FETCH lp.document " +
+           "LEFT JOIN FETCH lp.parentPlan " +
            "JOIN FETCH lp.practiceAssignment pa " +
            "JOIN FETCH pa.student s " +
            "WHERE s.email = :email")
@@ -23,7 +24,7 @@ public interface LessonPlanRepository extends JpaRepository<LessonPlan, Long> {
 
     @NonNull
     @Override
-    @EntityGraph(attributePaths = {"practiceAssignment", "practiceAssignment.student", "document"})
+    @EntityGraph(attributePaths = {"practiceAssignment", "practiceAssignment.student", "document", "parentPlan"})
     Optional<LessonPlan> findById(@NonNull Long id);
 
     @EntityGraph(attributePaths = {"practiceAssignment", "document"})
@@ -31,6 +32,7 @@ public interface LessonPlanRepository extends JpaRepository<LessonPlan, Long> {
 
     @Query("SELECT lp FROM LessonPlan lp " +
            "LEFT JOIN FETCH lp.document " +
+           "LEFT JOIN FETCH lp.parentPlan " +
            "JOIN FETCH lp.practiceAssignment pa " +
            "WHERE pa.id = :assignmentId")
     List<LessonPlan> findByPracticeAssignmentId(@Param("assignmentId") Long assignmentId);

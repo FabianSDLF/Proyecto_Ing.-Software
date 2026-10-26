@@ -65,10 +65,32 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                "Admin".equalsIgnoreCase(roleName);
     }
 
+    private List<LessonPlan> filterLatestVersions(List<LessonPlan> plans) {
+        if (plans == null || plans.size() <= 1) {
+            return plans;
+        }
+        Set<Long> parentIds = new HashSet<>();
+        for (LessonPlan p : plans) {
+            if (p != null && p.getParentPlan() != null && p.getParentPlan().getId() != null) {
+                parentIds.add(p.getParentPlan().getId());
+            }
+        }
+        if (parentIds.isEmpty()) {
+            return plans;
+        }
+        List<LessonPlan> latest = new ArrayList<>();
+        for (LessonPlan p : plans) {
+            if (p != null && (p.getId() == null || !parentIds.contains(p.getId()))) {
+                latest.add(p);
+            }
+        }
+        return latest;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<LessonPlan> obtenerMisPlanificaciones(String studentEmail) {
-        return lessonPlanRepository.findByPracticeAssignment_Student_Email(studentEmail);
+        return filterLatestVersions(lessonPlanRepository.findByPracticeAssignment_Student_Email(studentEmail));
     }
 
     @Override
@@ -164,7 +186,11 @@ public class LessonPlanServiceImpl implements LessonPlanService {
             throw new AccessDeniedException("No tiene permisos para editar esta planificación");
         }
 
-        if (existing.getStatus() == PlanStatus.BORRADOR) {
+        boolean isPureDraftEdit = existing.getStatus() == PlanStatus.BORRADOR
+                && (existing.getTeacherFeedback() == null || existing.getTeacherFeedback().isBlank())
+                && (classActivities == null || classActivities.isBlank());
+
+        if (isPureDraftEdit) {
             // Edición in-situ
             if (schoolGrade != null && !schoolGrade.isBlank()) {
                 existing.setSchoolGrade(schoolGrade);
@@ -206,12 +232,13 @@ public class LessonPlanServiceImpl implements LessonPlanService {
 
             return lessonPlanRepository.save(existing);
         } else {
-            // Edición sobre versión enviada/evaluada: Preservar existing intacto y generar nueva versión
+            // Edición sobre versión enviada/evaluada o desde modal "Guardar Nueva Versión":
+            // Preservar existing intacto y generar nueva versión
             LessonPlan newPlan = new LessonPlan();
             newPlan.setPracticeAssignment(existing.getPracticeAssignment());
             newPlan.setParentPlan(existing);
             newPlan.setVersion((existing.getVersion() != null ? existing.getVersion() : 1) + 1);
-            newPlan.setStatus(PlanStatus.BORRADOR);
+            newPlan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
 
             newPlan.setSchoolGrade((schoolGrade != null && !schoolGrade.isBlank()) ? schoolGrade : existing.getSchoolGrade());
             newPlan.setMathAxis((mathAxis != null && !mathAxis.isBlank()) ? MathAxis.valueOf(mathAxis) : existing.getMathAxis());
@@ -237,6 +264,20 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                     portfolioDocumentRepository.save(doc);
                     newPlan.setDocument(doc);
                 }
+            } else if (existing.getDocument() != null) {
+                PortfolioDocument prevDoc = existing.getDocument();
+                PortfolioDocument clonedDoc = new PortfolioDocument();
+                clonedDoc.setPracticeAssignment(existing.getPracticeAssignment());
+                clonedDoc.setType(DocumentType.PLANIFICACION);
+                clonedDoc.setFileName(prevDoc.getFileName());
+                clonedDoc.setStoredFileName(prevDoc.getStoredFileName());
+                clonedDoc.setContentType(prevDoc.getContentType());
+                clonedDoc.setSizeBytes(prevDoc.getSizeBytes());
+                clonedDoc.setUploadDate(prevDoc.getUploadDate() != null ? prevDoc.getUploadDate() : LocalDateTime.now());
+                portfolioDocumentRepository.save(clonedDoc);
+                clonedDoc.setFileUrl("/api/portafolio/documentos/" + clonedDoc.getId() + "/descargar");
+                portfolioDocumentRepository.save(clonedDoc);
+                newPlan.setDocument(clonedDoc);
             } else {
                 newPlan.setDocument(null);
             }
@@ -344,20 +385,20 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         lineage.sort(Comparator.comparingInt(p -> p.getVersion() != null ? p.getVersion() : 1));
         return lineage;
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<LessonPlan> obtenerPlanificacionesPorAsignacion(Long assignmentId, String userEmail) {
         PracticeAssignment assignment = practiceAssignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new NoSuchElementException("Asignación no encontrada: " + assignmentId));
 
-        // Si en LessonPlanServiceImpl también tienes isUserAdmin(userEmail), inclúyelo:
-        // boolean isAdmin = isUserAdmin(userEmail);
-        if (!assignment.hasParticipant(userEmail)) { // o: if (!isAdmin && !assignment.hasParticipant(userEmail))
+        if (!assignment.hasParticipant(userEmail)) {
             throw new AccessDeniedException("No tienes permisos para ver las planificaciones de esta práctica.");
         }
 
-        return lessonPlanRepository.findByPracticeAssignmentId(assignmentId);
+        return filterLatestVersions(lessonPlanRepository.findByPracticeAssignmentId(assignmentId));
     }
+
     @Override
     @org.springframework.transaction.annotation.Transactional
     public com.ubb.practicas.model.LessonPlan agregarRetroalimentacionPlan(Long id, String feedback, String userEmail) {
@@ -393,7 +434,10 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         String comentarioLimpio = (feedback != null && !feedback.trim().isEmpty()) ? feedback.trim() : null;
         if (comentarioLimpio == null) throw new IllegalArgumentException("El comentario no puede estar vacío.");
         plan.setTeacherFeedback(com.ubb.practicas.util.FeedbackThreadHelper.appendComment(plan.getTeacherFeedback(), plan.getFeedbackDate(), comentarioLimpio, userRepository.findByEmail(userEmail), userEmail));
-        plan.setFeedbackDate(comentarioLimpio != null ? java.time.LocalDateTime.now() : null);
+        plan.setFeedbackDate(java.time.LocalDateTime.now());
+        if (plan.getStatus() == null || plan.getStatus() == PlanStatus.BORRADOR) {
+            plan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
+        }
 
         return lessonPlanRepository.save(plan);
     }
