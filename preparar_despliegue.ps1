@@ -1,9 +1,9 @@
 # Script para empaquetar la distribución liviana lista para el servidor de la Universidad del Bío-Bío
-# Genera la carpeta autónoma "despliegue_ubb"
+# Genera la carpeta autónoma "pitagoras"
 $ErrorActionPreference = "Stop"
 
 $RootDir = $PSScriptRoot
-$DeployDir = Join-Path $RootDir "despliegue_ubb"
+$DeployDir = Join-Path $RootDir "pitagoras"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " Preparando Paquete de Despliegue para Servidor UBB" -ForegroundColor Cyan
@@ -33,7 +33,7 @@ if (-not (Test-Path $DistDir)) {
 Write-Host " -> Frontend compilado exitosamente en frontend/dist" -ForegroundColor Green
 
 # 3. Limpiar y recrear carpeta de despliegue
-Write-Host "`n[3/5] Ensamblando carpeta 'despliegue_ubb'..." -ForegroundColor Yellow
+Write-Host "`n[3/4] Ensamblando carpeta 'pitagoras'..." -ForegroundColor Yellow
 Set-Location $RootDir
 if (Test-Path $DeployDir) {
     Remove-Item -Path $DeployDir -Recurse -Force
@@ -165,8 +165,8 @@ Write-Host " Puerto expuesto: ÚNICAMENTE EL PUERTO 8008" -ForegroundColor White
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "INSTRUCCIONES PARA EL SERVIDOR:" -ForegroundColor Yellow
 Write-Host " 1. Sube la carpeta directamente por SCP:"
-Write-Host "      scp -r despliegue_ubb usuario@servidor.ubiobio.cl:~/"
+Write-Host "      scp -r pitagoras usuario@servidor.ubiobio.cl:~/"
 Write-Host " 2. En el servidor ejecuta:"
-Write-Host "      cd despliegue_ubb"
+Write-Host "      cd pitagoras"
 Write-Host "      docker compose up -d --build"
 Write-Host "==========================================================" -ForegroundColor Cyan
