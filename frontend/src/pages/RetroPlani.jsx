@@ -224,7 +224,7 @@ export default function RetroPlani() {
         ...prev,
         {
           sender: 'bot',
-          text: '⚠️ No se pudo conectar con el servicio de RetroPlani Mate (IA). Verifica que el contenedor del chatbot esté activo en el puerto 8000.',
+          text: '⚠️ No se pudo conectar con el servicio de RetroPlani Mate (IA). Verifica que el contenedor del chatbot esté activo ',
           isError: true,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }

@@ -7,6 +7,19 @@ export default defineConfig({
     tailwindcss(),
     react()
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/chatbot': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/chatbot/, '')
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',

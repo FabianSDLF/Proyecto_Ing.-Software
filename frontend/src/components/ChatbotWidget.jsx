@@ -62,7 +62,7 @@ export default function ChatbotWidget() {
         ...prev,
         {
           sender: 'bot',
-          text: '⚠️ No se pudo contactar al asistente. Asegúrate de que el microservicio de chatbot (puerto 8000) esté encendido.',
+          text: '⚠️ No se pudo contactar al asistente. Asegúrate de que el microservicio de chatbot esté encendido.',
           isError: true,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
