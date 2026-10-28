@@ -55,7 +55,7 @@ public class LessonPlan {
     @Column(columnDefinition = "TEXT")
     private String contentJson;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String teacherFeedback;
     private java.time.LocalDateTime feedbackDate;
     private Integer version;

@@ -10,7 +10,7 @@ export const assignmentService = {
 
   /**
    * Crear una nueva asignación de práctica
-   * @param {{ studentId: number|string, subjectId: number|string, centerId?: number|string, collaboratorId?: number|string, tutorId?: number|string, status?: string }} data
+   * @param {{ studentId: number|string, subjectId: number|string, centerId?: number|string, collaboratorId?: number|string, tutorId?: number|string, periodId?: number|string, status?: string }} data
    */
   async createAssignment(data, options) {
     const payload = {
@@ -19,9 +19,28 @@ export const assignmentService = {
       center: data.centerId ? { id: data.centerId } : null,
       collaborator: data.collaboratorId ? { id: data.collaboratorId } : null,
       tutor: data.tutorId ? { id: data.tutorId } : null,
+      period: data.periodId ? { id: data.periodId } : null,
       status: data.status || 'ACTIVA',
     };
     return apiClient.post('/api/asignaciones', payload, options);
+  },
+
+  /**
+   * Actualizar una asignación de práctica existente
+   * @param {number|string} id
+   * @param {{ studentId: number|string, subjectId: number|string, centerId?: number|string, collaboratorId?: number|string, tutorId?: number|string, periodId?: number|string, status?: string }} data
+   */
+  async updateAssignment(id, data, options) {
+    const payload = {
+      student: data.studentId ? { id: Number(data.studentId) } : null,
+      subject: data.subjectId ? { id: Number(data.subjectId) } : null,
+      center: data.centerId ? { id: Number(data.centerId) } : null,
+      collaborator: data.collaboratorId ? { id: Number(data.collaboratorId) } : null,
+      tutor: data.tutorId ? { id: Number(data.tutorId) } : null,
+      period: data.periodId ? { id: Number(data.periodId) } : null,
+      status: data.status || 'ACTIVA',
+    };
+    return apiClient.put(`/api/asignaciones/${id}`, payload, options);
   },
 
   /**
