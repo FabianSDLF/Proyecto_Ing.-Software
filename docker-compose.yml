@@ -7,7 +7,7 @@ services:
       MYSQL_ROOT_PASSWORD: admin
       MYSQL_DATABASE: sistema_practicas
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3307}:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -36,6 +36,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=admin
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=false
     volumes:
       # Volumen para que los archivos subidos persistan si el contenedor se reinicia
       - backend_uploads:/app/uploads
@@ -61,12 +63,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_API_KEY=AQ.Ab8RN6JhrIapC4vz3cDEHeiptnJC66g-oOBgmX6PahPK85cEhw
-    volumes:
-      - chatbot_recursos:/app/recursos
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.6-flash,gemini-3.5-flash}
     restart: unless-stopped
 
 volumes:
   db_data:
   backend_uploads:
-  chatbot_recursos:
+

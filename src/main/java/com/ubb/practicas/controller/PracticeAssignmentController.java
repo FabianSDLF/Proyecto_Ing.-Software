@@ -6,10 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/asignaciones")
@@ -42,6 +41,13 @@ public class PracticeAssignmentController {
     public ResponseEntity<PracticeAssignment> crearAsignacion(@RequestBody PracticeAssignment assignment) {
         PracticeAssignment created = assignmentService.crearAsignacion(assignment);
         return ResponseEntity.ok(created);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PracticeAssignment> actualizarAsignacion(
+            @PathVariable Long id,
+            @RequestBody PracticeAssignment assignment) {
+        return ResponseEntity.ok(assignmentService.actualizarAsignacion(id, assignment));
     }
 
     @DeleteMapping("/{id}")

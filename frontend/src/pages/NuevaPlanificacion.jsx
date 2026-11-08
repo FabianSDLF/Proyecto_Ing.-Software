@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { portfolioService } from '../services';
-import { Button, Input, Select } from '../components/ui';
+import { portfolioService, chatbotService } from '../services';
+import { Button, Input, Select, Modal, Badge } from '../components/ui';
 
 const MATH_AXIS_OPTIONS = [
   { value: 'NUMEROS', label: 'Números' },
@@ -14,6 +14,9 @@ const MATH_AXIS_OPTIONS = [
 export default function NuevaPlanificacion() {
   const navigate = useNavigate();
   const [uploadingPlan, setUploadingPlan] = useState(false);
+  const [isEvaluatingPlan, setIsEvaluatingPlan] = useState(false);
+  const [evaluationModalOpen, setEvaluationModalOpen] = useState(false);
+  const [evaluationData, setEvaluationData] = useState(null);
 
   const [planForm, setPlanForm] = useState({
     schoolGrade: '',
@@ -60,6 +63,29 @@ export default function NuevaPlanificacion() {
       toast.error(error.message || 'Error al crear planificación');
     } finally {
       setUploadingPlan(false);
+    }
+  };
+
+  const handleEvaluateWithAI = async () => {
+    if (!planForm.schoolGrade.trim() || !planForm.baseLearningObjective.trim()) {
+      toast.error('Completa al menos el Curso y el Objetivo de Aprendizaje antes de evaluar.');
+      return;
+    }
+    if (!planForm.inicio.trim() && !planForm.desarrollo.trim() && !planForm.cierre.trim()) {
+      toast.error('Ingresa información en los momentos de la clase (Inicio, Desarrollo o Cierre).');
+      return;
+    }
+
+    setIsEvaluatingPlan(true);
+    try {
+      const res = await chatbotService.evaluateLessonPlan(planForm);
+      setEvaluationData(res);
+      setEvaluationModalOpen(true);
+      toast.success('¡Evaluación pedagógica completada!');
+    } catch (err) {
+      toast.error(err.message || 'Error al conectar con el Asistente IA.');
+    } finally {
+      setIsEvaluatingPlan(false);
     }
   };
 
@@ -241,13 +267,23 @@ export default function NuevaPlanificacion() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 pt-8 border-t">
+        <div className="flex justify-end gap-3 pt-8 border-t flex-wrap">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate('/portafolio')}
           >
             Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleEvaluateWithAI}
+            isLoading={isEvaluatingPlan}
+            loadingText="Analizando con IA..."
+            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            ✨ Validar con Asistente IA
           </Button>
           <Button
             type="submit"
@@ -259,7 +295,122 @@ export default function NuevaPlanificacion() {
           </Button>
         </div>
       </form>
+
+      {/* Modal de Retroalimentación Pedagógica del Asistente IA */}
+      {evaluationData && (
+        <Modal
+          isOpen={evaluationModalOpen}
+          onClose={() => setEvaluationModalOpen(false)}
+          title="Evaluación Pedagógica del Asistente IA"
+          size="lg"
+          footer={
+            <div className="flex justify-between w-full items-center">
+              <span className="text-xs text-gray-500">
+                {evaluationData.is_mock ? 'Modo: Evaluación Heurística Local' : 'Modo: Gemini IA Live'}
+              </span>
+              <Button
+                variant="primary"
+                onClick={() => setEvaluationModalOpen(false)}
+              >
+                Entendido, ajustar planificación
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-6">
+            {/* Cabecera de Estado y Nota */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{evaluationData.aiApproved ? '✅' : '⚠️'}</span>
+                <div>
+                  <h4 className="font-bold text-gray-800">
+                    {evaluationData.aiApproved ? 'Planificación Coherente' : 'Requiere Ajustes Pedagógicos'}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    Evaluado según criterios curriculares de Educación Media (MINEDUC)
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs uppercase tracking-wider text-gray-500 block font-semibold">
+                  Nota Estimada
+                </span>
+                <span
+                  className={`text-2xl font-black ${
+                    evaluationData.score >= 5.5
+                      ? 'text-green-600'
+                      : evaluationData.score >= 4.0
+                      ? 'text-yellow-600'
+                      : 'text-red-600'
+                  }`}
+                >
+                  {evaluationData.score.toFixed(1)} / 7.0
+                </span>
+              </div>
+            </div>
+
+            {/* Resumen General */}
+            <div>
+              <h5 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">
+                Retroalimentación General
+              </h5>
+              <p className="text-sm text-gray-600 leading-relaxed bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                {evaluationData.feedback}
+              </p>
+            </div>
+
+            {/* Fortalezas y Mejoras */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-green-50/60 border border-green-200 rounded-xl">
+                <h5 className="text-sm font-bold text-green-800 flex items-center gap-1.5 mb-2">
+                  <span>👍</span> Fortalezas Observadas
+                </h5>
+                <ul className="text-xs text-green-900 space-y-1.5 list-disc list-inside">
+                  {evaluationData.strengths?.map((str, idx) => (
+                    <li key={idx}>{str}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl">
+                <h5 className="text-sm font-bold text-amber-800 flex items-center gap-1.5 mb-2">
+                  <span>💡</span> Sugerencias de Mejora
+                </h5>
+                <ul className="text-xs text-amber-900 space-y-1.5 list-disc list-inside">
+                  {evaluationData.improvements?.map((imp, idx) => (
+                    <li key={idx}>{imp}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Análisis por Momentos de la Clase */}
+            {evaluationData.momentAnalysis && (
+              <div>
+                <h5 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">
+                  Análisis de Momentos Didácticos
+                </h5>
+                <div className="space-y-2 text-xs">
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <span className="font-bold text-blue-900 block mb-0.5">Inicio:</span>
+                    <span className="text-gray-600">{evaluationData.momentAnalysis.inicio}</span>
+                  </div>
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <span className="font-bold text-blue-900 block mb-0.5">Desarrollo:</span>
+                    <span className="text-gray-600">{evaluationData.momentAnalysis.desarrollo}</span>
+                  </div>
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <span className="font-bold text-blue-900 block mb-0.5">Cierre:</span>
+                    <span className="text-gray-600">{evaluationData.momentAnalysis.cierre}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
+
 

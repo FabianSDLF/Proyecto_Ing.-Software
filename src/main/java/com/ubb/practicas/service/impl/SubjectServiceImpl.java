@@ -68,6 +68,36 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     @Transactional
+    public Subject actualizarAsignatura(Long id, Subject datos) {
+        Subject existing = subjectRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Asignatura no encontrada"));
+
+        if (datos.getName() != null && !datos.getName().trim().isEmpty()) {
+            existing.setName(datos.getName().trim());
+        }
+        if (datos.getCycle() != null) {
+            existing.setCycle(datos.getCycle());
+        }
+        if (datos.getCode() != null) {
+            String trimmedCode = datos.getCode().trim();
+            existing.setCode(trimmedCode.isEmpty() ? null : trimmedCode);
+        }
+        if (datos.getProfessor() != null) {
+            if (datos.getProfessor().getId() == null) {
+                existing.setProfessor(null);
+            } else {
+                existing.setProfessor(userRepository.findById(datos.getProfessor().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("El profesor especificado no existe")));
+            }
+        } else {
+            existing.setProfessor(null);
+        }
+
+        return subjectRepository.save(existing);
+    }
+
+    @Override
+    @Transactional
     public void eliminarAsignatura(Long id) {
         if (!subjectRepository.existsById(id)) {
             throw new NoSuchElementException("Asignatura no encontrada");

@@ -165,26 +165,47 @@ public class PortfolioController {
     public void downloadZip(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
         response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_OK);
         response.addHeader("Content-Disposition", "attachment; filename=\"informes_finales.zip\"");
-
         java.util.List<PortfolioDocument> documentos = portfolioDocumentRepository.findAll().stream()
-                .filter(doc -> doc.getType().name().equals("INFORME_FINAL"))
+                .filter(doc -> doc.getType() != null && "INFORME_FINAL".equalsIgnoreCase(doc.getType().name()))
                 .collect(java.util.stream.Collectors.toList());
-
+        java.util.Set<String> nombresUsados = new java.util.HashSet<>();
         try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
             for (PortfolioDocument doc : documentos) {
-                java.io.File file = new java.io.File(doc.getFileUrl());
-                if (file.exists() && !file.isDirectory()) {
-                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/" + file.getName());
+                java.io.File file = null;
+                if (doc.getStoredFileName() != null && !doc.getStoredFileName().isBlank()) {
+                    java.nio.file.Path rutaUploads = java.nio.file.Paths.get("uploads").resolve(doc.getStoredFileName()).normalize();
+                    file = rutaUploads.toFile();
+                }
+                if ((file == null || !file.exists()) && doc.getFileUrl() != null) {
+                    java.io.File fallbackFile = new java.io.File(doc.getFileUrl());
+                    if (fallbackFile.exists() && !fallbackFile.isDirectory()) {
+                        file = fallbackFile;
+                    }
+                }
+                String nombreBase = (doc.getPracticeAssignment() != null && doc.getPracticeAssignment().getStudent() != null && doc.getPracticeAssignment().getStudent().getFullName() != null)
+                        ? doc.getPracticeAssignment().getStudent().getFullName().trim().replaceAll("\\s+", "_") + "_" + doc.getFileName()
+                        : doc.getFileName();
+                String nombreFinalZip = nombreBase;
+                int contador = 1;
+                while (nombresUsados.contains(nombreFinalZip)) {
+                    nombreFinalZip = "(" + contador++ + ")_" + nombreBase;
+                }
+                nombresUsados.add(nombreFinalZip);
+                if (file != null && file.exists() && !file.isDirectory()) {
+                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/" + nombreFinalZip);
                     zos.putNextEntry(zipEntry);
                     java.nio.file.Files.copy(file.toPath(), zos);
                     zos.closeEntry();
                 } else {
-                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/FALTA_" + doc.getFileName() + ".txt");
+                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/FALTA_" + nombreFinalZip + ".txt");
                     zos.putNextEntry(zipEntry);
-                    zos.write(("El archivo fisico no se encontro en el servidor.").getBytes());
+                    String mensajeError = "El archivo físico no se encontró en el servidor. Ruta buscada: "
+                            + (file != null ? file.getAbsolutePath() : "sin nombre de archivo almacenado");
+                    zos.write(mensajeError.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     zos.closeEntry();
                 }
             }
+            zos.finish();
         }
     }
 
@@ -264,5 +285,51 @@ public class PortfolioController {
 
         portfolioService.eliminarDocumentoFinal(id, principal.getName());
         return ResponseEntity.ok(Map.of("message", "Documento final eliminado exitosamente"));
+    }
+    @GetMapping("/asignacion/{assignmentId}/evidencias")
+    public ResponseEntity<List<PortfolioDocument>> obtenerEvidenciasPorAsignacion(
+            @PathVariable Long assignmentId,
+            Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        return ResponseEntity.ok(portfolioService.obtenerEvidenciasPorAsignacion(assignmentId, principal.getName()));
+    }
+
+    @GetMapping("/asignacion/{assignmentId}/planificaciones")
+    public ResponseEntity<List<LessonPlan>> obtenerPlanificacionesPorAsignacion(
+            @PathVariable Long assignmentId,
+            Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        return ResponseEntity.ok(lessonPlanService.obtenerPlanificacionesPorAsignacion(assignmentId, principal.getName()));
+    }
+    @PutMapping("/documentos/{id}/retroalimentacion")
+    public ResponseEntity<PortfolioDocument> agregarRetroalimentacionDocumento(
+            @PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody com.ubb.practicas.dto.Comentario request,
+            java.security.Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Sesión no autorizada");
+        }
+        PortfolioDocument actualizado = portfolioService.agregarRetroalimentacion(
+                id,
+                request.getFeedback(),
+                principal.getName()
+        );
+        return ResponseEntity.ok(actualizado);
+    }
+
+    @PutMapping("/planificaciones/{id}/retroalimentacion")
+    public ResponseEntity<com.ubb.practicas.model.LessonPlan> agregarRetroalimentacionPlan(
+            @PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody com.ubb.practicas.dto.Comentario request,
+            java.security.Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Sesión no autorizada");
+        }
+        com.ubb.practicas.model.LessonPlan actualizado = lessonPlanService.agregarRetroalimentacionPlan(
+                id,
+                request.getFeedback(),
+                principal.getName()
+        );
+        return ResponseEntity.ok(actualizado);
     }
 }

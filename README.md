@@ -48,6 +48,7 @@ Plataforma integral desarrollada para la gestión, seguimiento y evaluación del
   ```
   * **Frontend:** [http://localhost](http://localhost)
   * **Backend (API):** [http://localhost:8080](http://localhost:8080)
+  * **MySQL de Docker:** `localhost:3307` (base `sistema_practicas`). Se usa el puerto 3307 para evitar conflictos con MySQL instalado en el PC. Puedes cambiarlo con `MYSQL_HOST_PORT` en `.env`; los contenedores se conectan a `db:3306`.
 
 ---
 
