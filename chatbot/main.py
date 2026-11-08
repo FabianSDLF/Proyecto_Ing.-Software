@@ -212,14 +212,42 @@ def detectar_nivel_escolar(msg_norm: str) -> Optional[str]:
 
 def get_gemini_client():
     api_key = (RUNTIME_API_KEY or os.environ.get("GOOGLE_API_KEY", "")).strip()
-    if not api_key or api_key == "mock-dev-key" or not api_key.startswith("AIzaSy"):
+    if not api_key or api_key == "mock-dev-key":
         return None
     try:
         from google import genai
-        return genai.Client(api_key=api_key)
+        from google.genai import types
+        return genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(
+                timeout=20000, retry_options=types.HttpRetryOptions(attempts=1)
+            ),
+        )
     except Exception as e:
         logger.warning(f"No se pudo inicializar el cliente oficial google-genai: {e}")
         return None
+
+
+def crear_interaccion_gemini(client, **kwargs):
+    models = list(dict.fromkeys(
+        name.strip() for name in os.environ.get(
+            "GEMINI_MODELS", "gemini-3.6-flash,gemini-3.5-flash"
+        ).split(",") if name.strip()
+    ))
+    if not models:
+        raise ValueError("GEMINI_MODELS debe contener al menos un modelo")
+    for index, model in enumerate(models):
+        try:
+            return client.interactions.create(model=model, **kwargs)
+        except Exception as error:
+            status = getattr(error, "code", None) or getattr(error, "status_code", None)
+            transient = status in (408, 429, 500, 502, 503, 504) or type(error).__name__ in (
+                "InternalServerError", "TimeoutException", "ReadTimeout", "ConnectTimeout",
+                "APITimeoutError", "RateLimitError",
+            )
+            if not transient or index == len(models) - 1:
+                raise
+            logger.warning("Modelo %s temporalmente no disponible; probando respaldo.", model)
 
 # ==============================================================================
 # Instrucciones Oficiales de RetroPlani Mate V3 (Prof. Víctor Parra González - UBB)
@@ -815,7 +843,7 @@ def health_check():
         "service": "pitagoras-chatbot",
         "gemini_api_configured": client is not None,
         "documents_loaded": len(PDF_CHUNKS_INDEX),
-        "mode": "production (Gemini 3.8 Flash + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
+        "mode": "production (Gemini + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
     }
 
 @app.post("/api/config/apikey")
@@ -830,14 +858,12 @@ def configure_api_key(req: ApiKeyConfigRequest):
             "gemini_api_configured": False,
             "mode": "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
         }
-    if not key.startswith("AIzaSy"):
-        raise HTTPException(status_code=400, detail="La API Key de Google AI Studio debe comenzar con 'AIzaSy'.")
     RUNTIME_API_KEY = key
     client = get_gemini_client()
     return {
         "status": "updated",
         "gemini_api_configured": client is not None,
-        "mode": "production (Gemini 3.8 Flash + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
+        "mode": "production (Gemini + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
     }
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -868,14 +894,13 @@ async def chat_endpoint(request: ChatRequest):
 
         prev_id = SESSION_INTERACTION_IDS.get(session_id)
         create_kwargs = {
-            "model": "gemini-3.8-flash",
             "system_instruction": SYSTEM_INSTRUCTION_RETROPLANI_V3 + contexto_rag,
             "input": request.message,
         }
         if prev_id:
             create_kwargs["previous_interaction_id"] = prev_id
 
-        interaction = client.interactions.create(**create_kwargs)
+        interaction = crear_interaccion_gemini(client, **create_kwargs)
         if getattr(interaction, "id", None):
             SESSION_INTERACTION_IDS[session_id] = interaction.id
 
@@ -886,7 +911,7 @@ async def chat_endpoint(request: ChatRequest):
         )
 
     except Exception as e:
-        logger.error(f"Error al llamar a Gemini API en chat: {e}. Usando Motor RetroPlani Mate V3.")
+        logger.error("Gemini no disponible (%s). Usando Motor RetroPlani Mate V3.", type(e).__name__)
         return ChatResponse(
             answer=generar_chat_mock(request.message),
             is_mock=True,
@@ -1005,8 +1030,8 @@ async def evaluar_planificacion_endpoint(req: LessonPlanEvaluationRequest):
         {req.cierre}
         """
 
-        interaction = client.interactions.create(
-            model="gemini-3.8-flash",
+        interaction = crear_interaccion_gemini(
+            client,
             system_instruction=SYSTEM_INSTRUCTION_RETROPLANI_V3,
             input=f"Evalúa la siguiente planificación aplicando los 14 indicadores de la Rúbrica UBB y el flujo de RetroPlani Mate V3:\n{plan_content}",
             response_format={
@@ -1021,5 +1046,5 @@ async def evaluar_planificacion_endpoint(req: LessonPlanEvaluationRequest):
         return res
 
     except Exception as e:
-        logger.error(f"Error evaluando con Gemini API: {e}. Usando evaluación RetroPlani Mate V3.")
+        logger.error("Gemini no disponible (%s). Usando evaluación RetroPlani Mate V3.", type(e).__name__)
         return generar_evaluacion_mock(req)
