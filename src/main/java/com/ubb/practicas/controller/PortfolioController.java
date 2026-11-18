@@ -28,6 +28,8 @@ public class PortfolioController {
     private final LessonPlanService lessonPlanService;
     private final com.ubb.practicas.repository.PortfolioDocumentRepository portfolioDocumentRepository;
     private final com.ubb.practicas.repository.PracticeAssignmentRepository practiceAssignmentRepository;
+    private final com.ubb.practicas.service.PortfolioExportService exportService;
+    private final com.ubb.practicas.service.AssignmentScope assignmentScope;
 
     @GetMapping("/evidencias")
     public ResponseEntity<List<PortfolioDocument>> obtenerMisEvidencias(Principal principal) {
@@ -162,51 +164,10 @@ public class PortfolioController {
         return ResponseEntity.ok(Map.of("message", "Documento eliminado exitosamente"));
     }
     @GetMapping(value = "/download-zip", produces = "application/zip")
-    public void downloadZip(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
-        response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_OK);
-        response.addHeader("Content-Disposition", "attachment; filename=\"informes_finales.zip\"");
-        java.util.List<PortfolioDocument> documentos = portfolioDocumentRepository.findAll().stream()
-                .filter(doc -> doc.getType() != null && "INFORME_FINAL".equalsIgnoreCase(doc.getType().name()))
-                .collect(java.util.stream.Collectors.toList());
-        java.util.Set<String> nombresUsados = new java.util.HashSet<>();
-        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
-            for (PortfolioDocument doc : documentos) {
-                java.io.File file = null;
-                if (doc.getStoredFileName() != null && !doc.getStoredFileName().isBlank()) {
-                    java.nio.file.Path rutaUploads = java.nio.file.Paths.get("uploads").resolve(doc.getStoredFileName()).normalize();
-                    file = rutaUploads.toFile();
-                }
-                if ((file == null || !file.exists()) && doc.getFileUrl() != null) {
-                    java.io.File fallbackFile = new java.io.File(doc.getFileUrl());
-                    if (fallbackFile.exists() && !fallbackFile.isDirectory()) {
-                        file = fallbackFile;
-                    }
-                }
-                String nombreBase = (doc.getPracticeAssignment() != null && doc.getPracticeAssignment().getStudent() != null && doc.getPracticeAssignment().getStudent().getFullName() != null)
-                        ? doc.getPracticeAssignment().getStudent().getFullName().trim().replaceAll("\\s+", "_") + "_" + doc.getFileName()
-                        : doc.getFileName();
-                String nombreFinalZip = nombreBase;
-                int contador = 1;
-                while (nombresUsados.contains(nombreFinalZip)) {
-                    nombreFinalZip = "(" + contador++ + ")_" + nombreBase;
-                }
-                nombresUsados.add(nombreFinalZip);
-                if (file != null && file.exists() && !file.isDirectory()) {
-                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/" + nombreFinalZip);
-                    zos.putNextEntry(zipEntry);
-                    java.nio.file.Files.copy(file.toPath(), zos);
-                    zos.closeEntry();
-                } else {
-                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/FALTA_" + nombreFinalZip + ".txt");
-                    zos.putNextEntry(zipEntry);
-                    String mensajeError = "El archivo físico no se encontró en el servidor. Ruta buscada: "
-                            + (file != null ? file.getAbsolutePath() : "sin nombre de archivo almacenado");
-                    zos.write(mensajeError.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    zos.closeEntry();
-                }
-            }
-            zos.finish();
-        }
+    public void downloadZip(Principal principal, @RequestParam(required = false) Long periodId,
+            @RequestParam(required = false) Long subjectId, @RequestParam(defaultValue = "false") boolean history, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.setHeader("Content-Disposition", "attachment; filename=informes_finales.zip");
+        exportService.zip(principal.getName(), periodId, subjectId, history, response.getOutputStream());
     }
 
     @GetMapping(value = "/export-csv", produces = "text/csv; charset=utf-8")
@@ -260,6 +221,7 @@ public class PortfolioController {
 
         List<PortfolioDocument> documentos;
         if (assignmentId != null) {
+            assignmentScope.require(assignmentId, principal.getName());
             documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
         } else {
             documentos = portfolioService.obtenerMisDocumentosFinales(principal.getName());
@@ -273,6 +235,7 @@ public class PortfolioController {
             Principal principal) {
         if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
 
+        assignmentScope.require(assignmentId, principal.getName());
         List<PortfolioDocument> documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
         return ResponseEntity.ok(documentos);
     }
