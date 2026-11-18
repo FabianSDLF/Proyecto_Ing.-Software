@@ -27,6 +27,7 @@ export default function NuevaPlanificacion() {
     duracion: '',
     recursos: '',
     evaluacion: '',
+    inclusion: '',
     inicio: '',
     desarrollo: '',
     cierre: '',
@@ -42,6 +43,7 @@ export default function NuevaPlanificacion() {
       duracion: planForm.duracion,
       recursos: planForm.recursos,
       evaluacion: planForm.evaluacion,
+      inclusion: planForm.inclusion,
       inicio: planForm.inicio,
       desarrollo: planForm.desarrollo,
       cierre: planForm.cierre
@@ -213,17 +215,22 @@ export default function NuevaPlanificacion() {
           </div>
         </div>
 
+        <label className="block font-semibold">Inclusión y adaptaciones PIE / NEE / DUA
+          <textarea required className="mt-2 w-full border rounded-xl p-3" value={planForm.inclusion} onChange={e => setPlanForm({ ...planForm, inclusion: e.target.value })} placeholder="Describe las barreras previstas y los apoyos o adaptaciones concretas para esta clase." />
+        </label>
         <h2 className="text-xl font-bold text-gray-800 border-b pb-2 pt-6">Anexos y Recursos</h2>
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
+              required
               label="Recursos Materiales"
               value={planForm.recursos}
               onChange={(e) => setPlanForm({ ...planForm, recursos: e.target.value })}
               placeholder="Proyector, guías de trabajo..."
             />
             <Input
+              required
               label="Instrumentos de Evaluación"
               value={planForm.evaluacion}
               onChange={(e) => setPlanForm({ ...planForm, evaluacion: e.target.value })}

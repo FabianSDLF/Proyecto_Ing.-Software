@@ -51,6 +51,7 @@ export default function Portafolio({ isReadOnly = false }) {
         cierre: '',
         recursos: '',
         evaluacion: '',
+        inclusion: '',
         classActivities: '',
         file: null,
     });
@@ -64,6 +65,7 @@ export default function Portafolio({ isReadOnly = false }) {
             cierre: '',
             recursos: '',
             evaluacion: '',
+            inclusion: '',
         };
         if (!rawContent) return empty;
 
@@ -128,6 +130,7 @@ export default function Portafolio({ isReadOnly = false }) {
             cierre: formatMomento(parsed.cierre),
             recursos: calcRecursos(),
             evaluacion: parsed.evaluacion || '',
+            inclusion: parsed.inclusion || parsed.adaptaciones_pie || '',
         };
     }, []);
 
@@ -597,6 +600,7 @@ export default function Portafolio({ isReadOnly = false }) {
             cierre: structured.cierre || '',
             recursos: structured.recursos || '',
             evaluacion: structured.evaluacion || '',
+            inclusion: structured.inclusion || '',
             classActivities: JSON.stringify(structured),
             file: null,
         });
@@ -613,6 +617,7 @@ export default function Portafolio({ isReadOnly = false }) {
                 duracion: editForm.duracion || '90',
                 recursos: editForm.recursos || '',
                 evaluacion: editForm.evaluacion || '',
+                inclusion: editForm.inclusion || '',
                 inicio: editForm.inicio || '',
                 desarrollo: editForm.desarrollo || '',
                 cierre: editForm.cierre || '',
@@ -1226,6 +1231,7 @@ export default function Portafolio({ isReadOnly = false }) {
                                 </div>
                             </div>
 
+                            <div><h4 className="font-semibold">Inclusión y adaptaciones PIE / NEE / DUA</h4><p className="whitespace-pre-wrap">{detailContent.inclusion || 'Sin especificar'}</p></div>
                             {/* 4. Recursos, Evaluación y Archivo Adjunto */}
                             <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
                                 <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">4. Recursos y Evaluación</h4>
@@ -1411,6 +1417,7 @@ export default function Portafolio({ isReadOnly = false }) {
                         </div>
                     </div>
 
+                    <label className="block font-semibold">Inclusión y adaptaciones PIE / NEE / DUA<textarea className="w-full border rounded p-3" value={editForm.inclusion || ''} onChange={e => setEditForm(prev => ({ ...prev, inclusion: e.target.value }))} /></label>
                     {/* 4. Recursos, Evaluación y Archivo */}
                     <div className="p-4 bg-gray-50/80 border border-gray-200 rounded-xl space-y-3">
                         <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">4. Anexos, Recursos y Evaluación</h4>
