@@ -30,9 +30,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final AuditRequestFilter auditFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, AuditRequestFilter auditFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.auditFilter = auditFilter;
     }
 
     @Bean
@@ -83,9 +85,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/portafolio/**", "/api/profesor/**").authenticated()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(auditFilter, JwtAuthFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public org.springframework.boot.web.servlet.FilterRegistrationBean<AuditRequestFilter> auditRegistration() {
+        var registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(auditFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
