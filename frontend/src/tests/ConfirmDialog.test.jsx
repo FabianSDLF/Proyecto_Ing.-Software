@@ -144,7 +144,7 @@ describe('ConfirmDialog UI Component (FE-19 Non-blocking Dialog)', () => {
       const cancelBtn = screen.getByRole('button', { name: 'Cancelar' });
       expect(cancelBtn).toBeDisabled();
 
-      const confirmBtn = screen.getByRole('button', { name: 'Borrando...' });
+      const confirmBtn = screen.getByRole('button', { name: /Borrando\.\.\./ });
       expect(confirmBtn).toBeDisabled();
       expect(confirmBtn).toHaveAttribute('aria-busy', 'true');
 

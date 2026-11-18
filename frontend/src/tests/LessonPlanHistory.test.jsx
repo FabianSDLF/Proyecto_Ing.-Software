@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import Portafolio from '../pages/Portafolio';
 import portfolioService from '../services/portfolioService';
 
@@ -90,7 +90,7 @@ describe('HU30 E2E Frontend Suite: Historial de Versiones y Modo Solo Lectura (L
   ];
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
 
     portfolioService.getDocuments.mockResolvedValue([]);
     portfolioService.getLessonPlans.mockResolvedValue(mockLessonPlans);
@@ -126,7 +126,7 @@ describe('HU30 E2E Frontend Suite: Historial de Versiones y Modo Solo Lectura (L
       fireEvent.click(planTab);
 
       await waitFor(() => {
-        expect(screen.getByText(/v2|versi[oó]n 2/i)).toBeInTheDocument();
+        expect(screen.getByText(/^v2$/i)).toBeInTheDocument();
       });
     });
 
@@ -165,7 +165,8 @@ describe('HU30 E2E Frontend Suite: Historial de Versiones y Modo Solo Lectura (L
       const historialBtn = await screen.findByRole('button', { name: /historial|versiones/i });
       fireEvent.click(historialBtn);
 
-      const detalleBtn = await screen.findByRole('button', { name: /ver detalle|ver versi[oó]n/i });
+      const historyDialog = await screen.findByRole('dialog');
+      const detalleBtn = within(historyDialog).getAllByRole('button', { name: /ver detalle|ver versi[oó]n/i })[0];
       fireEvent.click(detalleBtn);
 
       await waitFor(() => {
