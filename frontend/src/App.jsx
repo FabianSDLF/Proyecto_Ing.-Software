@@ -51,7 +51,7 @@ function App() {
               </Route>
 
               {/* Administrator Routes */}
-              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
+              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas', 'Administrador']} />}>
                 <Route path="/carga-masiva" element={<CargaMasiva />} />
                 <Route path="/gestion-roles" element={<GestionRoles />} />
                 <Route path="/ciclos" element={<CiclosPractica />} />
@@ -66,7 +66,7 @@ function App() {
               <Route path="/portafolio/estudiante/:assignmentId" element={<Portafolio isReadOnly={true} />} />
 
               {/* Reportes va AQUÍ ADENTRO, arriba de los dos </Route> de cierre */}
-              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
+              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas', 'Administrador', 'Profesor de Asignatura', 'Profesor Colaborador', 'Tutor']} />}>
                 <Route path="/reportes" element={<Reportes />} />
               </Route>
 

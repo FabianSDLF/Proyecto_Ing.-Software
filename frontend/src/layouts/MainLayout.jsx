@@ -90,7 +90,7 @@ export default function MainLayout() {
           )}
 
           {/* Opciones exclusivas de Administrador */}
-          {userRole === 'Coordinador de practicas' && (
+          {['Coordinador de practicas', 'Administrador'].includes(userRole) && (
             <div className="mt-8">
               <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-4 px-4 opacity-80">
                 Administración
@@ -178,6 +178,7 @@ export default function MainLayout() {
             </div>
           )}
 
+          {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && <Link to="/reportes" className={baseLinkClass}>Exportar notas y evidencias</Link>}
           {/* Opciones exclusivas de Docentes */}
           {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && (
             <div className="mt-8">

@@ -171,26 +171,11 @@ public class PortfolioController {
     }
 
     @GetMapping(value = "/export-csv", produces = "text/csv; charset=utf-8")
-    public void exportToCSV(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
-        response.setContentType("text/csv");
-        response.setHeader("Content-Disposition", "attachment; filename=\"reporte_institucional.csv\"");
-
-        java.util.List<com.ubb.practicas.model.PracticeAssignment> asignaciones = practiceAssignmentRepository.findAll();
-        java.io.PrintWriter writer = response.getWriter();
-
-        writer.println("Estudiante;Asignatura;Periodo;Centro de Practica;Profesor Colaborador;Tutor;Estado");
-
-        for (com.ubb.practicas.model.PracticeAssignment asig : asignaciones) {
-            String estudiante = (asig.getStudent() != null) ? asig.getStudent().getFullName() : "N/A";
-            String asignatura = (asig.getSubject() != null) ? asig.getSubject().getName() : "N/A";
-            String periodo = (asig.getPeriod() != null) ? asig.getPeriod().getName() : "N/A";
-            String centro = (asig.getCenter() != null) ? asig.getCenter().getName() : "N/A";
-            String colaborador = (asig.getCollaborator() != null) ? asig.getCollaborator().getFullName() : "N/A";
-            String tutor = (asig.getTutor() != null) ? asig.getTutor().getFullName() : "N/A";
-            String estado = (asig.getStatus() != null) ? asig.getStatus().name() : "N/A";
-
-            writer.println(estudiante + ";" + asignatura + ";" + periodo + ";" + centro + ";" + colaborador + ";" + tutor + ";" + estado);
-        }
+    public void exportToCSV(Principal principal, @RequestParam(required = false) Long periodId,
+            @RequestParam(required = false) Long subjectId, @RequestParam(defaultValue = "false") boolean history, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=reporte_institucional.csv");
+        exportService.csv(principal.getName(), periodId, subjectId, history, response.getWriter());
     }
 
     // ==========================================

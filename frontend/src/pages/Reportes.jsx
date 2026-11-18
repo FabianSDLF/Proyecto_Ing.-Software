@@ -4,13 +4,13 @@ import { BASE_URL } from '../services/apiClient';
 export default function Reportes() {
     const [asignaciones, setAsignaciones] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [filtroPeriodo, setFiltroPeriodo] = useState('TODOS');
+    const [filtroPeriodo, setFiltroPeriodo] = useState('VIGENTE');
 
     useEffect(() => {
         const fetchDatos = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const respuesta = await fetch(`${BASE_URL}/api/asignaciones`, {
+                const respuesta = await fetch(`${BASE_URL}/api/asignaciones/visibles?history=true`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (respuesta.ok) {
@@ -29,7 +29,7 @@ export default function Reportes() {
     const handleExportarExcel = async () => {
         try {
             const token = localStorage.getItem('token');
-            const respuesta = await fetch(`${BASE_URL}/api/portafolio/export-csv`, {
+            const respuesta = await fetch(`${BASE_URL}/api/portafolio/export-csv?${filtroPeriodo === 'TODOS' ? 'history=true' : filtroPeriodo === 'VIGENTE' ? '' : 'periodId=' + encodeURIComponent(filtroPeriodo)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (respuesta.ok) {
@@ -49,10 +49,10 @@ export default function Reportes() {
         }
     };
 
-    const periodosUnicos = [...new Set(asignaciones.map(a => a.period?.name).filter(Boolean))];
-    const asignacionesFiltradas = filtroPeriodo === 'TODOS'
+    const periodosUnicos = [...new Set(asignaciones.map(a => a.period?.id).filter(Boolean))];
+    const asignacionesFiltradas = filtroPeriodo === 'VIGENTE' ? asignaciones.filter(a => a.status === 'ACTIVA' && (!a.period || a.period.status === 'ACTIVO')) : filtroPeriodo === 'TODOS'
         ? asignaciones
-        : asignaciones.filter(a => a.period?.name === filtroPeriodo);
+        : asignaciones.filter(a => String(a.period?.id) === String(filtroPeriodo));
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -77,9 +77,10 @@ export default function Reportes() {
                         value={filtroPeriodo}
                         onChange={(e) => setFiltroPeriodo(e.target.value)}
                     >
+                        <option value="VIGENTE">Periodo vigente</option>
                         <option value="TODOS">Todos los periodos</option>
                         {periodosUnicos.map(periodo => (
-                            <option key={periodo} value={periodo}>{periodo}</option>
+                            <option key={periodo} value={periodo}>{asignaciones.find(a => a.period?.id === periodo)?.period?.name}</option>
                         ))}
                     </select>
                 </div>
