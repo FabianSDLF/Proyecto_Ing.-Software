@@ -23,7 +23,7 @@ public class EvaluationController {
     }
 
     @GetMapping("/asignacion/{id}")
-    public ResponseEntity<List<Evaluation>> listarPorAsignacion(@PathVariable Long id) {
-        return ResponseEntity.ok(evaluationService.listarEvaluacionesPorAsignacion(id));
+    public ResponseEntity<List<Evaluation>> listarPorAsignacion(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(evaluationService.listarEvaluacionesPorAsignacion(id, principal.getName()));
     }
 }

@@ -45,7 +45,7 @@ public class EvaluationServiceImpl implements EvaluationService {
             throw new BadRequestException("El identificador de la asignación de práctica es obligatorio.");
         }
 
-        if (dto.getScore() == null || dto.getScore() < 1.0f || dto.getScore() > 7.0f) {
+        if (dto.getScore() == null || !Float.isFinite(dto.getScore()) || dto.getScore() < 1.0f || dto.getScore() > 7.0f) {
             throw new BadRequestException("La calificación debe estar comprendida entre 1.0 y 7.0.");
         }
 
@@ -58,6 +58,13 @@ public class EvaluationServiceImpl implements EvaluationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asignación no encontrada"));
 
         EvaluationType evalType = dto.getType() != null ? dto.getType() : EvaluationType.PAUTA_OBSERVACION_COLABORADOR;
+
+        boolean collaboratorType = evalType.name().startsWith("COLAB_") || evalType == EvaluationType.PAUTA_OBSERVACION_COLABORADOR;
+        String role = com.ubb.practicas.service.AssignmentScope.role(evaluator);
+        boolean authorized = role.equals("PROFESOR_COLABORADOR") && assignment.isCollaborator(evaluatorEmail) && collaboratorType
+                || role.equals("TUTOR") && assignment.isTutor(evaluatorEmail) && evalType == EvaluationType.PAUTA_OBSERVACION_TUTOR
+                || role.equals("PROFESOR_DE_ASIGNATURA") && assignment.isProfessor(evaluatorEmail) && !collaboratorType && evalType != EvaluationType.PAUTA_OBSERVACION_TUTOR;
+        if (!authorized) throw new org.springframework.security.access.AccessDeniedException("El instrumento no corresponde a su participación en esta práctica");
 
         Optional<Evaluation> existingOpt = evaluationRepository.findByPracticeAssignmentIdAndType(
                 assignment.getId(), evalType
@@ -102,6 +109,17 @@ public class EvaluationServiceImpl implements EvaluationService {
         }
 
         return savedEvaluation;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Evaluation> listarEvaluacionesPorAsignacion(Long practiceAssignmentId, String callerEmail) {
+        PracticeAssignment assignment = practiceAssignmentRepository.findById(practiceAssignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Asignación no encontrada"));
+        if (!assignment.hasParticipant(callerEmail)) throw new org.springframework.security.access.AccessDeniedException("No pertenece a esta práctica");
+        return listarEvaluacionesPorAsignacion(practiceAssignmentId).stream()
+                .filter(e -> !assignment.isStudent(callerEmail) || Boolean.TRUE.equals(e.getIsFinalized()))
+                .toList();
     }
 
     @Override

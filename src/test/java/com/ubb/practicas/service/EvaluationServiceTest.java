@@ -55,11 +55,13 @@ class EvaluationServiceTest {
     void setUp() {
         evaluator = new User();
         evaluator.setId(5L);
+        com.ubb.practicas.model.Role role = new com.ubb.practicas.model.Role(); role.setName("Profesor Colaborador"); evaluator.setRole(role);
         evaluator.setEmail("colaborador@ubb.cl");
         evaluator.setFullName("Prof. Colaborador UBB");
 
         assignment = new PracticeAssignment();
         assignment.setId(10L);
+        assignment.setCollaborator(evaluator);
     }
 
     @Test

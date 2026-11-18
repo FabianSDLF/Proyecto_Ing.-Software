@@ -7,4 +7,5 @@ import java.util.List;
 public interface EvaluationService {
     Evaluation crearEvaluacion(EvaluationCreateDTO dto, String evaluatorEmail);
     List<Evaluation> listarEvaluacionesPorAsignacion(Long practiceAssignmentId);
+    List<Evaluation> listarEvaluacionesPorAsignacion(Long practiceAssignmentId, String callerEmail);
 }

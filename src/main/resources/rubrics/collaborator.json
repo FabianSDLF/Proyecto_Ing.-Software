@@ -1,0 +1,481 @@
+[
+  {
+    "type": "COLAB_ESP_1",
+    "name": "Primera observación de Especialidad",
+    "role": "PROFESOR_COLABORADOR",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source": "PRIMERA PAUTA DE EVALUACIÓN ESPECIALIDAD COLABORADOR-A.docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "dimension": "A",
+        "text": "Comprende las bases curriculares y su respectivo programa de estudio de la disciplina que enseña."
+      },
+      {
+        "id": "A2",
+        "dimension": "A",
+        "text": "Conoce las características del desarrollo correspondiente a las edades de sus estudiantes y sus necesidades educativas."
+      },
+      {
+        "id": "A3",
+        "dimension": "A",
+        "text": "Incorpora en sus planificaciones variadas estrategias de enseñanza."
+      },
+      {
+        "id": "A4",
+        "dimension": "A",
+        "text": "Elabora secuencias de contenidos coherentes con los objetivos de aprendizaje del marco curricular."
+      },
+      {
+        "id": "B1",
+        "dimension": "B",
+        "text": "Establece un clima de relaciones interpersonales respetuosas y empáticas con sus estudiantes."
+      },
+      {
+        "id": "B2",
+        "dimension": "B",
+        "text": "Presenta situaciones didácticas que motivan la participación de sus estudiantes."
+      },
+      {
+        "id": "B3",
+        "dimension": "B",
+        "text": "Establece normas de comportamiento que son conocidas y comprensibles para sus estudiantes."
+      },
+      {
+        "id": "B4",
+        "dimension": "B",
+        "text": "Utiliza estrategias para crear y mantener un ambiente sano y seguro al interior del aula."
+      },
+      {
+        "id": "C1",
+        "dimension": "C",
+        "text": "Comunica a las/os estudiantes los propósitos de la clase y los aprendizajes a lograr."
+      },
+      {
+        "id": "C2",
+        "dimension": "C",
+        "text": "Desarrolla los contenidos a través de una estrategia de enseñanza clara y definida."
+      },
+      {
+        "id": "C3",
+        "dimension": "C",
+        "text": "Desarrolla los contenidos en forma clara, precisa y adecuada al nivel de las/os estudiantes."
+      },
+      {
+        "id": "C4",
+        "dimension": "C",
+        "text": "Desarrolla los contenidos con una secuencia adecuada a la comprensión de las/os estudiantes."
+      },
+      {
+        "id": "C5",
+        "dimension": "C",
+        "text": "Formula preguntas, problemas, y concede el tiempo necesario para resolverlos."
+      },
+      {
+        "id": "C6",
+        "dimension": "C",
+        "text": "Utiliza estrategias pertinentes para evaluar el logro de los objetivos de aprendizaje definidos para sus clases."
+      },
+      {
+        "id": "D1",
+        "dimension": "D",
+        "text": "Evalúa el grado en que los estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "D2",
+        "dimension": "D",
+        "text": "Dialoga con su profesor/a colaborador/a sobre aspectos pedagógicos y didácticos del proceso enseñanza - aprendizaje."
+      },
+      {
+        "id": "D3",
+        "dimension": "D",
+        "text": "Identifica las fortalezas de sus estudiantes y procura potenciarlas."
+      },
+      {
+        "id": "D4",
+        "dimension": "D",
+        "text": "Demuestra sentido de responsabilidad frente a las tareas asignadas asociadas a su práctica profesional."
+      },
+      {
+        "id": "D5",
+        "dimension": "D",
+        "text": "Presenta anticipadamente la planificación de su clase."
+      }
+    ]
+  },
+  {
+    "type": "COLAB_ORI_1",
+    "name": "Primera observación de Orientación",
+    "role": "PROFESOR_COLABORADOR",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source": "PRIMERA PAUTA DE EVALUACIÓN ORIENTACIÓN COLABORADOR-A.docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "dimension": "A",
+        "text": "Comunica a las/os estudiantes los propósitos de la clase y los aprendizajes a lograr."
+      },
+      {
+        "id": "A2",
+        "dimension": "A",
+        "text": "Utiliza el tiempo disponible para la enseñanza en función de los objetivos de la clase."
+      },
+      {
+        "id": "A3",
+        "dimension": "A",
+        "text": "Especifica en las unidades pedagógicas de orientación, los tres momentos de la clase: inicio, desarrollo y cierre."
+      },
+      {
+        "id": "B1",
+        "dimension": "B",
+        "text": "Formula preguntas y concede el tiempo necesario para resolverlos."
+      },
+      {
+        "id": "B2",
+        "dimension": "B",
+        "text": "Posee la capacidad de empatía, de atención personalizada propiciada por la clase y escucha activamente a los y las estudiantes."
+      },
+      {
+        "id": "B3",
+        "dimension": "B",
+        "text": "Establece un clima de relaciones interpersonales respetuosas y empáticas con sus estudiantes."
+      },
+      {
+        "id": "B4",
+        "dimension": "B",
+        "text": "Establece normas de comportamiento que son conocidas y comprensibles para sus estudiantes."
+      },
+      {
+        "id": "C1",
+        "dimension": "C",
+        "text": "Utiliza diferentes metodologías pedagógicas, que motiven el interés de los y las estudiantes durante las clases."
+      },
+      {
+        "id": "C2",
+        "dimension": "C",
+        "text": "Ofrece oportunidades y desafíos de participación activas a los y las estudiantes del grupo curso, considerando su diversidad."
+      },
+      {
+        "id": "C3",
+        "dimension": "C",
+        "text": "Demuestra conocer variadas estrategias de enseñanza y actividades congruentes con el proceso de enseñanza y aprendizaje."
+      },
+      {
+        "id": "D1",
+        "dimension": "D",
+        "text": "Emplea instrumentos de evaluación, acorde a las temáticas desarrolladas en el grupo curso."
+      },
+      {
+        "id": "D2",
+        "dimension": "D",
+        "text": "Utiliza criterios de evaluación coherentes con los objetivos de aprendizaje propuestos."
+      },
+      {
+        "id": "D3",
+        "dimension": "D",
+        "text": "Evalúa el grado en que las/os estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "D1",
+        "dimension": "D",
+        "text": "Reflexiona sobre la propia práctica pedagógica, considerando la capacidad de preparar y gestionar curricularmente sus clases en el área de orientación, considerando la potenciación de sus fortalezas y la mejora de sus debilidades docentes."
+      },
+      {
+        "id": "D2",
+        "dimension": "D",
+        "text": "Evalúa el nivel de logro de los objetivos de aprendizaje planteados, valorando los aciertos, analizando los errores y planteándose metas para su desempeño profesional futuro."
+      },
+      {
+        "id": "D3",
+        "dimension": "D",
+        "text": "Evidencia el cumplimiento de los compromisos contraídos, presentación personal, asistencia, puntualidad en los talleres de reflexión y en la práctica en general."
+      },
+      {
+        "id": "D4",
+        "dimension": "D",
+        "text": "Analiza críticamente su desempeño durante las clases, a partir de los resultados de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "D5",
+        "dimension": "D",
+        "text": "Presenta anticipadamente la planificación de la clase, de acuerdo a la unidad didáctica, para su debida retroalimentación."
+      }
+    ]
+  },
+  {
+    "type": "COLAB_ESP_2",
+    "name": "Segunda observación de Especialidad",
+    "role": "PROFESOR_COLABORADOR",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source": "SEGUNDA PAUTA DE EVALUACIÓN ESPECIALIDAD COLABORADOR-A.docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "dimension": "A",
+        "text": "Demuestra conocimiento la relación de los contenidos que enseña y los vincula a la realidad personal de las y los estudiantes."
+      },
+      {
+        "id": "A2",
+        "dimension": "A",
+        "text": "Domina los principios de las bases curriculares y logra alcanzar los objetivos de aprendizaje propuestos durante sus clases."
+      },
+      {
+        "id": "A3",
+        "dimension": "A",
+        "text": "Identifica las fortalezas y debilidades de las y los estudiantes, respecto de los contenidos que se ha propuesto enseñar."
+      },
+      {
+        "id": "A4",
+        "dimension": "A",
+        "text": "Distingue los distintos estilos y ritmos de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "A5",
+        "dimension": "A",
+        "text": "Selecciona distintos recursos de aprendizajes relacionados con los contenidos curriculares, considerando las características de las y los estudiantes."
+      },
+      {
+        "id": "A6",
+        "dimension": "A",
+        "text": "Establece estrategias de evaluación que permitan oportunidades equitativas a los estudiantes, en relación al aprendizaje."
+      },
+      {
+        "id": "B1",
+        "dimension": "B",
+        "text": "Demuestra actitudes de compromiso, responsabilidad y solidaridad con las y los estudiantes durante las clases."
+      },
+      {
+        "id": "B2",
+        "dimension": "B",
+        "text": "Demuestra respeto por la diversidad cultural, étnica, de género y socioeconómica del estudiantado."
+      },
+      {
+        "id": "B3",
+        "dimension": "B",
+        "text": "Favorece el desarrollo de la autonomía de las y los estudiantes en las diferentes situaciones de aprendizaje que les propone."
+      },
+      {
+        "id": "B4",
+        "dimension": "B",
+        "text": "Promueve el esfuerzo y perseverancia en las y los estudiantes para alcanzar el aprendizaje."
+      },
+      {
+        "id": "B5",
+        "dimension": "B",
+        "text": "Modela estrategias de diálogo y resolución de conflictos al interior del aula."
+      },
+      {
+        "id": "C1",
+        "dimension": "C",
+        "text": "Socializa con las y los estudiantes los criterios que los orientarán tanto para autoevaluarse como para ser evaluados/as."
+      },
+      {
+        "id": "C2",
+        "dimension": "C",
+        "text": "Propone actividades que involucran el desarrollo cognitivo y emocional de las y los estudiantes."
+      },
+      {
+        "id": "C3",
+        "dimension": "C",
+        "text": "Desarrolla los contenidos curriculares en forma clara, precisa y adecuada al nivel y a las condiciones personales de las y los estudiantes."
+      },
+      {
+        "id": "C4",
+        "dimension": "C",
+        "text": "Utiliza lenguaje preciso y pertinente de manera gradual."
+      },
+      {
+        "id": "C5",
+        "dimension": "C",
+        "text": "Utiliza estrategias de retroalimentación que permiten a las/los estudiantes tomar conciencia de sus logros de aprendizaje."
+      },
+      {
+        "id": "C6",
+        "dimension": "C",
+        "text": "Adapta las actividades de enseñanza de acuerdo a las evidencias que recoge sobre los aprendizajes de las y los estudiantes."
+      },
+      {
+        "id": "C7",
+        "dimension": "C",
+        "text": "Utiliza recursos didácticos coherentes con las actividades de aprendizaje, facilitando los objetivos de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "D1",
+        "dimension": "D",
+        "text": "Evalúa el grado en que las los estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "D2",
+        "dimension": "D",
+        "text": "Analiza críticamente su desempeño durante las clases, a partir de los resultados de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "D3",
+        "dimension": "D",
+        "text": "Cumple con las normas y responsabilidades profesionales establecidas en la institución educativa donde trabaja, para la realización de las tareas comprometidas."
+      },
+      {
+        "id": "D4",
+        "dimension": "D",
+        "text": "Demuestra un trabajo asertivo frente a las dificultades que se presentan en el aula."
+      },
+      {
+        "id": "D5",
+        "dimension": "D",
+        "text": "Presenta anticipadamente la planificación de su clase."
+      }
+    ]
+  },
+  {
+    "type": "COLAB_ORI_2",
+    "name": "Segunda observación de Orientación",
+    "role": "PROFESOR_COLABORADOR",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "source": "SEGUNDA PAUTA DE EVALUACIÓN ORIENTACIÓN COLABORADOR-A.docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "dimension": "A",
+        "text": "Contextualiza el diseño de unidades didácticas coherentes a temáticas a desarrollar según la base curricular y el programa de estudio."
+      },
+      {
+        "id": "A2",
+        "dimension": "A",
+        "text": "Comunica a las/os estudiantes los propósitos de la clase y los aprendizajes a lograr."
+      },
+      {
+        "id": "A3",
+        "dimension": "A",
+        "text": "Desarrolla los contenidos de la clase especificando los aprendizajes que se desean alcanzar."
+      },
+      {
+        "id": "A4",
+        "dimension": "A",
+        "text": "Utiliza un lenguaje y conceptos de manera precisa y comprensible para sus estudiantes."
+      },
+      {
+        "id": "A5",
+        "dimension": "A",
+        "text": "Estructura las situaciones de aprendizajes considerando los saberes, intereses y experiencia de los y las estudiantes."
+      },
+      {
+        "id": "A6",
+        "dimension": "A",
+        "text": "Planifica Unidad Pedagógica, a partir de los Conocimientos, Habilidades y Actitudes, en función de las experiencias previas, y el aporte reflexivo como desafío personal."
+      },
+      {
+        "id": "A7",
+        "dimension": "A",
+        "text": "Especifica en las unidades pedagógicas de orientación: los tres momentos de la clase: inicio, desarrollo y cierre."
+      },
+      {
+        "id": "B1",
+        "dimension": "B",
+        "text": "Formula preguntas y concede el tiempo necesario para resolverlos."
+      },
+      {
+        "id": "B2",
+        "dimension": "B",
+        "text": "Proporciona a los y las estudiantes oportunidades de participación."
+      },
+      {
+        "id": "B3",
+        "dimension": "B",
+        "text": "Estimula la sensibilización y socialización en la interacción durante la clase."
+      },
+      {
+        "id": "B4",
+        "dimension": "B",
+        "text": "Demuestra capacidades para crear y mantener un clima grato durante el desarrollo de la clase."
+      },
+      {
+        "id": "C1",
+        "dimension": "C",
+        "text": "Ofrece oportunidades y desafíos de participación activas a los y las estudiantes del grupo curso, considerando su diversidad."
+      },
+      {
+        "id": "C2",
+        "dimension": "C",
+        "text": "Aplica estrategias metodológicas activas y desafiantes para el grupo curso, involucrando dimensiones cognitivas, procedimentales y emocionales, que capten el interés y la motivación de todos los/as estudiantes."
+      },
+      {
+        "id": "C3",
+        "dimension": "C",
+        "text": "Considera en el proceso didáctico, el respeto por las diferencias de géneros, culturas, y etnias."
+      },
+      {
+        "id": "C4",
+        "dimension": "C",
+        "text": "Utiliza estrategias metodologías de enseñanza para generar aprendizajes significativos."
+      },
+      {
+        "id": "D1",
+        "dimension": "D",
+        "text": "Los procedimientos de evaluación son coherentes con la complejidad de los contenidos, incluidos en pautas."
+      },
+      {
+        "id": "D2",
+        "dimension": "D",
+        "text": "Emplea la retroalimentación que permite a las/os estudiantes tomar conciencia de sus logros de aprendizaje."
+      },
+      {
+        "id": "D3",
+        "dimension": "D",
+        "text": "Evalúa el grado en que las/os estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "D1",
+        "dimension": "D",
+        "text": "Reflexiona sobre la propia práctica pedagógica, considerando la capacidad de preparar y gestionar curricularmente sus clases en el área de orientación, considerando la potenciación de sus fortalezas y la mejora de sus debilidades docentes."
+      },
+      {
+        "id": "D2",
+        "dimension": "D",
+        "text": "Evalúa el nivel de logro de los objetivos de aprendizaje planteados, valorando los aciertos, analizando los errores y planteándose metas para su desempeño profesional futuro."
+      },
+      {
+        "id": "D3",
+        "dimension": "D",
+        "text": "Evidencia el cumplimiento de los compromisos contraídos, presentación personal, asistencia, puntualidad en los talleres de reflexión y en la práctica en general."
+      },
+      {
+        "id": "D4",
+        "dimension": "D",
+        "text": "Analiza críticamente su desempeño durante las clases, a partir de los resultados de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "D5",
+        "dimension": "D",
+        "text": "Presenta anticipadamente la planificación de la clase, de acuerdo a unidad didáctica, para su debida retroalimentación."
+      }
+    ]
+  }
+]

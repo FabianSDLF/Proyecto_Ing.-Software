@@ -30,7 +30,13 @@ export default function MisEstudiantes() {
         digitalSignature: '',
     });
 
-    const targetEvaluationType = useMemo(() => getEvaluationTypeForRole(userRole), [userRole]);
+    const [rubrics, setRubrics] = useState([]);
+    const [selectedRubric, setSelectedRubric] = useState('COLAB_ESP_1');
+    const [history, setHistory] = useState(false);
+    const targetEvaluationType = userRole === 'Profesor Colaborador' ? selectedRubric : getEvaluationTypeForRole(userRole);
+    useEffect(() => {
+        if (userRole === 'Profesor Colaborador') evaluationService.getCollaboratorRubrics().then(setRubrics).catch(err => toast.error(err.message));
+    }, [userRole]);
 
     const cargarEvaluacionesAsignaciones = useCallback(async (listaAsignaciones, signal) => {
         const mapa = {};
@@ -41,8 +47,6 @@ export default function MisEstudiantes() {
                     const lista = Array.isArray(evals) ? evals : [];
                     const match =
                         lista.find((ev) => ev.type === targetEvaluationType) ||
-                        lista.find((ev) => ev.isFinalized) ||
-                        lista[0] ||
                         null;
                     if (match) {
                         mapa[asig.id] = match;
@@ -64,11 +68,11 @@ export default function MisEstudiantes() {
         try {
             let data = [];
             if (userRole === 'Profesor de Asignatura') {
-                data = await assignmentService.getByProfessor(user.id, { signal });
+                data = await assignmentService.getByProfessor(user.id, { signal, params: { history } });
             } else if (userRole === 'Profesor Colaborador') {
-                data = await assignmentService.getByCollaborator(user.id, { signal });
+                data = await assignmentService.getByCollaborator(user.id, { signal, params: { history } });
             } else if (userRole === 'Tutor') {
-                data = await assignmentService.getByTutor(user.id, { signal });
+                data = await assignmentService.getByTutor(user.id, { signal, params: { history } });
             }
 
             const lista = Array.isArray(data) ? data : [];
@@ -82,7 +86,7 @@ export default function MisEstudiantes() {
         } finally {
             setLoading(false);
         }
-    }, [user, userRole, cargarEvaluacionesAsignaciones]);
+    }, [user, userRole, cargarEvaluacionesAsignaciones, history]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -145,10 +149,7 @@ export default function MisEstudiantes() {
                 qualitativeComments: evaluationData.comments,
                 isFinalized: evaluationData.isFinalized,
                 digitalSignature: evaluationData.isFinalized ? evaluationData.digitalSignature.trim() : null,
-                criteria: [
-                    { criteriaName: 'Responsabilidad y Puntualidad', achievementLevel: 'LOGRO_ALTO', points: 25.0, justification: 'Evaluado general' },
-                    { criteriaName: 'Dominio del Grupo', achievementLevel: 'LOGRO_ADECUADO', points: 20.0, justification: 'Evaluado general' }
-                ]
+                criteria: []
             };
 const saved = await evaluationService.createOrUpdate(payload);
             setEvaluacionesPorAsignacion((prev) => ({
@@ -253,7 +254,7 @@ const saved = await evaluationService.createOrUpdate(payload);
     const handleDescargarZip = async () => {
         try {
             const token = localStorage.getItem('token');
-            const respuesta = await fetch(`${BASE_URL}/api/portafolio/download-zip`, {
+            const respuesta = await fetch(`${BASE_URL}/api/portafolio/download-zip?history=${history}`, {
                 headers: {
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 }
@@ -286,6 +287,7 @@ const saved = await evaluationService.createOrUpdate(payload);
                         <p className="text-gray-500 mt-1">Lleva el control, seguimiento y evaluación oficial de los estudiantes asignados a tu tutela.</p>
                     </div>
                     <button
+                        hidden={userRole !== 'Profesor de Asignatura'}
                         onClick={handleDescargarZip}
                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
                     >
@@ -296,7 +298,11 @@ const saved = await evaluationService.createOrUpdate(payload);
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <DataTable
+                <div className="flex flex-wrap gap-4 mb-4">
+                <label>Mostrar <select value={history ? 'historial' : 'vigente'} onChange={e => setHistory(e.target.value === 'historial')} className="border rounded p-2 ml-2"><option value="vigente">Prácticas vigentes</option><option value="historial">Todo el historial</option></select></label>
+                {userRole === 'Profesor Colaborador' && <label>Pauta <select className="border rounded p-2 ml-2" value={selectedRubric} onChange={e => setSelectedRubric(e.target.value)}>{rubrics.map(r => <option key={r.type} value={r.type}>{r.name}</option>)}</select></label>}
+            </div>
+            <DataTable
                     columns={columns}
                     data={asignaciones}
                     isLoading={loading}
@@ -311,7 +317,9 @@ const saved = await evaluationService.createOrUpdate(payload);
                 title={isLocked ? 'Calificación Oficial Registrada' : 'Pauta de Evaluación Digital'}
             >
                 {selectedAssignment && (
-                    <form onSubmit={handleSubmitEvaluation} className="space-y-4">
+                    <div>
+                    {userRole === 'Profesor Colaborador' && <section className="mb-5 space-y-2"><h3 className="font-bold">{rubrics.find(r => r.type === selectedRubric)?.name}</h3><p>Niveles por indicador: 2 a 7, sin decimales. Consulta los indicadores de la pauta antes de registrar la evaluación.</p><ol className="max-h-64 overflow-auto list-decimal pl-5">{rubrics.find(r => r.type === selectedRubric)?.indicators.map(i => <li key={i.id}>{i.id}: {i.text}</li>)}</ol></section>}
+                <form onSubmit={handleSubmitEvaluation} className="space-y-4">
                         <div className="bg-blue-50 p-4 rounded-lg mb-4">
                             <p className="font-bold text-blue-900">Estudiante: {selectedAssignment.student?.fullName}</p>
                             <p className="text-sm text-blue-700">Asignatura: {selectedAssignment.subject?.name}</p>
@@ -420,6 +428,7 @@ const saved = await evaluationService.createOrUpdate(payload);
                             )}
                         </div>
                     </form>
+                    </div>
                 )}
             </Modal>
         </div>
