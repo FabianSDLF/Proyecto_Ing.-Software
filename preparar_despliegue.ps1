@@ -103,6 +103,7 @@ services:
         condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
+      - CHATBOT_URL=http://chatbot:8000
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=admin
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
@@ -125,6 +126,7 @@ services:
     build: ./chatbot
     container_name: practicas_chatbot
     environment:
+      - BACKEND_URL=http://backend:8080
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
     restart: unless-stopped
 

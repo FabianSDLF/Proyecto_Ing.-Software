@@ -34,6 +34,7 @@ services:
       # Sobrescribimos las variables de entorno de application.properties
       # para que apunte al contenedor "db" en vez de "localhost"
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
+      - CHATBOT_URL=http://chatbot:8000
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=admin
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
@@ -63,6 +64,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - BACKEND_URL=http://backend:8080
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.6-flash,gemini-3.5-flash}
     restart: unless-stopped
@@ -70,4 +72,3 @@ services:
 volumes:
   db_data:
   backend_uploads:
-

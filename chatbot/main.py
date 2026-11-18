@@ -1,4 +1,8 @@
 import os
+import asyncio
+import time
+import urllib.request
+import urllib.error
 import re
 import glob
 import io
@@ -6,7 +10,8 @@ import json
 import unicodedata
 import logging
 from typing import List, Dict, Optional, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -19,6 +24,40 @@ app = FastAPI(
     description="Microservicio de IA pedagógica y retroalimentación formativa para Pedagogía en Matemática (UBB / MINEDUC)",
     version="3.0.0"
 )
+
+def authenticate_user(authorization: str) -> dict:
+    """Validar el token y la cuenta activa en el backend; no confiar en claims enviados por el cliente."""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Inicia sesión en PITÁGORAS")
+    request = urllib.request.Request(
+        os.environ.get("BACKEND_URL", "http://localhost:8080").rstrip("/") + "/api/usuarios/perfil",
+        headers={"Authorization": authorization})
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            user = json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise HTTPException(status_code=401 if exc.code in (401, 403) else 503, detail="No se pudo validar la sesión") from exc
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail="Servicio de autenticación no disponible") from exc
+    if not user.get("id") or not user.get("active"):
+        raise HTTPException(status_code=401, detail="Cuenta no autorizada")
+    return user
+
+
+@app.middleware("http")
+async def authenticated_access(request: Request, call_next):
+    if request.url.path != "/health" and request.method != "OPTIONS":
+        try:
+            request.state.user = await asyncio.to_thread(authenticate_user, request.headers.get("Authorization", ""))
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return await call_next(request)
+
+
+def owned_session(request: Request, session_id: str) -> str:
+    # Un mismo identificador enviado por dos alumnos produce dos conversaciones distintas.
+    return str(request.state.user["id"]) + ":" + (session_id or "default-session")[:120]
+
 
 # Configurar CORS
 app.add_middleware(
@@ -70,6 +109,7 @@ class LessonPlanEvaluationRequest(BaseModel):
     inicio: str = Field(description="Descripción del momento de Inicio")
     desarrollo: str = Field(description="Descripción del momento de Desarrollo")
     cierre: str = Field(description="Descripción del momento de Cierre")
+    inclusion: str = Field(default="", description="Adaptaciones PIE / NEE / DUA")
 
 class LessonPlanEvaluationResponse(BaseModel):
     aiApproved: bool = Field(description="Indica si la planificación cuenta con coherencia pedagógica suficiente.")
@@ -847,9 +887,12 @@ def health_check():
     }
 
 @app.post("/api/config/apikey")
-def configure_api_key(req: ApiKeyConfigRequest):
+def configure_api_key(req: ApiKeyConfigRequest, request: Request):
     """Permite configurar o actualizar la GOOGLE_API_KEY en caliente sin reiniciar el contenedor."""
     global RUNTIME_API_KEY
+    role = (request.state.user.get("role") or {}).get("name", "").upper().replace(" ", "_")
+    if role != "ADMINISTRADOR":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede configurar el proveedor")
     key = req.api_key.strip()
     if not key:
         RUNTIME_API_KEY = None
@@ -868,8 +911,8 @@ def configure_api_key(req: ApiKeyConfigRequest):
 
 @app.post("/api/chat", response_model=ChatResponse)
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
-    session_id = request.session_id or "default-session"
+async def chat_endpoint(request: ChatRequest, http_request: Request):
+    session_id = owned_session(http_request, request.session_id)
     client = get_gemini_client()
 
     # Recuperar fragmentos relevantes de los 11 PDFs oficiales para enriquecer el contexto
@@ -920,6 +963,7 @@ async def chat_endpoint(request: ChatRequest):
 
 @app.post("/api/chat-archivo", response_model=ChatResponse)
 async def chat_con_archivo_endpoint(
+    http_request: Request,
     file: UploadFile = File(...),
     message: str = Form("Por favor revisa y retroalimenta mi planificación adjunta según los criterios de RetroPlani Mate V3."),
     session_id: str = Form("default-session")
@@ -928,7 +972,10 @@ async def chat_con_archivo_endpoint(
     Implementa el Flujo Dialógico de RetroPlani Mate V3 cuando el estudiante adjunta
     un archivo (.pdf, .docx, .txt) de su planificación directamente en el chat.
     """
-    content_bytes = await file.read()
+    session_id = owned_session(http_request, session_id)
+    content_bytes = await file.read(20 * 1024 * 1024 + 1)
+    if len(content_bytes) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="El archivo supera 20 MB")
     filename = file.filename or "planificacion.pdf"
     texto_extraido = extraer_texto_archivo_subido(filename, content_bytes)
 
@@ -1020,6 +1067,7 @@ async def evaluar_planificacion_endpoint(req: LessonPlanEvaluationRequest):
         Objetivo de la Clase (Específico): {req.specificObjectives}
         Objetivo Actitudinal (OAA): {req.objetivoActitudinal}
         Duración: {req.duracion}
+        Inclusión y adaptaciones PIE / NEE / DUA: {req.inclusion}
         Recursos: {req.recursos}
         Estrategia e Instrumento de Evaluación: {req.evaluacion}
         --- Momento de Inicio ---

@@ -7,7 +7,13 @@ const CHATBOT_BASE_URL = (RAW_CHATBOT_URL !== undefined && RAW_CHATBOT_URL !== '
   ? RAW_CHATBOT_URL.replace(/\/+$/, '')
   : '/chatbot';
 
+const createSessionId = () => typeof crypto.randomUUID === 'function' ? crypto.randomUUID()
+  : Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
+let session = createSessionId();
+const authenticatedHeaders = () => ({ Authorization: 'Bearer ' + (localStorage.getItem('token') || '') });
+
 export const chatbotService = {
+  resetSession() { session = createSessionId(); },
   /**
    * Verificar estado del servicio del Chatbot
    */
@@ -28,7 +34,7 @@ export const chatbotService = {
   async configureApiKey(apiKey) {
     const response = await fetch(`${CHATBOT_BASE_URL}/api/config/apikey`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authenticatedHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ api_key: apiKey })
     });
     if (!response.ok) {
@@ -43,11 +49,11 @@ export const chatbotService = {
    * @param {string} message
    * @param {string} [sessionId]
    */
-  async sendMessage(message, sessionId = 'web-session') {
+  async sendMessage(message, sessionId = 'web') {
     const response = await fetch(`${CHATBOT_BASE_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, session_id: sessionId })
+      body: JSON.stringify({ message, session_id: session + ":" + sessionId })
     });
 
     if (!response.ok) {
@@ -66,10 +72,11 @@ export const chatbotService = {
     const formData = new FormData();
     formData.append('file', file);
     if (message) formData.append('message', message);
-    formData.append('session_id', sessionId);
+    formData.append('session_id', session + ':' + sessionId);
 
     const response = await fetch(`${CHATBOT_BASE_URL}/api/chat-archivo`, {
       method: 'POST',
+      headers: authenticatedHeaders(),
       body: formData
     });
 
@@ -95,7 +102,8 @@ export const chatbotService = {
       evaluacion: planData.evaluacion || '',
       inicio: planData.inicio || '',
       desarrollo: planData.desarrollo || '',
-      cierre: planData.cierre || ''
+      cierre: planData.cierre || '',
+      inclusion: planData.inclusion || ''
     };
 
     const response = await fetch(`${CHATBOT_BASE_URL}/api/evaluar-planificacion`, {
