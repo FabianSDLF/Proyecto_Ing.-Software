@@ -1,42 +1,84 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { BASE_URL } from '../services/apiClient';
 import assignmentService from '../services/assignmentService';
-import evaluationService from '../services/evaluationService';
+import evaluationService, { calculatePreliminaryGrade } from '../services/evaluationService';
+import FinalizeEvaluationDialog from '../components/FinalizeEvaluationDialog';
 import { DataTable, Badge, Modal, Button, Input } from '../components/ui';
 
-function getEvaluationTypeForRole(role) {
-    if (role === 'Tutor') return 'PAUTA_OBSERVACION_TUTOR';
+function getDefaultEvaluationTypeForRole(role) {
+    if (role === 'Tutor') return 'TUTOR_ESP_1';
+    if (role === 'Profesor Colaborador') return 'COLAB_ESP_1';
     if (role === 'Profesor de Asignatura') return 'RUBRICA_INFORME';
-    return 'PAUTA_OBSERVACION_COLABORADOR';
+    return 'COLAB_ESP_1';
 }
 
 export default function MisEstudiantes() {
     const { user, userRole } = useAuth();
     const navigate = useNavigate();
     const [asignaciones, setAsignaciones] = useState([]);
-    const [evaluacionesPorAsignacion, setEvaluacionesPorAsignacion] = useState({});
+    const [todasEvaluacionesPorAsignacion, setTodasEvaluacionesPorAsignacion] = useState({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+    const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [existingEvaluation, setExistingEvaluation] = useState(null);
+    const [conflictMessage, setConflictMessage] = useState(null);
+
     const [evaluationData, setEvaluationData] = useState({
         score: '',
         comments: '',
-        isFinalized: false,
-        digitalSignature: '',
     });
+    const [indicatorPoints, setIndicatorPoints] = useState({});
 
     const [rubrics, setRubrics] = useState([]);
-    const [selectedRubric, setSelectedRubric] = useState('COLAB_ESP_1');
+    const [selectedRubric, setSelectedRubric] = useState(() => getDefaultEvaluationTypeForRole(userRole));
     const [history, setHistory] = useState(false);
-    const targetEvaluationType = userRole === 'Profesor Colaborador' ? selectedRubric : getEvaluationTypeForRole(userRole);
+
+    const usesProfessionalRubrics = userRole === 'Profesor Colaborador' || userRole === 'Tutor';
+
     useEffect(() => {
-        if (userRole === 'Profesor Colaborador') evaluationService.getCollaboratorRubrics().then(setRubrics).catch(err => toast.error(err.message));
+        const defaultType = getDefaultEvaluationTypeForRole(userRole);
+        setSelectedRubric(defaultType);
+
+        if (userRole === 'Profesor Colaborador') {
+            evaluationService
+                .getCollaboratorRubrics()
+                .then((data) => {
+                    const list = Array.isArray(data) ? data : [];
+                    setRubrics(list);
+                    if (list.length > 0 && !list.some((r) => r.type === defaultType)) {
+                        setSelectedRubric(list[0].type);
+                    }
+                })
+                .catch((err) => toast.error(err.message || 'Error al cargar pautas del colaborador'));
+        } else if (userRole === 'Tutor') {
+            evaluationService
+                .getTutorRubrics()
+                .then((data) => {
+                    const list = Array.isArray(data) ? data : [];
+                    setRubrics(list);
+                    if (list.length > 0 && !list.some((r) => r.type === defaultType)) {
+                        setSelectedRubric(list[0].type);
+                    }
+                })
+                .catch((err) => toast.error(err.message || 'Error al cargar pautas del tutor'));
+        } else {
+            setRubrics([]);
+        }
     }, [userRole]);
+
+    const targetEvaluationType = usesProfessionalRubrics
+        ? selectedRubric
+        : getDefaultEvaluationTypeForRole(userRole);
+
+    const activeRubric = useMemo(
+        () => rubrics.find((r) => r.type === targetEvaluationType) || null,
+        [rubrics, targetEvaluationType]
+    );
 
     const cargarEvaluacionesAsignaciones = useCallback(async (listaAsignaciones, signal) => {
         const mapa = {};
@@ -44,13 +86,7 @@ export default function MisEstudiantes() {
             listaAsignaciones.map(async (asig) => {
                 try {
                     const evals = await evaluationService.getByAssignment(asig.id, { signal });
-                    const lista = Array.isArray(evals) ? evals : [];
-                    const match =
-                        lista.find((ev) => ev.type === targetEvaluationType) ||
-                        null;
-                    if (match) {
-                        mapa[asig.id] = match;
-                    }
+                    mapa[asig.id] = Array.isArray(evals) ? evals : [];
                 } catch (err) {
                     if (err.name !== 'AbortError') {
                         console.error(`Error al cargar evaluación de asignación ${asig.id}:`, err);
@@ -58,8 +94,27 @@ export default function MisEstudiantes() {
                 }
             })
         );
-        setEvaluacionesPorAsignacion(mapa);
-    }, [targetEvaluationType]);
+        setTodasEvaluacionesPorAsignacion(mapa);
+    }, []);
+
+    const evaluacionesPorAsignacion = useMemo(() => {
+        const result = {};
+        Object.entries(todasEvaluacionesPorAsignacion).forEach(([asigId, lista]) => {
+            const match = (lista || []).find((ev) => ev.type === targetEvaluationType) || null;
+            if (match) {
+                result[asigId] = match;
+            }
+        });
+        return result;
+    }, [todasEvaluacionesPorAsignacion, targetEvaluationType]);
+
+    const hasHistoricalLegacyRecords = useMemo(() => {
+        const legacyType =
+            userRole === 'Tutor' ? 'PAUTA_OBSERVACION_TUTOR' : 'PAUTA_OBSERVACION_COLABORADOR';
+        return Object.values(todasEvaluacionesPorAsignacion).some((lista) =>
+            (lista || []).some((ev) => ev.type === legacyType)
+        );
+    }, [todasEvaluacionesPorAsignacion, userRole]);
 
     const cargarEstudiantes = useCallback(async (signal) => {
         if (!user) return;
@@ -94,78 +149,291 @@ export default function MisEstudiantes() {
         return () => controller.abort();
     }, [cargarEstudiantes]);
 
-    const handleOpenEvaluation = useCallback((assignment) => {
-        setSelectedAssignment(assignment);
-        const currentEval = evaluacionesPorAsignacion[assignment.id] || null;
-        setExistingEvaluation(currentEval);
-
-        if (currentEval) {
+    const hydrateFormFromEvaluation = useCallback((evalRecord) => {
+        if (evalRecord) {
             setEvaluationData({
-                score: currentEval.score !== undefined && currentEval.score !== null ? String(currentEval.score) : '',
-                comments: currentEval.qualitativeComments || '',
-                isFinalized: Boolean(currentEval.isFinalized),
-                digitalSignature: currentEval.digitalSignature || '',
+                score:
+                    evalRecord.score !== undefined && evalRecord.score !== null
+                        ? String(evalRecord.score)
+                        : '',
+                comments: evalRecord.qualitativeComments || '',
             });
+            const pointsMap = {};
+            if (Array.isArray(evalRecord.criteria)) {
+                evalRecord.criteria.forEach((c) => {
+                    const code = c.criterionCode || c.criteriaName;
+                    if (code && c.points != null) {
+                        pointsMap[code] = Number(c.points);
+                    }
+                });
+            }
+            setIndicatorPoints(pointsMap);
         } else {
             setEvaluationData({
                 score: '',
                 comments: '',
-                isFinalized: false,
-                digitalSignature: '',
             });
+            setIndicatorPoints({});
         }
+    }, []);
+
+    const handleOpenEvaluation = useCallback((assignment) => {
+        setSelectedAssignment(assignment);
+        setConflictMessage(null);
+        const currentEval = evaluacionesPorAsignacion[assignment.id] || null;
+        setExistingEvaluation(currentEval);
+        hydrateFormFromEvaluation(currentEval);
         setIsEvaluationModalOpen(true);
-    }, [evaluacionesPorAsignacion]);
+    }, [evaluacionesPorAsignacion, hydrateFormFromEvaluation]);
 
     const handleCloseEvaluation = () => {
+        setIsFinalizeDialogOpen(false);
         setIsEvaluationModalOpen(false);
         setSelectedAssignment(null);
         setExistingEvaluation(null);
+        setConflictMessage(null);
     };
 
-    const isLocked = Boolean(existingEvaluation?.isFinalized);
+    const reloadCurrentEvaluationAfterConflict = useCallback(async (assignmentId) => {
+        try {
+            const evals = await evaluationService.getByAssignment(assignmentId);
+            const lista = Array.isArray(evals) ? evals : [];
+            setTodasEvaluacionesPorAsignacion((prev) => ({
+                ...prev,
+                [assignmentId]: lista,
+            }));
+            const current = lista.find((ev) => ev.type === targetEvaluationType) || null;
+            setExistingEvaluation(current);
+            hydrateFormFromEvaluation(current);
+            return current;
+        } catch (err) {
+            console.error('Error al recuperar versión actual de la pauta:', err);
+            return null;
+        }
+    }, [targetEvaluationType, hydrateFormFromEvaluation]);
 
-    const handleSubmitEvaluation = async (e) => {
-        e.preventDefault();
+    const isLocked = Boolean(existingEvaluation?.isFinalized);
+    const isCurrentRubricType = Boolean(activeRubric);
+
+    const displayedIndicators = useMemo(() => {
+        if (isLocked && Array.isArray(existingEvaluation?.criteria) && existingEvaluation.criteria.length > 0) {
+            return existingEvaluation.criteria.map((c, idx) => ({
+                id: c.criterionCode || c.criteriaName || `IND-${idx + 1}`,
+                criterionCode: c.criterionCode || c.criteriaName || `IND-${idx + 1}`,
+                dimension: c.dimension || 'General',
+                order: c.order || idx + 1,
+                text: c.text || c.criteriaName || '',
+                points: c.points,
+            }));
+        }
+        return activeRubric?.indicators || [];
+    }, [isLocked, existingEvaluation, activeRubric]);
+
+    const rubricProgress = useMemo(() => {
+        if (!isCurrentRubricType) return null;
+        const indicators = activeRubric?.indicators || [];
+        const totalCount = indicators.length;
+        let observedCount = 0;
+        let sumPoints = 0;
+        indicators.forEach((ind) => {
+            const code = ind.criterionCode || ind.id;
+            const val = indicatorPoints[code];
+            if (val !== undefined && val !== null && val !== '') {
+                observedCount += 1;
+                sumPoints += Number(val);
+            }
+        });
+        const maxPoints = activeRubric?.maxPoints || totalCount * 7;
+        const isComplete = totalCount > 0 && observedCount === totalCount;
+        const preliminaryScore = isComplete
+            ? calculatePreliminaryGrade(sumPoints, maxPoints)
+            : null;
+        return {
+            observedCount,
+            totalCount,
+            sumPoints,
+            maxPoints,
+            isComplete,
+            preliminaryScore,
+        };
+    }, [isCurrentRubricType, activeRubric, indicatorPoints]);
+
+    const handleSetIndicatorPoint = (code, value) => {
+        if (isLocked) return;
+        setIndicatorPoints((prev) => {
+            const next = { ...prev };
+            if (value === '' || value === null || value === undefined) {
+                delete next[code];
+            } else {
+                next[code] = Number(value);
+            }
+            return next;
+        });
+    };
+
+    const handleSetAllIndicators = (pointValue) => {
+        if (isLocked || !activeRubric?.indicators) return;
+        const next = {};
+        activeRubric.indicators.forEach((ind) => {
+            const code = ind.criterionCode || ind.id;
+            next[code] = Number(pointValue);
+        });
+        setIndicatorPoints(next);
+    };
+
+    const buildDraftPayload = () => {
+        const criteriaList = [];
+        if (isCurrentRubricType && activeRubric?.indicators) {
+            activeRubric.indicators.forEach((ind) => {
+                const code = ind.criterionCode || ind.id;
+                const pts = indicatorPoints[code];
+                if (pts !== undefined && pts !== null && pts !== '') {
+                    criteriaList.push({
+                        criterionCode: code,
+                        points: Number(pts),
+                    });
+                }
+            });
+        }
+        const numericScore = !isCurrentRubricType && evaluationData.score !== ''
+            ? parseFloat(evaluationData.score)
+            : null;
+
+        return {
+            practiceAssignmentId: selectedAssignment.id,
+            type: targetEvaluationType,
+            rubricVersion: activeRubric?.rubricVersion || '2025-2-v1',
+            expectedRevision: existingEvaluation?.revision ?? null,
+            score: numericScore,
+            qualitativeComments: evaluationData.comments,
+            isFinalized: false,
+            criteria: criteriaList,
+        };
+    };
+
+    const updateSavedEvaluationInState = (saved) => {
+        setExistingEvaluation(saved);
+        hydrateFormFromEvaluation(saved);
+        setTodasEvaluacionesPorAsignacion((prev) => {
+            const asigId = selectedAssignment.id;
+            const currentList = prev[asigId] || [];
+            const filtered = currentList.filter((ev) => ev.type !== saved.type);
+            return {
+                ...prev,
+                [asigId]: [...filtered, saved],
+            };
+        });
+    };
+
+    const handleSaveDraft = async (e) => {
+        if (e) e.preventDefault();
         if (!selectedAssignment || isLocked) return;
 
-        const numericScore = parseFloat(evaluationData.score);
-        if (Number.isNaN(numericScore) || numericScore < 1.0 || numericScore > 7.0) {
-            toast.error('La calificación debe estar entre 1.0 y 7.0.');
-            return;
+        if (!isCurrentRubricType) {
+            const numericScore = parseFloat(evaluationData.score);
+            if (Number.isNaN(numericScore) || numericScore < 1.0 || numericScore > 7.0) {
+                toast.error('La calificación debe estar entre 1.0 y 7.0.');
+                return;
+            }
         }
 
-        if (evaluationData.isFinalized && !evaluationData.digitalSignature.trim()) {
-            toast.error('Debe ingresar su firma digital para finalizar y registrar oficialmente la evaluación.');
+        setSubmitting(true);
+        setConflictMessage(null);
+        try {
+            const payload = buildDraftPayload();
+            const saved = await evaluationService.createOrUpdate(payload);
+            updateSavedEvaluationInState(saved);
+            toast.success('Borrador de pauta de evaluación guardado con éxito.');
+        } catch (error) {
+            console.error(error);
+            if (error?.status === 409) {
+                const msg =
+                    'La pauta cambió en otra sesión o ya fue firmada oficialmente. Se ha recuperado el estado actual.';
+                setConflictMessage(msg);
+                toast.error(msg);
+                await reloadCurrentEvaluationAfterConflict(selectedAssignment.id);
+            } else {
+                toast.error(error.message || 'Error al guardar el borrador');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handlePrepareFinalize = async () => {
+        if (!selectedAssignment || isLocked) return;
+
+        if (isCurrentRubricType) {
+            if (!rubricProgress?.isComplete) {
+                toast.error(
+                    `Debe calificar todos los indicadores oficiales (${rubricProgress?.observedCount ?? 0} de ${rubricProgress?.totalCount ?? 0}) con puntajes entre 2 y 7 antes de firmar.`
+                );
+                return;
+            }
+        } else {
+            const numericScore = parseFloat(evaluationData.score);
+            if (Number.isNaN(numericScore) || numericScore < 1.0 || numericScore > 7.0) {
+                toast.error('La calificación debe estar entre 1.0 y 7.0 para poder firmar.');
+                return;
+            }
+        }
+
+        if (!evaluationData.comments || !evaluationData.comments.trim()) {
+            toast.error('Ingrese comentarios cualitativos y retroalimentación antes de firmar la evaluación.');
             return;
         }
 
         setSubmitting(true);
+        setConflictMessage(null);
         try {
-            const payload = {
-                practiceAssignmentId: selectedAssignment.id,
-                type: targetEvaluationType,
-                score: numericScore,
-                qualitativeComments: evaluationData.comments,
-                isFinalized: evaluationData.isFinalized,
-                digitalSignature: evaluationData.isFinalized ? evaluationData.digitalSignature.trim() : null,
-                criteria: []
-            };
-const saved = await evaluationService.createOrUpdate(payload);
-            setEvaluacionesPorAsignacion((prev) => ({
-                ...prev,
-                [selectedAssignment.id]: saved,
-            }));
-
-            if (evaluationData.isFinalized) {
-                toast.success('Evaluación finalizada y firmada digitalmente como calificación oficial e inamovible.');
-            } else {
-                toast.success('Borrador de pauta de evaluación guardado con éxito.');
-            }
-            handleCloseEvaluation();
+            const payload = buildDraftPayload();
+            const saved = await evaluationService.createOrUpdate(payload);
+            updateSavedEvaluationInState(saved);
+            setIsFinalizeDialogOpen(true);
         } catch (error) {
             console.error(error);
-            toast.error(error.message || 'Error al guardar la evaluación');
+            if (error?.status === 409) {
+                const msg =
+                    'La pauta cambió en otra sesión o ya fue firmada oficialmente. Se ha recuperado el estado actual.';
+                setConflictMessage(msg);
+                toast.error(msg);
+                await reloadCurrentEvaluationAfterConflict(selectedAssignment.id);
+            } else {
+                toast.error(error.message || 'Error al validar la pauta antes de firmar');
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleConfirmFinalize = async (evaluationToClose) => {
+        if (!evaluationToClose?.id) return;
+        setSubmitting(true);
+        setConflictMessage(null);
+        try {
+            const closed = await evaluationService.finalize(evaluationToClose.id, {
+                expectedRevision: evaluationToClose.revision ?? 1,
+                confirmed: true,
+            });
+            updateSavedEvaluationInState(closed);
+            setIsFinalizeDialogOpen(false);
+            toast.success(
+                'Evaluación finalizada, firmada digitalmente y publicada como calificación oficial e inamovible.'
+            );
+        } catch (error) {
+            console.error(error);
+            if (error?.status === 409) {
+                const msg =
+                    'Conflicto (409): La pauta fue modificada o ya había sido finalizada. Se ha recuperado su estado oficial actual.';
+                setConflictMessage(msg);
+                toast.error(msg);
+                const latest = await reloadCurrentEvaluationAfterConflict(selectedAssignment.id);
+                if (latest?.isFinalized) {
+                    setIsFinalizeDialogOpen(false);
+                }
+            } else {
+                toast.error(error.message || 'Error al firmar y finalizar la evaluación');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -205,7 +473,7 @@ const saved = await evaluationService.createOrUpdate(payload);
             ),
         },
         {
-            header: 'Calificación',
+            header: 'Calificación (Instrumento Activo)',
             align: 'center',
             render: (row) => {
                 const ev = evaluacionesPorAsignacion[row.id];
@@ -215,12 +483,29 @@ const saved = await evaluationService.createOrUpdate(payload);
                 if (ev.isFinalized) {
                     return (
                         <div className="flex flex-col items-center gap-1">
-                            <Badge variant="success">Oficial: {Number(ev.score).toFixed(1)}</Badge>
-                            <span className="text-[11px] text-green-700 font-medium">Firmada (Inamovible)</span>
+                            <Badge variant="success">
+                                Oficial: {ev.score != null ? Number(ev.score).toFixed(1) : '—'}
+                            </Badge>
+                            <span className="text-[11px] text-green-700 font-medium">
+                                Firmada (Publicada)
+                            </span>
                         </div>
                     );
                 }
-                return <Badge variant="warning">Borrador: {Number(ev.score).toFixed(1)}</Badge>;
+                return (
+                    <div className="flex flex-col items-center gap-1">
+                        <Badge variant="warning">
+                            {ev.score != null
+                                ? `Borrador: ${Number(ev.score).toFixed(1)}`
+                                : 'Borrador en progreso'}
+                        </Badge>
+                        {ev.totalPoints != null && ev.maxPoints != null && (
+                            <span className="text-[11px] text-amber-800">
+                                {ev.totalPoints} / {ev.maxPoints} pts
+                            </span>
+                        )}
+                    </div>
+                );
             },
         },
         {
@@ -250,14 +535,15 @@ const saved = await evaluationService.createOrUpdate(payload);
                 );
             },
         },
-    ], [canEvaluate, evaluacionesPorAsignacion, handleOpenEvaluation]);
+    ], [canEvaluate, evaluacionesPorAsignacion, handleOpenEvaluation, navigate]);
+
     const handleDescargarZip = async () => {
         try {
             const token = localStorage.getItem('token');
             const respuesta = await fetch(`${BASE_URL}/api/portafolio/download-zip?history=${history}`, {
                 headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                }
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
             });
             if (respuesta.ok) {
                 const blob = await respuesta.blob();
@@ -277,32 +563,71 @@ const saved = await evaluationService.createOrUpdate(payload);
         }
     };
 
+    const legacyHistoricalType =
+        userRole === 'Tutor' ? 'PAUTA_OBSERVACION_TUTOR' : 'PAUTA_OBSERVACION_COLABORADOR';
 
     return (
         <div className="p-8 max-w-6xl mx-auto space-y-8">
             <div>
-<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <div>
                         <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Mis Estudiantes</h1>
-                        <p className="text-gray-500 mt-1">Lleva el control, seguimiento y evaluación oficial de los estudiantes asignados a tu tutela.</p>
+                        <p className="text-gray-500 mt-1">
+                            Lleva el control, seguimiento y evaluación estandarizada de los estudiantes asignados a tu supervisión.
+                        </p>
                     </div>
                     <button
                         hidden={userRole !== 'Profesor de Asignatura'}
                         onClick={handleDescargarZip}
                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
                         Descargar Todos los Informes (ZIP)
                     </button>
                 </div>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex flex-wrap gap-4 mb-4">
-                <label>Mostrar <select value={history ? 'historial' : 'vigente'} onChange={e => setHistory(e.target.value === 'historial')} className="border rounded p-2 ml-2"><option value="vigente">Prácticas vigentes</option><option value="historial">Todo el historial</option></select></label>
-                {userRole === 'Profesor Colaborador' && <label>Pauta <select className="border rounded p-2 ml-2" value={selectedRubric} onChange={e => setSelectedRubric(e.target.value)}>{rubrics.map(r => <option key={r.type} value={r.type}>{r.name}</option>)}</select></label>}
-            </div>
-            <DataTable
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                    <label className="text-sm font-medium text-gray-700">
+                        Mostrar
+                        <select
+                            value={history ? 'historial' : 'vigente'}
+                            onChange={(e) => setHistory(e.target.value === 'historial')}
+                            className="border border-gray-300 rounded-lg p-2 ml-2 bg-white"
+                        >
+                            <option value="vigente">Prácticas vigentes</option>
+                            <option value="historial">Todo el historial</option>
+                        </select>
+                    </label>
+
+                    {usesProfessionalRubrics && (
+                        <label className="text-sm font-medium text-gray-700">
+                            Pauta
+                            <select
+                                aria-label="Pauta de evaluación"
+                                className="border border-gray-300 rounded-lg p-2 ml-2 bg-white"
+                                value={selectedRubric}
+                                onChange={(e) => setSelectedRubric(e.target.value)}
+                            >
+                                {rubrics.map((r) => (
+                                    <option key={r.type} value={r.type}>
+                                        {r.name} ({r.area} • Visita {r.visit})
+                                    </option>
+                                ))}
+                                {hasHistoricalLegacyRecords && (
+                                    <option value={legacyHistoricalType}>
+                                        Pauta Histórica ({legacyHistoricalType})
+                                    </option>
+                                )}
+                            </select>
+                        </label>
+                    )}
+                </div>
+
+                <DataTable
                     columns={columns}
                     data={asignaciones}
                     isLoading={loading}
@@ -314,28 +639,77 @@ const saved = await evaluationService.createOrUpdate(payload);
             <Modal
                 isOpen={isEvaluationModalOpen}
                 onClose={handleCloseEvaluation}
-                title={isLocked ? 'Calificación Oficial Registrada' : 'Pauta de Evaluación Digital'}
+                title={isLocked ? 'Calificación Oficial Registrada (Modo Lectura)' : 'Pauta de Evaluación Digital'}
+                size="lg"
             >
                 {selectedAssignment && (
-                    <div>
-                    {userRole === 'Profesor Colaborador' && <section className="mb-5 space-y-2"><h3 className="font-bold">{rubrics.find(r => r.type === selectedRubric)?.name}</h3><p>Niveles por indicador: 2 a 7, sin decimales. Consulta los indicadores de la pauta antes de registrar la evaluación.</p><ol className="max-h-64 overflow-auto list-decimal pl-5">{rubrics.find(r => r.type === selectedRubric)?.indicators.map(i => <li key={i.id}>{i.id}: {i.text}</li>)}</ol></section>}
-                <form onSubmit={handleSubmitEvaluation} className="space-y-4">
-                        <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                            <p className="font-bold text-blue-900">Estudiante: {selectedAssignment.student?.fullName}</p>
-                            <p className="text-sm text-blue-700">Asignatura: {selectedAssignment.subject?.name}</p>
+                    <div className="space-y-4 max-h-[78vh] overflow-y-auto pr-1">
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <p className="font-bold text-blue-900">
+                                    Estudiante: {selectedAssignment.student?.fullName}
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                    Asignatura: {selectedAssignment.subject?.name}
+                                </p>
+                                {activeRubric && (
+                                    <p className="text-xs text-blue-800 font-medium mt-1">
+                                        Instrumento: {activeRubric.name} • Área: {activeRubric.area} • Visita {activeRubric.visit} • Versión {existingEvaluation?.rubricVersion || activeRubric.rubricVersion || '2025-2-v1'}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                                <Badge variant={isLocked ? 'success' : 'warning'}>
+                                    {isLocked ? 'Firmada y Publicada' : 'Borrador Privado'}
+                                </Badge>
+                                {existingEvaluation?.revision != null && (
+                                    <span className="text-xs text-gray-500">
+                                        Revisión #{existingEvaluation.revision}
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
+                        {conflictMessage && (
+                            <div role="alert" className="bg-red-50 border border-red-300 rounded-xl p-3 text-xs text-red-800 font-medium">
+                                {conflictMessage}
+                            </div>
+                        )}
+
                         {isLocked && (
-                            <div className="bg-green-50 border border-green-300 rounded-lg p-4 space-y-1">
+                            <div className="bg-green-50 border border-green-300 rounded-xl p-4 space-y-1.5">
                                 <p className="text-sm font-bold text-green-900">
-                                    Calificación Oficial e Inamovible (Firmada Digitalmente)
+                                    Calificación Oficial e Inamovible (Firmada Digitalmente y Publicada)
                                 </p>
                                 <p className="text-xs text-green-800">
-                                    Firmado por: <span className="font-semibold">{existingEvaluation?.digitalSignature}</span>
+                                    Firmado por:{' '}
+                                    <span className="font-semibold">
+                                        {existingEvaluation?.finalizedByName || existingEvaluation?.digitalSignature || 'Evaluador Oficial'}
+                                    </span>
+                                    {existingEvaluation?.finalizedByEmail
+                                        ? ` <${existingEvaluation.finalizedByEmail}>`
+                                        : ''}
+                                    {existingEvaluation?.finalizedByRole
+                                        ? ` (${existingEvaluation.finalizedByRole})`
+                                        : ''}
                                 </p>
-                                {existingEvaluation?.evaluationDate && (
+                                {(existingEvaluation?.finalizedAt || existingEvaluation?.evaluationDate) && (
                                     <p className="text-xs text-green-700">
-                                        Fecha de registro oficial: {new Date(existingEvaluation.evaluationDate).toLocaleString('es-CL')}
+                                        Fecha de cierre y publicación:{' '}
+                                        {new Date(
+                                            existingEvaluation.finalizedAt || existingEvaluation.evaluationDate
+                                        ).toLocaleString('es-CL')}
+                                    </p>
+                                )}
+                                {existingEvaluation?.totalPoints != null && existingEvaluation?.maxPoints != null && (
+                                    <p className="text-xs text-green-800 font-semibold">
+                                        Puntaje Oficial: {existingEvaluation.totalPoints} / {existingEvaluation.maxPoints} pts • Nota Oficial:{' '}
+                                        {existingEvaluation.score != null ? Number(existingEvaluation.score).toFixed(1) : '—'}
+                                    </p>
+                                )}
+                                {existingEvaluation?.snapshotHash && (
+                                    <p className="text-[11px] text-green-700 font-mono break-all">
+                                        SHA-256: {existingEvaluation.snapshotHash}
                                     </p>
                                 )}
                                 <p className="text-xs text-green-700 italic pt-1">
@@ -343,94 +717,183 @@ const saved = await evaluationService.createOrUpdate(payload);
                                 </p>
                             </div>
                         )}
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Calificación Final (1.0 - 7.0)</label>
-                            <Input 
-                                type="number" 
-                                step="0.1" 
-                                min="1.0" 
-                                max="7.0" 
-                                required 
-                                disabled={isLocked}
-                                value={evaluationData.score}
-                                onChange={(e) => setEvaluationData({...evaluationData, score: e.target.value})}
-                                placeholder="Ej: 6.5"
-                            />
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios Cualitativos y Retroalimentación</label>
-                            <textarea 
-                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-600"
-                                rows="4"
-                                required
-                                disabled={isLocked}
-                                value={evaluationData.comments}
-                                onChange={(e) => setEvaluationData({...evaluationData, comments: e.target.value})}
-                                placeholder="Escriba sus observaciones sobre el desempeño del estudiante en el aula..."
-                            ></textarea>
-                        </div>
-
-                        {!isLocked && (
-                            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                                <label className="flex items-center space-x-3 mb-2 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        className="form-checkbox h-5 w-5 text-blue-600 rounded"
-                                        checked={evaluationData.isFinalized}
-                                        onChange={(e) => {
-                                            const checked = e.target.checked;
-                                            setEvaluationData((prev) => ({
-                                                ...prev,
-                                                isFinalized: checked,
-                                                digitalSignature: checked && !prev.digitalSignature && user?.fullName
-                                                    ? user.fullName
-                                                    : prev.digitalSignature,
-                                            }));
-                                        }}
-                                    />
-                                    <span className="text-gray-800 font-medium">Finalizar evaluación definitivamente y firmar digitalmente</span>
-                                </label>
-                                
-                                {evaluationData.isFinalized && (
-                                    <div className="mt-3">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Firma Digital del Evaluador (Escriba su nombre completo)
-                                        </label>
-                                        <Input 
-                                            type="text" 
-                                            required={evaluationData.isFinalized}
-                                            value={evaluationData.digitalSignature}
-                                            onChange={(e) => setEvaluationData({...evaluationData, digitalSignature: e.target.value})}
-                                            placeholder="Nombre completo como firma electrónica"
-                                        />
-                                        <p className="text-xs text-red-600 mt-1">
-                                            Atención: Una vez enviada con firma digital, esta evaluación quedará registrada como calificación oficial e inamovible en el sistema.
+                        {(isCurrentRubricType || (isLocked && displayedIndicators.length > 0)) && (
+                            <section className="space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900">
+                                            {existingEvaluation?.instrumentName || activeRubric?.name || 'Desglose por Indicadores'}
+                                        </h3>
+                                        <p className="text-xs text-gray-600">
+                                            Escala oficial por indicador: 2 a 7 puntos (enteros). Exigencia del 60% para nota 4.0.
                                         </p>
                                     </div>
+                                    {!isLocked && rubricProgress && (
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                                            <Badge variant={rubricProgress.isComplete ? 'success' : 'warning'}>
+                                                Observados: {rubricProgress.observedCount} / {rubricProgress.totalCount}
+                                            </Badge>
+                                            <Badge variant="info">
+                                                Puntaje: {rubricProgress.sumPoints} / {rubricProgress.maxPoints}
+                                            </Badge>
+                                            {rubricProgress.preliminaryScore != null ? (
+                                                <Badge variant="success">
+                                                    Nota preliminar: {rubricProgress.preliminaryScore.toFixed(1)}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-amber-700 font-medium">
+                                                    Complete todos los indicadores para calcular nota
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!isLocked && activeRubric && (
+                                    <div className="flex flex-wrap items-center gap-2 text-xs bg-blue-50/60 border border-blue-100 rounded-lg p-2.5">
+                                        <span className="font-semibold text-blue-900">Asignación rápida a todos los indicadores:</span>
+                                        {[2, 3, 4, 5, 6, 7].map((pts) => (
+                                            <button
+                                                key={pts}
+                                                type="button"
+                                                onClick={() => handleSetAllIndicators(pts)}
+                                                className="px-2.5 py-1 rounded border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold transition-colors cursor-pointer"
+                                            >
+                                                Todos {pts}
+                                            </button>
+                                        ))}
+                                    </div>
                                 )}
-                            </div>
+
+                                <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-200">
+                                    {displayedIndicators.map((ind) => {
+                                        const code = ind.criterionCode || ind.id;
+                                        const currentVal = isLocked
+                                            ? (ind.points ?? indicatorPoints[code] ?? '')
+                                            : (indicatorPoints[code] ?? '');
+                                        return (
+                                            <div
+                                                key={code}
+                                                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white hover:bg-gray-50/70"
+                                            >
+                                                <div className="space-y-0.5 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="inline-block px-2 py-0.5 text-xs font-bold rounded bg-blue-100 text-blue-900">
+                                                            {code}
+                                                        </span>
+                                                        {ind.dimension && (
+                                                            <span className="text-xs text-gray-500 font-medium">
+                                                                Dimensión {ind.dimension}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm text-gray-800">{ind.text}</p>
+                                                </div>
+                                                <div className="shrink-0">
+                                                    {isLocked ? (
+                                                        <Badge variant="info">
+                                                            {currentVal !== '' ? `${Number(currentVal)} / 7 pts` : 'Sin puntaje'}
+                                                        </Badge>
+                                                    ) : (
+                                                        <select
+                                                            aria-label={`Puntaje indicador ${code}`}
+                                                            value={currentVal}
+                                                            disabled={isLocked}
+                                                            onChange={(e) => handleSetIndicatorPoint(code, e.target.value)}
+                                                            className="border border-gray-300 rounded-lg p-1.5 text-sm font-semibold bg-white"
+                                                        >
+                                                            <option value="">Sin observar</option>
+                                                            {(activeRubric?.scale || [2, 3, 4, 5, 6, 7]).map((val) => (
+                                                                <option key={val} value={val}>
+                                                                    {val} puntos
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4 border-t">
-                            <Button type="button" variant="outline" onClick={handleCloseEvaluation}>
-                                {isLocked ? 'Cerrar' : 'Cancelar'}
-                            </Button>
-                            {!isLocked && (
-                                <Button type="submit" variant="primary" disabled={submitting}>
-                                    {submitting
-                                        ? 'Procesando...'
-                                        : evaluationData.isFinalized
-                                        ? 'Firmar y Enviar'
-                                        : 'Guardar Borrador'}
-                                </Button>
+                        <form onSubmit={handleSaveDraft} className="space-y-4">
+                            {!isCurrentRubricType && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Calificación Final (1.0 - 7.0)
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        step="0.1"
+                                        min="1.0"
+                                        max="7.0"
+                                        required
+                                        disabled={isLocked}
+                                        value={evaluationData.score}
+                                        onChange={(e) => setEvaluationData({ ...evaluationData, score: e.target.value })}
+                                        placeholder="Ej: 6.5"
+                                    />
+                                </div>
                             )}
-                        </div>
-                    </form>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Comentarios Cualitativos y Retroalimentación
+                                </label>
+                                <textarea
+                                    className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-600 text-sm"
+                                    rows="4"
+                                    disabled={isLocked}
+                                    value={evaluationData.comments}
+                                    onChange={(e) => setEvaluationData({ ...evaluationData, comments: e.target.value })}
+                                    placeholder="Escriba sus observaciones sobre el desempeño del estudiante en el aula..."
+                                ></textarea>
+                            </div>
+
+                            <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-200">
+                                <Button type="button" variant="outline" onClick={handleCloseEvaluation}>
+                                    {isLocked ? 'Cerrar' : 'Cancelar'}
+                                </Button>
+                                {!isLocked && (
+                                    <>
+                                        <Button
+                                            type="submit"
+                                            variant="secondary"
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? 'Guardando...' : 'Guardar Borrador'}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="primary"
+                                            disabled={submitting}
+                                            onClick={handlePrepareFinalize}
+                                        >
+                                            {submitting ? 'Procesando...' : 'Revisar y Firmar Oficialmente'}
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </form>
                     </div>
                 )}
             </Modal>
+
+            <FinalizeEvaluationDialog
+                isOpen={isFinalizeDialogOpen}
+                onClose={() => setIsFinalizeDialogOpen(false)}
+                onConfirm={handleConfirmFinalize}
+                evaluation={existingEvaluation}
+                assignment={selectedAssignment}
+                rubric={activeRubric}
+                user={user}
+                userRole={userRole}
+                submitting={submitting}
+                conflictError={conflictMessage}
+            />
         </div>
     );
 }

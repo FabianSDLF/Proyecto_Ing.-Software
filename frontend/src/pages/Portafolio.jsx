@@ -1,4 +1,5 @@
 import PracticeSheet, { isCurrentPractice } from '../components/PracticeSheet';
+import StudentEvaluationsPanel from '../components/StudentEvaluationsPanel';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -794,6 +795,15 @@ export default function Portafolio({ isReadOnly = false }) {
                 >
                     Informe de Término
                 </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        setActiveTab('EVALUACIONES');
+                    }}
+                    className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'EVALUACIONES' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                >
+                    Mis Evaluaciones
+                </button>
             </div>
 
             {activeTab === 'EVIDENCIAS' && (
@@ -1010,6 +1020,14 @@ export default function Portafolio({ isReadOnly = false }) {
                         isLoading={uploadingFinalDoc}
                     />
                 </div>
+            )}
+
+            {activeTab === 'EVALUACIONES' && (
+                <StudentEvaluationsPanel
+                    assignmentId={assignmentId}
+                    history={history}
+                    onHistoryChange={(val) => setHistory(val)}
+                />
             )}
 
             {/* Diálogo de Confirmación Accesible para eliminación */}
