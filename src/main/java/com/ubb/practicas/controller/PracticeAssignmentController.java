@@ -28,13 +28,13 @@ public class PracticeAssignmentController {
     }
 
     @GetMapping("/colaborador/{id}")
-    public ResponseEntity<List<PracticeAssignment>> listarPorColaborador(@PathVariable Long id) {
-        return ResponseEntity.ok(assignmentService.listarPorColaborador(id));
+    public ResponseEntity<List<PracticeAssignment>> listarPorColaborador(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(assignmentService.obtenerEstudiantesPorProfesor(id, principal.getName()));
     }
 
     @GetMapping("/tutor/{id}")
-    public ResponseEntity<List<PracticeAssignment>> listarPorTutor(@PathVariable Long id) {
-        return ResponseEntity.ok(assignmentService.listarPorTutor(id));
+    public ResponseEntity<List<PracticeAssignment>> listarPorTutor(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(assignmentService.obtenerEstudiantesPorProfesor(id, principal.getName()));
     }
 
     @PostMapping

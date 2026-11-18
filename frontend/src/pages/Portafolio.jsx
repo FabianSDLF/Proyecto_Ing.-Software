@@ -1,3 +1,4 @@
+import PracticeSheet, { isCurrentPractice } from '../components/PracticeSheet';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -10,6 +11,7 @@ export default function Portafolio({ isReadOnly = false }) {
     const location = useLocation();
     const modoSupervision = isReadOnly || Boolean(assignmentId);
     const [activeTab, setActiveTab] = useState('EVIDENCIAS');
+    const [history, setHistory] = useState(false);
 
 
     // Evidencias
@@ -125,7 +127,7 @@ export default function Portafolio({ isReadOnly = false }) {
             desarrollo: formatMomento(parsed.desarrollo),
             cierre: formatMomento(parsed.cierre),
             recursos: calcRecursos(),
-            evaluacion: parsed.evaluacion || parsed.adaptaciones_pie || '',
+            evaluacion: parsed.evaluacion || '',
         };
     }, []);
 
@@ -268,7 +270,7 @@ export default function Portafolio({ isReadOnly = false }) {
             const data = modoSupervision && assignmentId
                 ? await portfolioService.obtenerEvidenciasPorAsignacion(assignmentId, { signal })
                 : await portfolioService.getDocuments({ signal });
-            setEvidencias(Array.isArray(data) ? data : []);
+            setEvidencias(Array.isArray(data) ? data.filter(d => modoSupervision || history || !d.practiceAssignment || isCurrentPractice(d.practiceAssignment)) : []);
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error cargando evidencias:', err);
@@ -277,7 +279,7 @@ export default function Portafolio({ isReadOnly = false }) {
         } finally {
             setLoadingEvidencias(false);
         }
-    }, [modoSupervision, assignmentId]);
+    }, [modoSupervision, assignmentId, history]);
 
     const fetchPlanificaciones = useCallback(async (signal) => {
         setLoadingPlanificaciones(true);
@@ -285,7 +287,7 @@ export default function Portafolio({ isReadOnly = false }) {
             const data = modoSupervision && assignmentId
                 ? await portfolioService.obtenerPlanificacionesPorAsignacion(assignmentId, { signal })
                 : await portfolioService.getLessonPlans({ signal });
-            setPlanificaciones(Array.isArray(data) ? data : []);
+            setPlanificaciones(Array.isArray(data) ? data.filter(d => modoSupervision || history || !d.practiceAssignment || isCurrentPractice(d.practiceAssignment)) : []);
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error cargando planificaciones:', err);
@@ -294,7 +296,7 @@ export default function Portafolio({ isReadOnly = false }) {
         } finally {
             setLoadingPlanificaciones(false);
         }
-    }, [modoSupervision, assignmentId]);
+    }, [modoSupervision, assignmentId, history]);
 
     const fetchFinalDocuments = useCallback(async (signal) => {
         setLoadingFinalDocuments(true);
@@ -302,7 +304,7 @@ export default function Portafolio({ isReadOnly = false }) {
             const data = modoSupervision && assignmentId
                 ? await portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId, { signal })
                 : await portfolioService.getFinalDocuments({ signal });
-            setFinalDocuments(Array.isArray(data) ? data : []);
+            setFinalDocuments(Array.isArray(data) ? data.filter(d => modoSupervision || history || !d.practiceAssignment || isCurrentPractice(d.practiceAssignment)) : []);
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error cargando documentos de término:', err);
@@ -311,7 +313,7 @@ export default function Portafolio({ isReadOnly = false }) {
         } finally {
             setLoadingFinalDocuments(false);
         }
-    }, [modoSupervision, assignmentId]);
+    }, [modoSupervision, assignmentId, history]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -319,6 +321,13 @@ export default function Portafolio({ isReadOnly = false }) {
         fetchPlanificaciones(controller.signal);
         return () => controller.abort();
     }, [fetchEvidencias, fetchPlanificaciones]);
+
+    useEffect(() => {
+        if (activeTab !== 'TERMINO') return;
+        const controller = new AbortController();
+        fetchFinalDocuments(controller.signal);
+        return () => controller.abort();
+    }, [activeTab, fetchFinalDocuments]);
 
     const validateFile = (file) => {
         if (!file) return false;
@@ -747,6 +756,9 @@ export default function Portafolio({ isReadOnly = false }) {
                 </p>
             </div>
 
+            <PracticeSheet assignmentId={assignmentId} />
+            {!modoSupervision && <label className="block text-sm">Documentos de <select className="border rounded p-2" value={history ? 'historial' : 'vigente'} onChange={e => { setHistory(e.target.value === 'historial'); setFinalDocuments([]); }}><option value="vigente">Prácticas vigentes</option><option value="historial">Todo el historial</option></select></label>}
+
             <div className="flex gap-4 border-b border-gray-200">
                 <button
                     type="button"
@@ -772,11 +784,10 @@ export default function Portafolio({ isReadOnly = false }) {
                     type="button"
                     onClick={() => {
                         setActiveTab('TERMINO');
-                        fetchFinalDocuments();
                     }}
                     className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'TERMINO' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
-                    Informe
+                    Informe de Término
                 </button>
             </div>
 
@@ -845,7 +856,7 @@ export default function Portafolio({ isReadOnly = false }) {
             {activeTab === 'TERMINO' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800">Informe</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Informe de Término</h2>
                         <p className="text-sm text-gray-500 mt-1">
                             {modoSupervision
                                 ? 'Consulta o descarga el Informe Final entregado por el estudiante.'

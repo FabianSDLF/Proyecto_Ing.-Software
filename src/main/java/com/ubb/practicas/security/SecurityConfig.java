@@ -42,6 +42,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .accessDeniedHandler((request, response, denied) -> response.setStatus(HttpStatus.FORBIDDEN.value()))
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
@@ -56,6 +57,8 @@ public class SecurityConfig {
                     "Administrador", "ADMINISTRADOR",
                     "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
                 )
+                .requestMatchers("/api/asignaciones/mis-asignaciones", "/api/asignaciones/visibles", "/api/asignaciones/*/ficha").authenticated()
+                .requestMatchers("/api/admin/**").hasAnyRole("Administrador", "ADMINISTRADOR")
                 .requestMatchers("/api/asignaciones/colaborador/**", "/api/asignaciones/tutor/**").hasAnyRole(
                     "Administrador", "ADMINISTRADOR",
                     "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS",
@@ -75,6 +78,8 @@ public class SecurityConfig {
                     "Administrador", "ADMINISTRADOR",
                     "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
                 )
+                .requestMatchers("/api/portafolio/download-zip").hasAnyRole("Administrador", "ADMINISTRADOR", "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS", "Profesor de Asignatura", "PROFESOR_DE_ASIGNATURA")
+                .requestMatchers("/api/portafolio/export-csv").hasAnyRole("Administrador", "ADMINISTRADOR", "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS", "Profesor de Asignatura", "PROFESOR_DE_ASIGNATURA", "Profesor Colaborador", "PROFESOR_COLABORADOR", "Tutor", "TUTOR")
                 .requestMatchers("/api/portafolio/**", "/api/profesor/**").authenticated()
                 .anyRequest().authenticated()
             )

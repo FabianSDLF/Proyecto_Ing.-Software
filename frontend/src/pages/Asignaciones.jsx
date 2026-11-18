@@ -42,7 +42,7 @@ export default function Asignaciones() {
     // Estados de modales y cargas para Asignaciones
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState(null);
-    const [filtroPeriodo, setFiltroPeriodo] = useState('TODOS');
+    const [filtroPeriodo, setFiltroPeriodo] = useState('VIGENTE');
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
     const [loadingDuplas, setLoadingDuplas] = useState(false);
@@ -68,6 +68,7 @@ export default function Asignaciones() {
     const [deletingCenter, setDeletingCenter] = useState(false);
     const [centerForm, setCenterForm] = useState({
         name: '',
+        rbd: '',
         dependency: 'PUBLICO_SLEP',
         address: '',
         district: '',
@@ -252,6 +253,7 @@ export default function Asignaciones() {
         setEditingCenter(null);
         setCenterForm({
             name: '',
+            rbd: '',
             dependency: 'PUBLICO_SLEP',
             address: '',
             district: '',
@@ -267,6 +269,7 @@ export default function Asignaciones() {
         setEditingCenter(center);
         setCenterForm({
             name: center.name || '',
+            rbd: center.rbd || '',
             dependency: center.dependency || 'PUBLICO_SLEP',
             address: center.address || '',
             district: center.district || '',
@@ -530,6 +533,7 @@ export default function Asignaciones() {
     ], []);
 
     const asignacionesFiltradas = useMemo(() => {
+        if (filtroPeriodo === 'VIGENTE') return asignaciones.filter(a => a.status === 'ACTIVA' && (!a.period || a.period.status === 'ACTIVO'));
         if (filtroPeriodo === 'TODOS') return asignaciones;
         return asignaciones.filter(a => String(a.period?.id || '') === String(filtroPeriodo));
     }, [asignaciones, filtroPeriodo]);
@@ -761,6 +765,7 @@ export default function Asignaciones() {
                                 onChange={(e) => setFiltroPeriodo(e.target.value)}
                                 className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             >
+                                <option value="VIGENTE">Periodo vigente</option>
                                 <option value="TODOS">Todos los semestres ({asignaciones.length})</option>
                                 {periodos.map(p => (
                                     <option key={p.id} value={p.id}>
@@ -940,6 +945,7 @@ export default function Asignaciones() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input label="RBD" value={centerForm.rbd || ''} onChange={e => setCenterForm(prev => ({ ...prev, rbd: e.target.value }))} />
                         <Input
                             label="Dirección"
                             value={centerForm.address}

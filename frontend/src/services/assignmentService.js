@@ -5,7 +5,7 @@ export const assignmentService = {
    * Listar todas las asignaciones del sistema
    */
   async getAssignments(options) {
-    return apiClient.get('/api/asignaciones', options);
+    return apiClient.get('/api/asignaciones/visibles', { ...options, params: { history: true, ...options?.params } });
   },
 
   /**
@@ -56,7 +56,7 @@ export const assignmentService = {
    * @param {number|string} collaboratorId
    */
   async getByCollaborator(collaboratorId, options) {
-    return apiClient.get(`/api/asignaciones/colaborador/${collaboratorId}`, options);
+    return apiClient.get('/api/asignaciones/visibles', options);
   },
 
   /**
@@ -64,7 +64,7 @@ export const assignmentService = {
    * @param {number|string} tutorId
    */
   async getByTutor(tutorId, options) {
-    return apiClient.get(`/api/asignaciones/tutor/${tutorId}`, options);
+    return apiClient.get('/api/asignaciones/visibles', options);
   },
 
   /**
@@ -72,7 +72,7 @@ export const assignmentService = {
    * @param {number|string} professorId
    */
   async getByProfessor(professorId, options) {
-    return apiClient.get(`/api/profesor/${professorId}/estudiantes`, options);
+    return apiClient.get('/api/asignaciones/visibles', options);
   },
 
   /**

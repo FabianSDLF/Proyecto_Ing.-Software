@@ -1,3 +1,4 @@
+import PracticeSheet from '../components/PracticeSheet';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -142,36 +143,7 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {userRole === 'Estudiante' && misAsignaciones.length > 0 && (
-                <div className="mt-8 mb-8">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">Mi Equipo de Práctica</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {misAsignaciones.map((asig) => (
-                            <div key={asig.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                <h4 className="font-bold text-lg text-blue-900 mb-4 border-b border-gray-100 pb-2">
-                                    Asignatura: {asig.subject?.name}
-                                </h4>
-                                <div className="space-y-4">
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-semibold uppercase tracking-wider text-xs">Profesor Colaborador</p>
-                                        <p className="text-gray-800 font-medium text-lg">{asig.collaborator ? `${asig.collaborator.name} ${asig.collaborator.lastName}` : 'Pendiente'}</p>
-                                        {asig.collaborator && <p className="text-sm text-gray-500">{asig.collaborator.email}</p>}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-semibold uppercase tracking-wider text-xs">Tutor Universitario</p>
-                                        <p className="text-gray-800 font-medium text-lg">{asig.tutor ? `${asig.tutor.name} ${asig.tutor.lastName}` : 'Pendiente'}</p>
-                                        {asig.tutor && <p className="text-sm text-gray-500">{asig.tutor.email}</p>}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-semibold uppercase tracking-wider text-xs">Centro de Práctica</p>
-                                        <p className="text-gray-800 font-medium text-lg">{asig.center?.name || 'Pendiente'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {userRole === 'Estudiante' && <PracticeSheet />}
 
             {/* Vista de Docentes */}
             {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && (
