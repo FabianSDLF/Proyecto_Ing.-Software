@@ -238,7 +238,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
             newPlan.setPracticeAssignment(existing.getPracticeAssignment());
             newPlan.setParentPlan(existing);
             newPlan.setVersion((existing.getVersion() != null ? existing.getVersion() : 1) + 1);
-            newPlan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
+            newPlan.setStatus(PlanStatus.BORRADOR);
 
             newPlan.setSchoolGrade((schoolGrade != null && !schoolGrade.isBlank()) ? schoolGrade : existing.getSchoolGrade());
             newPlan.setMathAxis((mathAxis != null && !mathAxis.isBlank()) ? MathAxis.valueOf(mathAxis) : existing.getMathAxis());
@@ -435,9 +435,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         if (comentarioLimpio == null) throw new IllegalArgumentException("El comentario no puede estar vacío.");
         plan.setTeacherFeedback(com.ubb.practicas.util.FeedbackThreadHelper.appendComment(plan.getTeacherFeedback(), plan.getFeedbackDate(), comentarioLimpio, userRepository.findByEmail(userEmail), userEmail));
         plan.setFeedbackDate(java.time.LocalDateTime.now());
-        if (plan.getStatus() == null || plan.getStatus() == PlanStatus.BORRADOR) {
-            plan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
-        }
+        // Un comentario no equivale a enviar ni aprobar una planificación.
 
         return lessonPlanRepository.save(plan);
     }

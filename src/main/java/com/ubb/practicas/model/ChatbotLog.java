@@ -33,6 +33,14 @@ public class ChatbotLog {
     private String aiFeedback;
 
     private Boolean aiApproved;
+    public ChatbotLog(Long id, LessonPlan lessonPlan, String aiFeedback, Boolean aiApproved, Integer iterationNumber, LocalDateTime reviewDate) {
+        this.id = id; this.lessonPlan = lessonPlan; this.aiFeedback = aiFeedback; this.aiApproved = aiApproved;
+        this.iterationNumber = iterationNumber; this.reviewDate = reviewDate;
+    }
+    private Boolean isMock;
+    private String contentHash;
+    @Column(columnDefinition = "TEXT")
+    private String resultJson;
     private Integer iterationNumber;
     private LocalDateTime reviewDate;
 }

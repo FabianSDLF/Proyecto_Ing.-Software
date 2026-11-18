@@ -1,3 +1,4 @@
+import apiClient from '../services/apiClient';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -89,7 +90,8 @@ function extractMomentsFromContentJson(contentJson) {
   };
 
   return {
-    objetivoActitudinal: parsed.objetivoActitudinal || parsed.adaptaciones_pie || '',
+    objetivoActitudinal: parsed.objetivoActitudinal || '',
+    inclusion: parsed.inclusion || parsed.adaptaciones_pie || '',
     duracion: parsed.duracion || '90 minutos',
     recursos: getResourcesText(parsed),
     evaluacion: parsed.evaluacion || '',
@@ -134,7 +136,8 @@ export default function RetroPlani() {
     evaluacion: '',
     inicio: '',
     desarrollo: '',
-    cierre: ''
+    cierre: '',
+    inclusion: ''
   });
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState(null);
@@ -168,6 +171,16 @@ export default function RetroPlani() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const updatePlanForm = (next) => { setSelectedPlanId(''); setEvaluationResult(null); setPlanForm(next); };
+
+  useEffect(() => {
+    if (!selectedPlanId) return;
+    const controller = new AbortController();
+    apiClient.get('/api/portafolio/planificaciones/' + selectedPlanId + '/revision-ia', { signal: controller.signal })
+      .then(setEvaluationResult).catch(() => {});
+    return () => controller.abort();
+  }, [selectedPlanId]);
+
   const handleSelectSavedPlan = (planId) => {
     setSelectedPlanId(planId);
     if (!planId) return;
@@ -185,6 +198,7 @@ export default function RetroPlani() {
       duracion: moments.duracion,
       recursos: moments.recursos,
       evaluacion: moments.evaluacion,
+      inclusion: moments.inclusion || '',
       inicio: moments.inicio,
       desarrollo: moments.desarrollo,
       cierre: moments.cierre
@@ -273,6 +287,7 @@ export default function RetroPlani() {
   };
 
   const handleClearChat = () => {
+    chatbotService.resetSession();
     setMessages([
       {
         sender: 'bot',
@@ -296,7 +311,9 @@ export default function RetroPlani() {
 
     setIsEvaluating(true);
     try {
-      const result = await chatbotService.evaluateLessonPlan(planForm);
+      const result = selectedPlanId
+        ? await apiClient.post('/api/portafolio/planificaciones/' + selectedPlanId + '/revision-ia')
+        : await chatbotService.evaluateLessonPlan(planForm);
       setEvaluationResult(result);
       toast.success('¡Análisis pedagógico RetroPlani Mate V3 completado!');
     } catch (err) {
@@ -341,7 +358,7 @@ export default function RetroPlani() {
               )}
             </div>
             <p className="text-blue-100 mt-1 text-sm md:text-base">
-              Valida tus planificaciones con el asistente virtual antes de enviarlas al profesor colaborador.
+              Revisa tus planificaciones con el asistente antes de enviarlas al Profesor de Asignatura.
             </p>
           </div>
         </div>
@@ -596,19 +613,19 @@ export default function RetroPlani() {
                   label="Curso *"
                   required
                   value={planForm.schoolGrade}
-                  onChange={(e) => setPlanForm({ ...planForm, schoolGrade: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, schoolGrade: e.target.value })}
                   placeholder="Ej. 1° Medio A"
                 />
                 <Select
                   label="Eje Matemático"
                   value={planForm.mathAxis}
-                  onChange={(e) => setPlanForm({ ...planForm, mathAxis: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, mathAxis: e.target.value })}
                   options={MATH_AXIS_OPTIONS}
                 />
                 <Input
                   label="Duración"
                   value={planForm.duracion}
-                  onChange={(e) => setPlanForm({ ...planForm, duracion: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, duracion: e.target.value })}
                   placeholder="90 minutos"
                 />
               </div>
@@ -621,7 +638,7 @@ export default function RetroPlani() {
                   rows="2"
                   required
                   value={planForm.baseLearningObjective}
-                  onChange={(e) => setPlanForm({ ...planForm, baseLearningObjective: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, baseLearningObjective: e.target.value })}
                   placeholder="Ej: OA 14: Desarrollar las reglas de las probabilidades, la regla aditiva, la regla multiplicativa..."
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
@@ -635,7 +652,7 @@ export default function RetroPlani() {
                   <textarea
                     rows="2"
                     value={planForm.objectives}
-                    onChange={(e) => setPlanForm({ ...planForm, objectives: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, objectives: e.target.value })}
                     placeholder="Ej: Aplicar la Ley de Laplace para calcular probabilidades, trabajando de forma activa y reflexiva."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -647,7 +664,7 @@ export default function RetroPlani() {
                   <textarea
                     rows="2"
                     value={planForm.objetivoActitudinal}
-                    onChange={(e) => setPlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
                     placeholder="OA B / Acciones DUA de representación, expresión y compromiso..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -662,7 +679,7 @@ export default function RetroPlani() {
                   <input
                     type="text"
                     value={planForm.recursos}
-                    onChange={(e) => setPlanForm({ ...planForm, recursos: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, recursos: e.target.value })}
                     placeholder="Ej: Guía de trabajo anexada, PPT, Ticket de salida"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -674,7 +691,7 @@ export default function RetroPlani() {
                   <input
                     type="text"
                     value={planForm.evaluacion}
-                    onChange={(e) => setPlanForm({ ...planForm, evaluacion: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, evaluacion: e.target.value })}
                     placeholder="Ej: Ticket de salida con pauta de puntajes y escala de apreciación"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -693,7 +710,7 @@ export default function RetroPlani() {
                   <textarea
                     rows="2"
                     value={planForm.inicio}
-                    onChange={(e) => setPlanForm({ ...planForm, inicio: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, inicio: e.target.value })}
                     placeholder="Describe el saludo, agenda del día (DUA 78) y cómo participarán todos los estudiantes en la activación..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -706,7 +723,7 @@ export default function RetroPlani() {
                   <textarea
                     rows="3"
                     value={planForm.desarrollo}
-                    onChange={(e) => setPlanForm({ ...planForm, desarrollo: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, desarrollo: e.target.value })}
                     placeholder="Describe cómo los estudiantes descubren el concepto, el rol de la dupla docente y cómo abordarás errores matemáticos..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -719,13 +736,14 @@ export default function RetroPlani() {
                   <textarea
                     rows="2"
                     value={planForm.cierre}
-                    onChange={(e) => setPlanForm({ ...planForm, cierre: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, cierre: e.target.value })}
                     placeholder="Describe la síntesis participativa, aplicación del Ticket de salida y cierre de la sesión..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
 
+          <label className="block font-semibold">Inclusión y adaptaciones PIE / NEE / DUA<textarea className="mt-2 w-full border rounded p-3" value={planForm.inclusion || ''} onChange={e => updatePlanForm({ ...planForm, inclusion: e.target.value })} /></label>
               <div className="pt-4 flex justify-end">
                 <Button
                   type="submit"
@@ -798,6 +816,7 @@ export default function RetroPlani() {
                 </div>
 
                 {/* Fortalezas */}
+                {selectedPlanId && <div className="space-y-3"><p>La revisión corresponde al contenido guardado de la versión seleccionada.</p>{evaluationResult.is_mock ? <p role="status" className="text-amber-800">Orientación local: no certifica validación IA ni habilita el envío al docente.</p> : evaluationResult.aiApproved && <Button onClick={async () => { try { await apiClient.post('/api/portafolio/planificaciones/' + selectedPlanId + '/enviar-docente'); toast.success('Versión enviada a revisión docente'); navigate('/portafolio'); } catch (err) { toast.error(err.message); } }}>Enviar esta versión al Profesor de Asignatura</Button>}</div>}
                 {evaluationResult.strengths?.length > 0 && (
                   <div className="p-4 bg-green-50/70 border border-green-200 rounded-xl">
                     <h4 className="text-xs font-bold text-green-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
