@@ -472,7 +472,7 @@ export default function RetroPlani() {
                 e.preventDefault();
                 handleSendChat();
               }}
-              className="p-4 bg-white border-t border-gray-200 flex items-center gap-2.5"
+              className="p-2 sm:p-4 bg-white border-t border-gray-200 flex items-center gap-2"
             >
               <input
                 ref={fileInputRef}
@@ -498,13 +498,13 @@ export default function RetroPlani() {
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Pregunta sobre fracciones, enteros, probabilidad, DUA, rúbrica UBB o sube tu PDF..."
                 disabled={isSendingChat}
-                className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100"
+                className="min-w-0 flex-1 px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100"
               />
               <Button
                 type="submit"
                 variant="primary"
                 disabled={isSendingChat || !chatInput.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3"
+                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-5 py-3"
               >
                 Enviar
               </Button>

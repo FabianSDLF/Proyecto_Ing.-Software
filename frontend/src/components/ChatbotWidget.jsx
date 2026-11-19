@@ -73,12 +73,12 @@ export default function ChatbotWidget() {
   };
 
   return (
-    <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end">
+    <div className="relative xl:fixed xl:bottom-6 xl:right-6 z-30 flex flex-col items-end">
       {isOpen && (
         <div
           role="region"
           aria-label="Ventana del Asistente Pedagógico"
-          className="w-[calc(100vw-1.5rem)] sm:w-96 h-[min(500px,calc(100dvh-110px))] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
+          className="absolute right-0 top-full mt-3 xl:static xl:mt-0 w-[min(24rem,calc(100vw-7rem))] xl:w-96 h-[min(500px,calc(100dvh-110px))] bg-white text-gray-900 rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
         >
           {/* Header */}
           <div className="bg-[#003B70] text-white p-4 flex items-center justify-between">
@@ -166,7 +166,7 @@ export default function ChatbotWidget() {
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Escribe tu consulta pedagógica..."
               disabled={isLoading}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="min-w-0 flex-1 px-3 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             />
             <button
               type="submit"
@@ -182,11 +182,12 @@ export default function ChatbotWidget() {
       {/* Floating Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-5 py-3.5 bg-[#003B70] hover:bg-[#004A8F] text-white rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 border-2 border-orange-500 group"
-        aria-label="Abrir asistente de IA"
+        className="flex items-center gap-2 px-2.5 py-2 xl:px-5 xl:py-3.5 bg-[#003B70] hover:bg-[#004A8F] text-white rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 border-2 border-orange-500 group"
+        aria-label={isOpen ? "Cerrar asistente de IA" : "Abrir asistente de IA"}
+        aria-expanded={isOpen}
       >
         <span className="text-xl">🤖</span>
-        <span className="font-semibold text-sm">Tutor Pedagógico IA</span>
+        <span className="hidden xl:inline font-semibold text-sm">Tutor Pedagógico IA</span>
       </button>
     </div>
   );

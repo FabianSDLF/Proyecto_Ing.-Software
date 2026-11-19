@@ -730,7 +730,7 @@ export default function Portafolio({ isReadOnly = false }) {
     ], [handleDownload, modoSupervision]);
 
     return (
-        <div className="max-w-5xl mx-auto p-6 space-y-6">
+        <div className="max-w-5xl mx-auto sm:p-4 xl:p-6 space-y-6">
             {/* Banner superior cuando un Docente está supervisando */}
             {modoSupervision && (
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -765,14 +765,14 @@ export default function Portafolio({ isReadOnly = false }) {
             <PracticeSheet assignmentId={assignmentId} />
             {!modoSupervision && <label className="block text-sm">Documentos de <select className="border rounded p-2" value={history ? 'historial' : 'vigente'} onChange={e => { setHistory(e.target.value === 'historial'); setFinalDocuments([]); }}><option value="vigente">Prácticas vigentes</option><option value="historial">Todo el historial</option></select></label>}
 
-            <div className="flex gap-4 border-b border-gray-200">
+            <div className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:gap-4 border-b border-gray-200">
                 <button
                     type="button"
                     onClick={() => {
                         setActiveTab('EVIDENCIAS');
                         fetchEvidencias();
                     }}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'EVIDENCIAS' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    className={`min-h-11 min-w-0 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors ${activeTab === 'EVIDENCIAS' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
                     Evidencias de Aprendizaje
                 </button>
@@ -782,7 +782,7 @@ export default function Portafolio({ isReadOnly = false }) {
                         setActiveTab('PLANIFICACIONES');
                         fetchPlanificaciones();
                     }}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'PLANIFICACIONES' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    className={`min-h-11 min-w-0 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors ${activeTab === 'PLANIFICACIONES' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
                     Planificaciones
                 </button>
@@ -791,7 +791,7 @@ export default function Portafolio({ isReadOnly = false }) {
                     onClick={() => {
                         setActiveTab('TERMINO');
                     }}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'TERMINO' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    className={`min-h-11 min-w-0 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors ${activeTab === 'TERMINO' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
                     Informe de Término
                 </button>
@@ -800,7 +800,7 @@ export default function Portafolio({ isReadOnly = false }) {
                     onClick={() => {
                         setActiveTab('EVALUACIONES');
                     }}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors ${activeTab === 'EVALUACIONES' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    className={`min-h-11 min-w-0 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors ${activeTab === 'EVALUACIONES' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
                     Mis Evaluaciones
                 </button>
@@ -808,7 +808,7 @@ export default function Portafolio({ isReadOnly = false }) {
 
             {activeTab === 'EVIDENCIAS' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-wrap gap-3 justify-between items-center">
                         <h2 className="text-xl font-bold text-gray-800">
                             {modoSupervision ? 'Evidencias del Estudiante' : 'Tus Evidencias'}
                         </h2>
@@ -843,7 +843,7 @@ export default function Portafolio({ isReadOnly = false }) {
 
             {activeTab === 'PLANIFICACIONES' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-wrap gap-3 justify-between items-center">
                         <h2 className="text-xl font-bold text-gray-800">
                             {modoSupervision ? 'Planificaciones del Estudiante' : 'Tus Planificaciones'}
                         </h2>

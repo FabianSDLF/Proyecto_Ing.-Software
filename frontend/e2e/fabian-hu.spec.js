@@ -108,3 +108,54 @@ test('HU40: ficha y acceso a planificación en móvil y tablet', async ({ page }
   await noPageOverflow(page);
   await page.screenshot({ path: test.info().outputPath('planificacion.png'), fullPage: true });
 });
+
+test('HU40: pestañas de asignaciones y del portafolio de supervisión caben en la pantalla', async ({ page }) => {
+  await session(page, 'Administrador');
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/ficha')) return route.fulfill({ json: assignment });
+    if (path === '/api/asignaciones/visibles') return route.fulfill({ json: [assignment] });
+    if (path === '/api/periodos') return route.fulfill({ json: [assignment.period] });
+    return route.fulfill({ json: [] });
+  });
+
+  await page.goto('/asignaciones');
+  for (const label of [/Asignaciones Individuales/, /Duplas/, /Centros de Práctica/]) {
+    const tab = page.getByRole('tab', { name: label });
+    await expect(tab).toBeInViewport({ ratio: 1 });
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+    await noPageOverflow(page);
+  }
+
+  await page.goto('/portafolio/estudiante/1');
+  const evaluations = page.getByRole('button', { name: 'Mis Evaluaciones' });
+  await evaluations.scrollIntoViewIfNeeded();
+  await expect(evaluations).toBeInViewport({ ratio: 1 });
+  await evaluations.click();
+  await noPageOverflow(page);
+});
+
+test('HU40: el asistente queda en la cabecera y el envío de RetroPlani se puede tocar', async ({ page, viewport }) => {
+  test.skip(viewport.width >= 1280, 'Comprueba la cabecera compacta.');
+  await session(page, 'Estudiante');
+  await page.route('**/api/**', route => route.fulfill({ json: [] }));
+
+  await page.goto('/perfil');
+  const assistant = page.getByRole('button', { name: 'Abrir asistente de IA' });
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Abrir asistente de IA' })).toBeVisible();
+  await assistant.click();
+  await expect(page.getByRole('region', { name: 'Ventana del Asistente Pedagógico' })).toBeInViewport({ ratio: 1 });
+  await noPageOverflow(page);
+
+  let sent = false;
+  await page.route('**/api/chat', route => {
+    sent = true;
+    return route.fulfill({ json: { response: 'Respuesta de prueba' } });
+  });
+  await page.goto('/retroplani');
+  await page.getByPlaceholder(/Pregunta sobre fracciones/).fill('Consulta de prueba');
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBe(true);
+  await noPageOverflow(page);
+});

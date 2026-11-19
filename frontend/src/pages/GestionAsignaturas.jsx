@@ -381,14 +381,14 @@ export default function GestionAsignaturas() {
   ], []);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="sm:p-4 xl:p-8 max-w-6xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaturas y Ciclos Académicos</h1>
         <p className="text-gray-500 mt-1">Configura las asignaturas por ciclo formativo, sus profesores responsables y los periodos semestrales activos.</p>
       </div>
 
       {/* Pestañas */}
-      <div className="flex border-b border-gray-200 gap-4">
+      <div className="flex flex-wrap border-b border-gray-200 gap-1 sm:gap-4">
         <button
           type="button"
           onClick={() => setActiveTab('ASIGNATURAS')}
@@ -415,10 +415,10 @@ export default function GestionAsignaturas() {
 
       {activeTab === 'ASIGNATURAS' && (
         <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Nueva Asignatura</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-              <label className="md:col-span-5"><input type="checkbox" checked={professionalRubrics} onChange={e => setProfessionalRubrics(e.target.checked)} /> Aplicar las ocho pautas de práctica profesional (2025-2)</label>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-end">
+              <label className="col-span-full"><input type="checkbox" checked={professionalRubrics} onChange={e => setProfessionalRubrics(e.target.checked)} /> Aplicar las ocho pautas de práctica profesional (2025-2)</label>
               <div>
                 <Input
                   label="Código"
@@ -427,7 +427,7 @@ export default function GestionAsignaturas() {
                   onChange={(e) => setCode(e.target.value)}
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2 xl:col-span-1">
                 <Input
                   label="Nombre"
                   placeholder="Ej: Práctica Pedagógica I"
@@ -454,7 +454,7 @@ export default function GestionAsignaturas() {
                   placeholder="-- Opcional --"
                 />
               </div>
-              <div className="md:col-span-5 flex justify-end">
+              <div className="col-span-full flex justify-end">
                 <Button
                   type="submit"
                   variant="primary"
@@ -482,8 +482,8 @@ export default function GestionAsignaturas() {
 
       {activeTab === 'PERIODOS' && (
         <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-800">
                 {editingPeriod ? `Editando Periodo: ${editingPeriod.name}` : 'Nuevo Periodo Académico (Semestre)'}
               </h2>
@@ -507,7 +507,7 @@ export default function GestionAsignaturas() {
                 </Button>
               )}
             </div>
-            <form onSubmit={handleSavePeriod} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <form onSubmit={handleSavePeriod} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-end">
               <div>
                 <Input
                   label="Nombre (Ej: 2026-2)"
@@ -567,7 +567,7 @@ export default function GestionAsignaturas() {
                   placeholder={null}
                 />
               </div>
-              <div className="md:col-span-6 flex justify-end">
+              <div className="col-span-full flex justify-end">
                 <Button
                   type="submit"
                   variant="primary"

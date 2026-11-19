@@ -362,7 +362,6 @@ export default function MisEstudiantes() {
             const payload = buildDraftPayload();
             const saved = await evaluationService.createOrUpdate(payload);
             updateSavedEvaluationInState(saved);
-            toast.success('Borrador de pauta de evaluación guardado con éxito.');
         } catch (error) {
             console.error(error);
             if (error?.status === 409) {
@@ -777,6 +776,9 @@ export default function MisEstudiantes() {
                                 ></textarea>
                             </div>
 
+                            {existingEvaluation && !isLocked && !dirty && !submitting && !conflictMessage && (
+                                <p role="status" className="text-sm text-green-800">Borrador guardado.</p>
+                            )}
                             <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-200">
                                 <Button type="button" variant="outline" onClick={() => handleCloseEvaluation()}>
                                     {isLocked ? 'Cerrar' : 'Cancelar'}

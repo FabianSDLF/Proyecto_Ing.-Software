@@ -92,7 +92,7 @@ export default function NuevaPlanificacion() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8 pb-20">
+    <div className="sm:p-4 xl:p-8 max-w-4xl mx-auto space-y-8 pb-20">
       <div className="flex items-center gap-4 mb-8">
         <button
           type="button"
@@ -107,7 +107,7 @@ export default function NuevaPlanificacion() {
         <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Crear Nueva Planificación</h1>
       </div>
 
-      <form onSubmit={handlePlanSubmit} className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 space-y-6">
+      <form onSubmit={handlePlanSubmit} className="bg-white p-4 sm:p-6 xl:p-8 rounded-2xl shadow-lg border border-gray-100 space-y-6">
         <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Datos Generales</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -100,13 +100,13 @@ export default function CargaMasiva() {
         ];
 
     return (
-        <div className="p-8 max-w-4xl mx-auto space-y-8">
+        <div className="sm:p-4 xl:p-8 max-w-4xl mx-auto space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Carga e Inscripción de Usuarios</h1>
                     <p className="text-gray-500 mt-1">Importa nóminas masivas o registra cuentas individuales para estudiantes y docentes.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <Link
                         to="/gestion-roles"
                         className="px-4 py-2 text-sm font-semibold text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
@@ -122,9 +122,9 @@ export default function CargaMasiva() {
                 </div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-                <div className="flex items-center mb-6">
-                    <div className="bg-blue-100 p-3 rounded-full mr-4">
+            <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-lg border border-gray-100">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 mb-6">
+                    <div className="bg-blue-100 p-3 rounded-full shrink-0">
                         <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                     </div>
                     <div>
@@ -134,7 +134,7 @@ export default function CargaMasiva() {
                 </div>
 
                 <form onSubmit={handleUpload} className="flex flex-col space-y-5 mt-4">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 sm:p-6 text-center hover:bg-gray-50 transition-colors">
                         <input
                             type="file"
                             accept=".csv, .xlsx"

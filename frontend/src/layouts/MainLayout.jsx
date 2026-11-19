@@ -27,7 +27,7 @@ export default function MainLayout() {
       }
     };
     document.addEventListener('keydown', keyboard);
-    const resize = () => { if (window.innerWidth >= 1024) setMenuOpen(false); };
+    const resize = () => { if (window.innerWidth >= 1280) setMenuOpen(false); };
     window.addEventListener('resize', resize);
     return () => {
       document.body.style.overflow = previousOverflow;
@@ -59,16 +59,17 @@ export default function MainLayout() {
   const inactiveLinkClass = 'text-gray-300 hover:bg-[#004A8F] hover:text-white';
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
+    <div className="flex flex-col xl:flex-row min-h-screen bg-gray-50">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[70] bg-white p-3">Saltar al contenido</a>
-      <header className="lg:hidden flex items-center justify-between bg-[#003B70] text-white p-3">
-        <span className="font-bold">PITAGORAS</span>
-        <button ref={menuButton} type="button" aria-label="Abrir menú" aria-expanded={menuOpen} aria-controls="main-navigation" className="border rounded p-3" onClick={() => setMenuOpen(true)}>Menú</button>
+      <header className="xl:contents flex items-center justify-between gap-2 bg-[#003B70] text-white p-3">
+        <span className="font-bold mr-auto xl:hidden">PITAGORAS</span>
+        {!isActive('/retroplani') && <ChatbotWidget />}
+        <button ref={menuButton} type="button" aria-label="Abrir menú" aria-expanded={menuOpen} aria-controls="main-navigation" className="xl:hidden border rounded p-3" onClick={() => setMenuOpen(true)}>Menú</button>
       </header>
-      {menuOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+      {menuOpen && <div className="fixed inset-0 bg-black/50 z-40 xl:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
       {/* Menú Lateral (Sidebar) */}
-      <aside ref={sidebar} id="main-navigation" aria-label="Menú principal" onClick={e => { if (e.target.closest('a')) setMenuOpen(false); }} className={`${menuOpen ? 'flex fixed inset-y-0 left-0 z-50' : 'hidden'} lg:flex lg:relative lg:z-10 w-64 max-w-[90vw] shrink-0 bg-[#003B70] text-white p-5 flex-col shadow-xl h-dvh lg:h-auto overflow-y-auto`}>
-        <button type="button" className="lg:hidden self-end border rounded p-2" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}>Cerrar</button>
+      <aside ref={sidebar} id="main-navigation" aria-label="Menú principal" onClick={e => { if (e.target.closest('a')) setMenuOpen(false); }} className={`${menuOpen ? 'flex fixed inset-y-0 left-0 z-50' : 'hidden'} xl:flex xl:relative xl:z-10 w-64 max-w-[90vw] shrink-0 bg-[#003B70] text-white p-5 flex-col shadow-xl h-dvh xl:h-auto overflow-y-auto`}>
+        <button type="button" className="xl:hidden self-end border rounded p-2" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}>Cerrar</button>
         <div className="flex items-center gap-3 mb-10 mt-2 px-2">
           <img src={logoPitagoras} alt="Logo Pitagoras" className="w-10 h-10 object-contain" />
           <h2 className="text-2xl font-bold tracking-widest text-orange-500">PITAGORAS</h2>
@@ -283,12 +284,10 @@ export default function MainLayout() {
       </aside>
 
       {/* Contenedor Principal */}
-      <main id="main-content" tabIndex={-1} inert={menuOpen || undefined} className="flex-1 min-w-0 p-3 sm:p-5 lg:p-8">
+      <main id="main-content" tabIndex={-1} inert={menuOpen || undefined} className="flex-1 min-w-0 p-3 sm:p-5 xl:p-8">
         <Outlet />
       </main>
 
-      {/* Asistente Flotante de IA */}
-      {!isActive('/retroplani') && <ChatbotWidget />}
     </div>
   );
 }
