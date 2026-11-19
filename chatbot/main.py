@@ -271,7 +271,7 @@ def get_gemini_client():
 def crear_interaccion_gemini(client, **kwargs):
     models = list(dict.fromkeys(
         name.strip() for name in os.environ.get(
-            "GEMINI_MODELS", "gemini-3.6-flash,gemini-3.5-flash"
+            "GEMINI_MODELS", "gemini-3.5-flash-lite,gemini-3.1-flash-lite"
         ).split(",") if name.strip()
     ))
     if not models:

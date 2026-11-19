@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const reviewBrowser = { channel: process.env.PLAYWRIGHT_CHANNEL || undefined, video: 'off', trace: 'retain-on-failure' };
+
 /**
  * PITAGORAS - Playwright End-to-End Test Configuration
  * Resolves TS-06 (Formalized E2E test runner configuration)
@@ -25,6 +27,10 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
+    { name: 'mobile', use: { ...devices['Desktop Chrome'], ...reviewBrowser, viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true } },
+    { name: 'tablet', use: { ...devices['Desktop Chrome'], ...reviewBrowser, viewport: { width: 768, height: 1024 }, hasTouch: true } },
+    { name: 'tablet-landscape', use: { ...devices['Desktop Chrome'], ...reviewBrowser, viewport: { width: 1024, height: 768 }, hasTouch: true } },
+    { name: 'desktop-review', use: { ...devices['Desktop Chrome'], ...reviewBrowser, viewport: { width: 1366, height: 768 } } },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
