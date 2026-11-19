@@ -1,7 +1,15 @@
+import StatisticsPanel from '../components/StatisticsPanel';
+import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { BASE_URL } from '../services/apiClient';
 
 export default function Reportes() {
+    const { userRole } = useAuth();
+    if (["Administrador", "Coordinador de practicas"].includes(userRole)) return <StatisticsPanel />;
+    return <TeacherReports />;
+}
+
+function TeacherReports() {
     const [asignaciones, setAsignaciones] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [filtroPeriodo, setFiltroPeriodo] = useState('VIGENTE');
@@ -55,8 +63,8 @@ export default function Reportes() {
         : asignaciones.filter(a => String(a.period?.id) === String(filtroPeriodo));
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="p-2 sm:p-6 max-w-7xl mx-auto space-y-8">
+            <div className="flex flex-wrap gap-4 justify-between items-center">
                 <div>
                     <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Reporte Institucional</h1>
                     <p className="text-gray-500 mt-2">Visualiza el estado de las prácticas y exporta la data centralizada.</p>
@@ -65,7 +73,7 @@ export default function Reportes() {
                     onClick={handleExportarExcel}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center gap-2"
                 >
-                    📊 Descargar CSV / Excel
+                    📊 Descargar CSV
                 </button>
             </div>
 
