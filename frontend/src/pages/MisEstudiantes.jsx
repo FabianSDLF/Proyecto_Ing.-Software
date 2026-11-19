@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { BASE_URL } from '../services/apiClient';
 import assignmentService from '../services/assignmentService';
 import evaluationService, { calculatePreliminaryGrade } from '../services/evaluationService';
+import EvaluationForm from '../components/EvaluationForm';
 import FinalizeEvaluationDialog from '../components/FinalizeEvaluationDialog';
-import { DataTable, Badge, Modal, Button, Input } from '../components/ui';
+import { DataTable, Badge, Modal, Button, Input, ConfirmDialog } from '../components/ui';
 
 function getDefaultEvaluationTypeForRole(role) {
     if (role === 'Tutor') return 'TUTOR_ESP_1';
@@ -37,6 +38,15 @@ export default function MisEstudiantes() {
     const [rubrics, setRubrics] = useState([]);
     const [selectedRubric, setSelectedRubric] = useState(() => getDefaultEvaluationTypeForRole(userRole));
     const [history, setHistory] = useState(false);
+    const [savedForm, setSavedForm] = useState('');
+    const [discardOpen, setDiscardOpen] = useState(false);
+    const dirty = isEvaluationModalOpen && !existingEvaluation?.isFinalized && savedForm !== JSON.stringify({ evaluationData, indicatorPoints });
+    useEffect(() => {
+        if (!dirty) return;
+        const warn = e => { e.preventDefault(); e.returnValue = ''; };
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [dirty]);
 
     const usesProfessionalRubrics = userRole === 'Profesor Colaborador' || userRole === 'Tutor';
 
@@ -168,25 +178,34 @@ export default function MisEstudiantes() {
                 });
             }
             setIndicatorPoints(pointsMap);
+            setSavedForm(JSON.stringify({ evaluationData: { score: evalRecord.score != null ? String(evalRecord.score) : '', comments: evalRecord.qualitativeComments || '' }, indicatorPoints: pointsMap }));
         } else {
             setEvaluationData({
                 score: '',
                 comments: '',
             });
             setIndicatorPoints({});
+            setSavedForm(JSON.stringify({ evaluationData: { score: '', comments: '' }, indicatorPoints: {} }));
         }
     }, []);
 
     const handleOpenEvaluation = useCallback((assignment) => {
+        if (usesProfessionalRubrics && assignment.subject?.professionalRubrics === false && !evaluacionesPorAsignacion[assignment.id]) {
+            toast.error("Esta asignatura no tiene configuradas pautas profesionales. Consulta a coordinación.");
+            return;
+        }
         setSelectedAssignment(assignment);
         setConflictMessage(null);
         const currentEval = evaluacionesPorAsignacion[assignment.id] || null;
         setExistingEvaluation(currentEval);
         hydrateFormFromEvaluation(currentEval);
         setIsEvaluationModalOpen(true);
-    }, [evaluacionesPorAsignacion, hydrateFormFromEvaluation]);
+    }, [evaluacionesPorAsignacion, hydrateFormFromEvaluation, usesProfessionalRubrics]);
 
-    const handleCloseEvaluation = () => {
+    const handleCloseEvaluation = (discard = false) => {
+        if (submitting) return;
+        if (dirty && discard !== true) { setDiscardOpen(true); return; }
+        setDiscardOpen(false);
         setIsFinalizeDialogOpen(false);
         setIsEvaluationModalOpen(false);
         setSelectedAssignment(null);
@@ -567,7 +586,7 @@ export default function MisEstudiantes() {
         userRole === 'Tutor' ? 'PAUTA_OBSERVACION_TUTOR' : 'PAUTA_OBSERVACION_COLABORADOR';
 
     return (
-        <div className="p-8 max-w-6xl mx-auto space-y-8">
+        <div className="p-2 sm:p-6 max-w-6xl mx-auto space-y-8">
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <div>
@@ -589,14 +608,14 @@ export default function MisEstudiantes() {
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="bg-white p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
                     <label className="text-sm font-medium text-gray-700">
                         Mostrar
                         <select
                             value={history ? 'historial' : 'vigente'}
                             onChange={(e) => setHistory(e.target.value === 'historial')}
-                            className="border border-gray-300 rounded-lg p-2 ml-2 bg-white"
+                            className="border border-gray-300 rounded-lg p-2 ml-2 bg-white max-w-full"
                         >
                             <option value="vigente">Prácticas vigentes</option>
                             <option value="historial">Todo el historial</option>
@@ -604,11 +623,11 @@ export default function MisEstudiantes() {
                     </label>
 
                     {usesProfessionalRubrics && (
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-sm font-medium text-gray-700 min-w-0 max-w-full">
                             Pauta
                             <select
                                 aria-label="Pauta de evaluación"
-                                className="border border-gray-300 rounded-lg p-2 ml-2 bg-white"
+                                className="border border-gray-300 rounded-lg p-2 bg-white max-w-full w-full sm:w-auto"
                                 value={selectedRubric}
                                 onChange={(e) => setSelectedRubric(e.target.value)}
                             >
@@ -638,12 +657,12 @@ export default function MisEstudiantes() {
 
             <Modal
                 isOpen={isEvaluationModalOpen}
-                onClose={handleCloseEvaluation}
+                onClose={() => handleCloseEvaluation()}
                 title={isLocked ? 'Calificación Oficial Registrada (Modo Lectura)' : 'Pauta de Evaluación Digital'}
                 size="lg"
             >
                 {selectedAssignment && (
-                    <div className="space-y-4 max-h-[78vh] overflow-y-auto pr-1">
+                    <div className="space-y-4 pr-1">
                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <p className="font-bold text-blue-900">
@@ -719,104 +738,7 @@ export default function MisEstudiantes() {
                         )}
 
                         {(isCurrentRubricType || (isLocked && displayedIndicators.length > 0)) && (
-                            <section className="space-y-3">
-                                <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
-                                    <div>
-                                        <h3 className="text-sm font-bold text-gray-900">
-                                            {existingEvaluation?.instrumentName || activeRubric?.name || 'Desglose por Indicadores'}
-                                        </h3>
-                                        <p className="text-xs text-gray-600">
-                                            Escala oficial por indicador: 2 a 7 puntos (enteros). Exigencia del 60% para nota 4.0.
-                                        </p>
-                                    </div>
-                                    {!isLocked && rubricProgress && (
-                                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                                            <Badge variant={rubricProgress.isComplete ? 'success' : 'warning'}>
-                                                Observados: {rubricProgress.observedCount} / {rubricProgress.totalCount}
-                                            </Badge>
-                                            <Badge variant="info">
-                                                Puntaje: {rubricProgress.sumPoints} / {rubricProgress.maxPoints}
-                                            </Badge>
-                                            {rubricProgress.preliminaryScore != null ? (
-                                                <Badge variant="success">
-                                                    Nota preliminar: {rubricProgress.preliminaryScore.toFixed(1)}
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-amber-700 font-medium">
-                                                    Complete todos los indicadores para calcular nota
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {!isLocked && activeRubric && (
-                                    <div className="flex flex-wrap items-center gap-2 text-xs bg-blue-50/60 border border-blue-100 rounded-lg p-2.5">
-                                        <span className="font-semibold text-blue-900">Asignación rápida a todos los indicadores:</span>
-                                        {[2, 3, 4, 5, 6, 7].map((pts) => (
-                                            <button
-                                                key={pts}
-                                                type="button"
-                                                onClick={() => handleSetAllIndicators(pts)}
-                                                className="px-2.5 py-1 rounded border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold transition-colors cursor-pointer"
-                                            >
-                                                Todos {pts}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-200">
-                                    {displayedIndicators.map((ind) => {
-                                        const code = ind.criterionCode || ind.id;
-                                        const currentVal = isLocked
-                                            ? (ind.points ?? indicatorPoints[code] ?? '')
-                                            : (indicatorPoints[code] ?? '');
-                                        return (
-                                            <div
-                                                key={code}
-                                                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white hover:bg-gray-50/70"
-                                            >
-                                                <div className="space-y-0.5 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="inline-block px-2 py-0.5 text-xs font-bold rounded bg-blue-100 text-blue-900">
-                                                            {code}
-                                                        </span>
-                                                        {ind.dimension && (
-                                                            <span className="text-xs text-gray-500 font-medium">
-                                                                Dimensión {ind.dimension}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-sm text-gray-800">{ind.text}</p>
-                                                </div>
-                                                <div className="shrink-0">
-                                                    {isLocked ? (
-                                                        <Badge variant="info">
-                                                            {currentVal !== '' ? `${Number(currentVal)} / 7 pts` : 'Sin puntaje'}
-                                                        </Badge>
-                                                    ) : (
-                                                        <select
-                                                            aria-label={`Puntaje indicador ${code}`}
-                                                            value={currentVal}
-                                                            disabled={isLocked}
-                                                            onChange={(e) => handleSetIndicatorPoint(code, e.target.value)}
-                                                            className="border border-gray-300 rounded-lg p-1.5 text-sm font-semibold bg-white"
-                                                        >
-                                                            <option value="">Sin observar</option>
-                                                            {(activeRubric?.scale || [2, 3, 4, 5, 6, 7]).map((val) => (
-                                                                <option key={val} value={val}>
-                                                                    {val} puntos
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </section>
+                            <EvaluationForm existingEvaluation={existingEvaluation} activeRubric={activeRubric} isLocked={isLocked} rubricProgress={rubricProgress} handleSetAllIndicators={handleSetAllIndicators} displayedIndicators={displayedIndicators} indicatorPoints={indicatorPoints} handleSetIndicatorPoint={handleSetIndicatorPoint} />
                         )}
 
                         <form onSubmit={handleSaveDraft} className="space-y-4">
@@ -846,6 +768,8 @@ export default function MisEstudiantes() {
                                 <textarea
                                     className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-600 text-sm"
                                     rows="4"
+                                    maxLength={1000}
+                                    aria-label="Comentarios cualitativos"
                                     disabled={isLocked}
                                     value={evaluationData.comments}
                                     onChange={(e) => setEvaluationData({ ...evaluationData, comments: e.target.value })}
@@ -854,7 +778,7 @@ export default function MisEstudiantes() {
                             </div>
 
                             <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-200">
-                                <Button type="button" variant="outline" onClick={handleCloseEvaluation}>
+                                <Button type="button" variant="outline" onClick={() => handleCloseEvaluation()}>
                                     {isLocked ? 'Cerrar' : 'Cancelar'}
                                 </Button>
                                 {!isLocked && (
@@ -882,6 +806,7 @@ export default function MisEstudiantes() {
                 )}
             </Modal>
 
+            <ConfirmDialog isOpen={discardOpen} title="Cambios sin guardar" message="Hay cambios en la pauta que aún no has guardado. ¿Quieres descartarlos?" confirmText="Descartar cambios" cancelText="Seguir editando" onConfirm={() => handleCloseEvaluation(true)} onCancel={() => setDiscardOpen(false)} />
             <FinalizeEvaluationDialog
                 isOpen={isFinalizeDialogOpen}
                 onClose={() => setIsFinalizeDialogOpen(false)}

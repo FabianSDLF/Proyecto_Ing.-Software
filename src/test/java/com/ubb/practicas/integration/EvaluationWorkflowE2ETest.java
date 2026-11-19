@@ -100,6 +100,9 @@ public class EvaluationWorkflowE2ETest {
                 null, "Práctica Profesional", PracticeCycle.AVANZADO, "PEM-310", professor
         ));
 
+        subject.setProfessionalRubrics(true);
+        subjectRepository.save(subject);
+
         PracticeCenter center = practiceCenterRepository.save(new PracticeCenter(
                 null, "Colegio Concepción", SchoolDependency.PRIVADO,
                 "Av. Central 123", "Concepción", "Concepción",

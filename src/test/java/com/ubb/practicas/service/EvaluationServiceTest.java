@@ -40,6 +40,30 @@ import static org.mockito.Mockito.*;
 @DisplayName("HU43, HU46 y HU47 - Pautas del Tutor, Cierre/Firma Oficial y Consulta Estudiantil")
 class EvaluationServiceTest {
 
+    @Test
+    void hu44RejectsProfessionalRubricForUnconfiguredSubject() {
+        assignment.getSubject().setProfessionalRubrics(false);
+        when(userRepository.findByEmail(tutor.getEmail())).thenReturn(tutor);
+        when(practiceAssignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
+        EvaluationCreateDTO dto = new EvaluationCreateDTO();
+        dto.setPracticeAssignmentId(10L); dto.setType(EvaluationType.TUTOR_ESP_1);
+        assertThrows(BadRequestException.class, () -> evaluationService.crearEvaluacion(dto, tutor.getEmail()));
+        verifyNoInteractions(evaluationRepository, evaluationCriteriaRepository);
+    }
+
+    @Test
+    void hu44RejectsRepeatedCodeEvenWhenFirstValueIsPending() {
+        when(userRepository.findByEmail(tutor.getEmail())).thenReturn(tutor);
+        when(practiceAssignmentRepository.findById(10L)).thenReturn(Optional.of(assignment));
+        EvaluationCreateDTO dto = new EvaluationCreateDTO();
+        dto.setPracticeAssignmentId(10L); dto.setType(EvaluationType.TUTOR_ESP_1);
+        var pending = new EvaluationCriteriaDTO(); pending.setCriterionCode("A1");
+        var observed = new EvaluationCriteriaDTO(); observed.setCriterionCode("A1"); observed.setPoints(5f);
+        dto.setCriteria(List.of(pending, observed));
+        assertThrows(BadRequestException.class, () -> evaluationService.crearEvaluacion(dto, tutor.getEmail()));
+        verify(evaluationRepository, never()).save(any());
+    }
+
     @Mock
     private EvaluationRepository evaluationRepository;
 
@@ -131,6 +155,7 @@ class EvaluationServiceTest {
         Subject subject = new Subject();
         subject.setId(20L);
         subject.setName("Práctica Profesional");
+        subject.setProfessionalRubrics(true);
         subject.setProfessor(professor);
 
         assignment = new PracticeAssignment();

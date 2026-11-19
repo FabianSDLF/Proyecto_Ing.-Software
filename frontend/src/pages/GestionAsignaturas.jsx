@@ -14,6 +14,7 @@ export default function GestionAsignaturas() {
   const [code, setCode] = useState('');
   const [cycle, setCycle] = useState('INICIAL');
   const [professorId, setProfessorId] = useState('');
+  const [professionalRubrics, setProfessionalRubrics] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -106,6 +107,7 @@ export default function GestionAsignaturas() {
         name: name.trim(),
         code: code.trim() || null,
         cycle,
+        professionalRubrics,
         professorId: professorId || null,
       });
       toast.success('Asignatura creada exitosamente');
@@ -127,6 +129,7 @@ export default function GestionAsignaturas() {
       name: subj.name || '',
       code: subj.code || '',
       cycle: subj.cycle || 'INICIAL',
+      professionalRubrics: Boolean(subj.professionalRubrics),
       professorId: subj.professor?.id || '',
     });
   };
@@ -415,6 +418,7 @@ export default function GestionAsignaturas() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Nueva Asignatura</h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <label className="md:col-span-5"><input type="checkbox" checked={professionalRubrics} onChange={e => setProfessionalRubrics(e.target.checked)} /> Aplicar las ocho pautas de práctica profesional (2025-2)</label>
               <div>
                 <Input
                   label="Código"
@@ -596,6 +600,7 @@ export default function GestionAsignaturas() {
         size="md"
       >
         <form onSubmit={handleSaveEditSubject} className="space-y-4">
+          <label className="block"><input type="checkbox" checked={Boolean(editSubjectForm.professionalRubrics)} onChange={e => setEditSubjectForm(prev => ({ ...prev, professionalRubrics: e.target.checked }))} /> Aplicar las ocho pautas de práctica profesional (2025-2)</label>
           <Input
             label="Código"
             value={editSubjectForm.code}

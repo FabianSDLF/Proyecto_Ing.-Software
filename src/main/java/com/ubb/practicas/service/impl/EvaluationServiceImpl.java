@@ -49,6 +49,9 @@ public class EvaluationServiceImpl implements EvaluationService {
     private AuditService auditService;
     private ObjectMapper objectMapper;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     @Autowired
     public EvaluationServiceImpl(
             EvaluationRepository evaluationRepository,
@@ -94,7 +97,7 @@ public class EvaluationServiceImpl implements EvaluationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Evaluation crearEvaluacion(EvaluationCreateDTO dto, String evaluatorEmail) {
         if (dto == null) {
             throw new BadRequestException("Los datos de la evaluación son obligatorios.");
@@ -108,6 +111,8 @@ public class EvaluationServiceImpl implements EvaluationService {
             throw new BadRequestException("El identificador de la asignación de práctica es obligatorio.");
         }
 
+        if (dto.getQualitativeComments() != null && dto.getQualitativeComments().length() > 1000)
+            throw new BadRequestException("Las observaciones no pueden superar 1000 caracteres.");
         User evaluator = requireActiveUser(evaluatorEmail);
         PracticeAssignment assignment = lockOrFindAssignment(dto.getPracticeAssignmentId());
         EvaluationType evalType = dto.getType() != null ? dto.getType() : EvaluationType.PAUTA_OBSERVACION_COLABORADOR;
@@ -162,8 +167,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 
             if (dto.getCriteria() != null) {
                 for (EvaluationCriteriaDTO c : dto.getCriteria()) {
-                    if (c == null) continue;
+                    if (c == null) throw new BadRequestException("Indicador inválido");
+                    if (c.getJustification() != null && c.getJustification().length() > 1000)
+                        throw new BadRequestException("La justificación no puede superar 1000 caracteres.");
                     String code = resolveCriterionCode(c);
+                    if (code == null || !officialIndicators.containsKey(code)) throw new BadRequestException("Código de indicador inválido");
+                    if (!seenCodes.add(code)) throw new BadRequestException("Indicador duplicado: " + code);
                     if (c.getPoints() == null) {
                         // Indicador aún sin observar en el borrador: se valida el código si viene informado y no se convierte en 0.
                         if (code != null && !officialIndicators.containsKey(code)) {
@@ -174,9 +183,7 @@ public class EvaluationServiceImpl implements EvaluationService {
                     if (code == null || !officialIndicators.containsKey(code)) {
                         throw new BadRequestException("El indicador '" + code + "' no pertenece a la pauta oficial " + evalType + ".");
                     }
-                    if (!seenCodes.add(code)) {
-                        throw new BadRequestException("El indicador '" + code + "' está duplicado en la pauta.");
-                    }
+
                     if (!EvaluationRubricCatalog.isAllowedPointValue(c.getPoints())) {
                         throw new BadRequestException(
                                 "El puntaje del indicador '" + code + "' debe ser un entero entre 2 y 7."
@@ -256,7 +263,7 @@ public class EvaluationServiceImpl implements EvaluationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Evaluation finalizarEvaluacion(Long evaluationId, EvaluationFinalizeDTO dto, String evaluatorEmail) {
         if (evaluationId == null) {
             throw new BadRequestException("El identificador de la evaluación es obligatorio.");
@@ -279,6 +286,10 @@ public class EvaluationServiceImpl implements EvaluationService {
         } else {
             throw new ResourceNotFoundException("Asignación de práctica asociada no encontrada");
         }
+
+        // La entidad pudo cargarse antes de esperar el bloqueo de la asignación.
+        // Refrescar evita firmar una revisión anterior a un cierre concurrente.
+        if (entityManager != null) entityManager.refresh(evaluation);
 
         if (Boolean.TRUE.equals(evaluation.getIsFinalized())) {
             throw new ResourceConflictException(
@@ -457,7 +468,7 @@ public class EvaluationServiceImpl implements EvaluationService {
         if (user == null) {
             throw new UserNotFoundException("Usuario no encontrado");
         }
-        if (Boolean.FALSE.equals(user.getActive())) {
+        if (!Boolean.TRUE.equals(user.getActive())) {
             throw new AccessDeniedException("Cuenta de usuario inactiva");
         }
         return user;
@@ -475,6 +486,9 @@ public class EvaluationServiceImpl implements EvaluationService {
     private void validateEvaluatorAuthorization(User evaluator, PracticeAssignment assignment, EvaluationType evalType) {
         if (assignment == null || evalType == null) {
             throw new BadRequestException("La asignación y el tipo de instrumento son obligatorios.");
+        }
+        if (evalType.isProfessionalRubric() && !com.ubb.practicas.service.StatisticsService.professional(assignment)) {
+            throw new BadRequestException("Esta asignatura no tiene configuradas las pautas de práctica profesional.");
         }
         String evaluatorEmail = evaluator.getEmail();
         String role = AssignmentScope.role(evaluator);

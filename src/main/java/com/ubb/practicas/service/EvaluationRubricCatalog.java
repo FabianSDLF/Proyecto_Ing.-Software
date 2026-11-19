@@ -192,6 +192,8 @@ public class EvaluationRubricCatalog {
         if (assignmentId != null) {
             PracticeAssignment assignment = assignmentRepository.findById(assignmentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Asignación no encontrada"));
+            if (!admin && !assignment.hasParticipant(callerEmail)) throw new AccessDeniedException("No pertenece a esta práctica");
+            if (!StatisticsService.professional(assignment)) return List.of();
             if (admin || (role.equals("PROFESOR_DE_ASIGNATURA") && assignment.isProfessor(callerEmail))) {
                 return getAllProfessionalRubrics();
             }
@@ -259,7 +261,7 @@ public class EvaluationRubricCatalog {
     public static boolean isAllowedPointValue(Float points) {
         if (points == null || !Float.isFinite(points)) return false;
         int intVal = Math.round(points);
-        if (Math.abs(points - intVal) > 1e-5f) return false;
+        if (points.floatValue() != intVal) return false;
         return OFFICIAL_SCALE.contains(intVal);
     }
 
