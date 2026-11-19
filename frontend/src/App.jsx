@@ -23,6 +23,7 @@ import CiclosPractica from './pages/CiclosPractica';
 import Asignaciones from './pages/Asignaciones';
 import MisEstudiantes from './pages/MisEstudiantes';
 import Reportes from './pages/Reportes';
+import Ayuda from './pages/Ayuda';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
               {/* Common Routes */}
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/perfil" element={<Perfil />} />
+              <Route path="/ayuda" element={<Ayuda />} />
 
               {/* Student Routes */}
               <Route element={<RoleRoute allowedRoles={['Estudiante']} />}>

@@ -73,12 +73,12 @@ export default function ChatbotWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-30 flex flex-col items-end">
       {isOpen && (
         <div
           role="region"
           aria-label="Ventana del Asistente Pedagógico"
-          className="w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
+          className="w-[calc(100vw-1.5rem)] sm:w-96 h-[min(500px,calc(100dvh-110px))] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
         >
           {/* Header */}
           <div className="bg-[#003B70] text-white p-4 flex items-center justify-between">
