@@ -48,4 +48,31 @@ public class Evaluation {
 
     private LocalDateTime evaluationDate;
     private LocalDateTime createdAt;
+
+    @Transient
+    @ToString.Exclude
+    private java.util.List<EvaluationCriteria> criteria;
+
+    public Evaluation(
+            Long identificador,
+            PracticeAssignment asignacionPractica,
+            User evaluador,
+            EvaluationType tipoEvaluacion,
+            Float calificacion,
+            String comentariosCualitativos,
+            Boolean estaFinalizada,
+            String firmaDigital,
+            LocalDateTime fechaEvaluacion,
+            LocalDateTime fechaCreacion) {
+        this.id = identificador;
+        this.practiceAssignment = asignacionPractica;
+        this.evaluator = evaluador;
+        this.type = tipoEvaluacion;
+        this.score = calificacion;
+        this.qualitativeComments = comentariosCualitativos;
+        this.isFinalized = estaFinalizada;
+        this.digitalSignature = firmaDigital;
+        this.evaluationDate = fechaEvaluacion;
+        this.createdAt = fechaCreacion;
+    }
 }

@@ -89,17 +89,19 @@ public class EvaluationServiceImpl implements EvaluationService {
 
         Evaluation savedEvaluation = evaluationRepository.save(evaluation);
 
+        java.util.List<EvaluationCriteria> listaCriteriosGuardados = new java.util.ArrayList<>();
         if (dto.getCriteria() != null && !dto.getCriteria().isEmpty()) {
-            for (EvaluationCriteriaDTO c : dto.getCriteria()) {
-                EvaluationCriteria criteria = new EvaluationCriteria();
-                criteria.setEvaluation(savedEvaluation);
-                criteria.setCriteriaName(c.getCriteriaName());
-                criteria.setAchievementLevel(c.getAchievementLevel());
-                criteria.setPoints(c.getPoints());
-                criteria.setJustification(c.getJustification());
-                evaluationCriteriaRepository.save(criteria);
+            for (EvaluationCriteriaDTO criterioSolicitud : dto.getCriteria()) {
+                EvaluationCriteria criterioEntidad = new EvaluationCriteria();
+                criterioEntidad.setEvaluation(savedEvaluation);
+                criterioEntidad.setCriteriaName(criterioSolicitud.getCriteriaName());
+                criterioEntidad.setAchievementLevel(criterioSolicitud.getAchievementLevel());
+                criterioEntidad.setPoints(criterioSolicitud.getPoints());
+                criterioEntidad.setJustification(criterioSolicitud.getJustification());
+                listaCriteriosGuardados.add(evaluationCriteriaRepository.save(criterioEntidad));
             }
         }
+        savedEvaluation.setCriteria(listaCriteriosGuardados);
 
         return savedEvaluation;
     }
@@ -107,6 +109,11 @@ public class EvaluationServiceImpl implements EvaluationService {
     @Override
     @Transactional(readOnly = true)
     public List<Evaluation> listarEvaluacionesPorAsignacion(Long practiceAssignmentId) {
-        return evaluationRepository.findByPracticeAssignmentId(practiceAssignmentId);
+        List<Evaluation> listaEvaluaciones = evaluationRepository.findByPracticeAssignmentId(practiceAssignmentId);
+        for (Evaluation evaluacionActual : listaEvaluaciones) {
+            List<EvaluationCriteria> criteriosAsociados = evaluationCriteriaRepository.findByEvaluationId(evaluacionActual.getId());
+            evaluacionActual.setCriteria(criteriosAsociados);
+        }
+        return listaEvaluaciones;
     }
 }

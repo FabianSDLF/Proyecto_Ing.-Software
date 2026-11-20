@@ -7,3 +7,4 @@ export { default as subjectService } from './subjectService';
 export { default as centerService } from './centerService';
 export { default as chatbotService } from './chatbotService';
 export { default as evaluationService } from './evaluationService';
+export { default as notificacionService } from './notificacionService';

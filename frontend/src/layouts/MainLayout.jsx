@@ -1,12 +1,92 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import logoPitagoras from '../assets/logoUBB.png';
 import ChatbotWidget from '../components/ChatbotWidget';
+import notificacionService from '../services/notificacionService';
+import { Modal, Button, Badge } from '../components/ui';
 
 export default function MainLayout() {
   const { user, userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [listaNotificaciones, setListaNotificaciones] = useState([]);
+  const [cargandoNotificaciones, setCargandoNotificaciones] = useState(false);
+  const [mostrarModalNotificaciones, setMostrarModalNotificaciones] = useState(false);
+
+  const cargarNotificaciones = useCallback(async (signal) => {
+    if (!user) return;
+    setCargandoNotificaciones(true);
+    try {
+      const datos = await notificacionService.obtenerMisNotificaciones({ signal });
+      setListaNotificaciones(Array.isArray(datos) ? datos : []);
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error al cargar notificaciones:', error);
+      }
+    } finally {
+      setCargandoNotificaciones(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const controlador = new AbortController();
+    cargarNotificaciones(controlador.signal);
+    return () => controlador.abort();
+  }, [user, cargarNotificaciones]);
+
+  const abrirBandejaNotificaciones = () => {
+    setMostrarModalNotificaciones(true);
+    cargarNotificaciones();
+  };
+
+  const cerrarBandejaNotificaciones = () => {
+    setMostrarModalNotificaciones(false);
+  };
+
+  const marcarNotificacionComoLeida = async (notificacionId) => {
+    try {
+      await notificacionService.marcarComoLeida(notificacionId);
+      setListaNotificaciones((estadoAnterior) =>
+        estadoAnterior.map((elemento) =>
+          elemento.id === notificacionId ? { ...elemento, read: true } : elemento
+        )
+      );
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo marcar la notificación como leída');
+    }
+  };
+
+  const marcarTodasNotificacionesLeidas = async () => {
+    try {
+      await notificacionService.marcarTodasComoLeidas();
+      setListaNotificaciones((estadoAnterior) =>
+        estadoAnterior.map((elemento) => ({ ...elemento, read: true }))
+      );
+      toast.success('Todas las notificaciones marcadas como leídas');
+    } catch (error) {
+      toast.error(error?.message || 'No se pudieron actualizar las notificaciones');
+    }
+  };
+
+  const obtenerEtiquetaTipoNotificacion = (tipoNotificacion) => {
+    if (tipoNotificacion === 'PLANIFICACION_APROBADA') return 'Planificación Aprobada';
+    if (tipoNotificacion === 'ALERTA_SISTEMA') return 'Comunicado del Sistema';
+    if (tipoNotificacion === 'REVISION_PENDIENTE') return 'Revisión Pendiente';
+    if (tipoNotificacion === 'EVALUACION_PUBLICADA') return 'Evaluación Publicada';
+    return 'Notificación';
+  };
+
+  const obtenerVarianteTipoNotificacion = (tipoNotificacion) => {
+    if (tipoNotificacion === 'PLANIFICACION_APROBADA') return 'success';
+    if (tipoNotificacion === 'ALERTA_SISTEMA') return 'info';
+    if (tipoNotificacion === 'REVISION_PENDIENTE') return 'warning';
+    return 'primary';
+  };
+
+  const cantidadNoLeidas = listaNotificaciones.filter((elemento) => !elemento.read).length;
 
   const handleLogout = () => {
     logout();
@@ -53,6 +133,29 @@ export default function MainLayout() {
             </svg>
             Inicio
           </Link>
+
+          <button
+            type="button"
+            onClick={abrirBandejaNotificaciones}
+            className={`${baseLinkClass} ${inactiveLinkClass} justify-between cursor-pointer w-full text-left`}
+          >
+            <span className="flex items-center gap-3">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                ></path>
+              </svg>
+              Notificaciones
+            </span>
+            {cantidadNoLeidas > 0 && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-orange-500 text-white rounded-full">
+                {cantidadNoLeidas}
+              </span>
+            )}
+          </button>
 
           {/* Opciones exclusivas de Estudiantes */}
           {userRole === 'Estudiante' && (
@@ -241,6 +344,76 @@ export default function MainLayout() {
 
       {/* Asistente Flotante de IA */}
       {!isActive('/retroplani') && <ChatbotWidget />}
+
+      <Modal
+        isOpen={mostrarModalNotificaciones}
+        onClose={cerrarBandejaNotificaciones}
+        title="Notificaciones"
+        size="lg"
+        footer={
+          <div className="flex items-center justify-between gap-2">
+            {cantidadNoLeidas > 0 ? (
+              <Button variant="outline" size="sm" onClick={marcarTodasNotificacionesLeidas}>
+                Marcar todas como leídas
+              </Button>
+            ) : (
+              <span></span>
+            )}
+            <Button variant="secondary" size="sm" onClick={cerrarBandejaNotificaciones}>
+              Cerrar
+            </Button>
+          </div>
+        }
+      >
+        {cargandoNotificaciones ? (
+          <div className="py-8 text-center text-gray-500 text-sm">Cargando notificaciones...</div>
+        ) : listaNotificaciones.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            No tienes notificaciones ni comunicados pendientes.
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {listaNotificaciones.map((notificacionActual) => (
+              <div
+                key={notificacionActual.id}
+                className={`p-4 rounded-xl border transition-colors ${
+                  notificacionActual.read
+                    ? 'bg-gray-50 border-gray-200'
+                    : 'bg-white border-gray-200 border-l-4 border-l-orange-500'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={obtenerVarianteTipoNotificacion(notificacionActual.type)} size="sm">
+                      {obtenerEtiquetaTipoNotificacion(notificacionActual.type)}
+                    </Badge>
+                    {!notificacionActual.read && (
+                      <span className="text-[11px] font-bold text-orange-600 uppercase">Nueva</span>
+                    )}
+                  </div>
+                  {notificacionActual.createdAt && (
+                    <span className="text-xs text-gray-500">
+                      {new Date(notificacionActual.createdAt).toLocaleString('es-CL')}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{notificacionActual.message}</p>
+                {!notificacionActual.read && (
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => marcarNotificacionComoLeida(notificacionActual.id)}
+                    >
+                      Marcar leída
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

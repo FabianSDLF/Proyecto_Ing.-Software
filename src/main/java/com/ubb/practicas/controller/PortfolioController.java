@@ -332,4 +332,15 @@ public class PortfolioController {
         );
         return ResponseEntity.ok(actualizado);
     }
+
+    @PutMapping("/planificaciones/{id}/aprobar")
+    public ResponseEntity<LessonPlan> aprobarPlanificacion(
+            @PathVariable Long id,
+            Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Sesión no autorizada");
+        }
+        LessonPlan planificacionAprobada = lessonPlanService.aprobarPlanificacion(id, principal.getName());
+        return ResponseEntity.ok(planificacionAprobada);
+    }
 }

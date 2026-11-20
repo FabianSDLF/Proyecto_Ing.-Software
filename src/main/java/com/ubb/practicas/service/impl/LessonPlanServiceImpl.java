@@ -1,14 +1,17 @@
 package com.ubb.practicas.service.impl;
 
 import com.ubb.practicas.model.LessonPlan;
+import com.ubb.practicas.model.Notification;
 import com.ubb.practicas.model.PortfolioDocument;
 import com.ubb.practicas.model.PracticeAssignment;
 import com.ubb.practicas.model.User;
 import com.ubb.practicas.model.enums.AssignmentStatus;
 import com.ubb.practicas.model.enums.DocumentType;
 import com.ubb.practicas.model.enums.MathAxis;
+import com.ubb.practicas.model.enums.NotificationType;
 import com.ubb.practicas.model.enums.PlanStatus;
 import com.ubb.practicas.repository.LessonPlanRepository;
+import com.ubb.practicas.repository.NotificationRepository;
 import com.ubb.practicas.repository.PortfolioDocumentRepository;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
 import com.ubb.practicas.repository.UserRepository;
@@ -34,6 +37,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final EmailService emailService;
+    private final NotificationRepository notificationRepository;
 
     private PracticeAssignment resolveAssignment(String email, Long explicitAssignmentId) {
         if (explicitAssignmentId != null) {
@@ -440,5 +444,63 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         }
 
         return lessonPlanRepository.save(plan);
+    }
+
+    @Override
+    @Transactional
+    public LessonPlan aprobarPlanificacion(Long planificacionId, String correoUsuario) {
+        LessonPlan planificacion = lessonPlanRepository.findById(planificacionId)
+                .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada con ID: " + planificacionId));
+
+        PracticeAssignment asignacion = planificacion.getPracticeAssignment();
+        boolean esAdmin = isUserAdmin(correoUsuario);
+
+        if (asignacion != null) {
+            if (asignacion.isStudent(correoUsuario) && !esAdmin) {
+                throw new AccessDeniedException("Los estudiantes no pueden aprobar planificaciones.");
+            }
+
+            boolean esDocenteAutorizado = asignacion.isProfessor(correoUsuario)
+                    || asignacion.isCollaborator(correoUsuario)
+                    || asignacion.isTutor(correoUsuario)
+                    || esAdmin;
+
+            if (!esDocenteAutorizado) {
+                throw new AccessDeniedException("No tiene permisos para aprobar esta planificación.");
+            }
+        } else if (!esAdmin) {
+            throw new AccessDeniedException("La planificación no tiene una asignación de práctica válida.");
+        }
+
+        planificacion.setStatus(PlanStatus.APROBADO);
+        planificacion.setUpdatedAt(LocalDateTime.now());
+        LessonPlan planificacionGuardada = lessonPlanRepository.save(planificacion);
+
+        if (asignacion != null && asignacion.getStudent() != null) {
+            String cursoTexto = planificacionGuardada.getSchoolGrade() != null ? planificacionGuardada.getSchoolGrade() : "";
+            String ejeTexto = planificacionGuardada.getMathAxis() != null ? planificacionGuardada.getMathAxis().name() : "";
+
+            if (notificationRepository != null) {
+                Notification alertaEstudiante = new Notification();
+                alertaEstudiante.setTargetUser(asignacion.getStudent());
+                alertaEstudiante.setType(NotificationType.PLANIFICACION_APROBADA);
+                alertaEstudiante.setMessage("Tu planificación de " + cursoTexto + " (" + ejeTexto + ") fue aprobada. Ya puedes aplicarla en el colegio.");
+                alertaEstudiante.setRead(false);
+                alertaEstudiante.setCreatedAt(LocalDateTime.now());
+                alertaEstudiante.setReferenceId(planificacionGuardada.getId());
+                alertaEstudiante.setReferenceType("PLANIFICACION");
+                notificationRepository.save(alertaEstudiante);
+            }
+
+            if (emailService != null) {
+                emailService.enviarNotificacionPlanificacionAprobada(
+                        asignacion.getStudent().getEmail(),
+                        cursoTexto,
+                        ejeTexto
+                );
+            }
+        }
+
+        return planificacionGuardada;
     }
 }

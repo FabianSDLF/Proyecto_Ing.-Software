@@ -13,6 +13,34 @@ function getEvaluationTypeForRole(role) {
     return 'PAUTA_OBSERVACION_COLABORADOR';
 }
 
+const indicadoresBase = [
+    {
+        criteriaName: 'Responsabilidad y Puntualidad',
+        achievementLevel: 'LOGRO_ADECUADO',
+        points: 20.0,
+        justification: '',
+    },
+    {
+        criteriaName: 'Dominio del Grupo y Gestión de Aula',
+        achievementLevel: 'LOGRO_ADECUADO',
+        points: 20.0,
+        justification: '',
+    },
+    {
+        criteriaName: 'Claridad Conceptual y Didáctica',
+        achievementLevel: 'LOGRO_ADECUADO',
+        points: 20.0,
+        justification: '',
+    },
+];
+
+const puntajesPorNivel = {
+    LOGRO_ALTO: 25.0,
+    LOGRO_ADECUADO: 20.0,
+    LOGRO_PARCIAL: 12.0,
+    LOGRO_INSUFICIENTE: 5.0,
+};
+
 export default function MisEstudiantes() {
     const { user, userRole } = useAuth();
     const navigate = useNavigate();
@@ -28,6 +56,7 @@ export default function MisEstudiantes() {
         comments: '',
         isFinalized: false,
         digitalSignature: '',
+        indicadores: indicadoresBase.map((elemento) => ({ ...elemento })),
     });
 
     const targetEvaluationType = useMemo(() => getEvaluationTypeForRole(userRole), [userRole]);
@@ -96,11 +125,20 @@ export default function MisEstudiantes() {
         setExistingEvaluation(currentEval);
 
         if (currentEval) {
+            const indicadoresCargados = Array.isArray(currentEval.criteria) && currentEval.criteria.length > 0
+                ? currentEval.criteria.map((criterioActual) => ({
+                    criteriaName: criterioActual.criteriaName || '',
+                    achievementLevel: criterioActual.achievementLevel || 'LOGRO_ADECUADO',
+                    points: criterioActual.points ?? 20.0,
+                    justification: criterioActual.justification || '',
+                }))
+                : indicadoresBase.map((elemento) => ({ ...elemento }));
             setEvaluationData({
                 score: currentEval.score !== undefined && currentEval.score !== null ? String(currentEval.score) : '',
                 comments: currentEval.qualitativeComments || '',
                 isFinalized: Boolean(currentEval.isFinalized),
                 digitalSignature: currentEval.digitalSignature || '',
+                indicadores: indicadoresCargados,
             });
         } else {
             setEvaluationData({
@@ -108,10 +146,37 @@ export default function MisEstudiantes() {
                 comments: '',
                 isFinalized: false,
                 digitalSignature: '',
+                indicadores: indicadoresBase.map((elemento) => ({ ...elemento })),
             });
         }
         setIsEvaluationModalOpen(true);
     }, [evaluacionesPorAsignacion]);
+
+    const actualizarNivelIndicador = (indiceIndicador, nuevoNivel) => {
+        setEvaluationData((estadoAnterior) => ({
+            ...estadoAnterior,
+            indicadores: estadoAnterior.indicadores.map((indicadorActual, indiceActual) =>
+                indiceActual === indiceIndicador
+                    ? {
+                        ...indicadorActual,
+                        achievementLevel: nuevoNivel,
+                        points: puntajesPorNivel[nuevoNivel] ?? indicadorActual.points,
+                    }
+                    : indicadorActual
+            ),
+        }));
+    };
+
+    const actualizarObservacionIndicador = (indiceIndicador, textoObservacion) => {
+        setEvaluationData((estadoAnterior) => ({
+            ...estadoAnterior,
+            indicadores: estadoAnterior.indicadores.map((indicadorActual, indiceActual) =>
+                indiceActual === indiceIndicador
+                    ? { ...indicadorActual, justification: textoObservacion }
+                    : indicadorActual
+            ),
+        }));
+    };
 
     const handleCloseEvaluation = () => {
         setIsEvaluationModalOpen(false);
@@ -145,10 +210,7 @@ export default function MisEstudiantes() {
                 qualitativeComments: evaluationData.comments,
                 isFinalized: evaluationData.isFinalized,
                 digitalSignature: evaluationData.isFinalized ? evaluationData.digitalSignature.trim() : null,
-                criteria: [
-                    { criteriaName: 'Responsabilidad y Puntualidad', achievementLevel: 'LOGRO_ALTO', points: 25.0, justification: 'Evaluado general' },
-                    { criteriaName: 'Dominio del Grupo', achievementLevel: 'LOGRO_ADECUADO', points: 20.0, justification: 'Evaluado general' }
-                ]
+                criteria: evaluationData.indicadores,
             };
 const saved = await evaluationService.createOrUpdate(payload);
             setEvaluacionesPorAsignacion((prev) => ({
@@ -309,9 +371,10 @@ const saved = await evaluationService.createOrUpdate(payload);
                 isOpen={isEvaluationModalOpen}
                 onClose={handleCloseEvaluation}
                 title={isLocked ? 'Calificación Oficial Registrada' : 'Pauta de Evaluación Digital'}
+                size="lg"
             >
                 {selectedAssignment && (
-                    <form onSubmit={handleSubmitEvaluation} className="space-y-4">
+                    <form onSubmit={handleSubmitEvaluation} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
                         <div className="bg-blue-50 p-4 rounded-lg mb-4">
                             <p className="font-bold text-blue-900">Estudiante: {selectedAssignment.student?.fullName}</p>
                             <p className="text-sm text-blue-700">Asignatura: {selectedAssignment.subject?.name}</p>
@@ -351,10 +414,45 @@ const saved = await evaluationService.createOrUpdate(payload);
                             />
                         </div>
 
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-semibold text-gray-800">Evaluación por Indicadores</h3>
+                            {evaluationData.indicadores.map((indicadorActual, indiceIndicador) => (
+                                <div key={indicadorActual.criteriaName || indiceIndicador} className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <span className="text-sm font-semibold text-gray-800">{indicadorActual.criteriaName}</span>
+                                        <select
+                                            disabled={isLocked}
+                                            value={indicadorActual.achievementLevel}
+                                            onChange={(e) => actualizarNivelIndicador(indiceIndicador, e.target.value)}
+                                            className="text-xs border border-gray-300 rounded-md px-2.5 py-1.5 bg-white text-gray-700 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                        >
+                                            <option value="LOGRO_ALTO">Logro Alto</option>
+                                            <option value="LOGRO_ADECUADO">Logro Adecuado</option>
+                                            <option value="LOGRO_PARCIAL">Logro Parcial</option>
+                                            <option value="LOGRO_INSUFICIENTE">Logro Insuficiente</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                                            Observación cualitativa del indicador
+                                        </label>
+                                        <textarea
+                                            rows="2"
+                                            disabled={isLocked}
+                                            value={indicadorActual.justification}
+                                            onChange={(e) => actualizarObservacionIndicador(indiceIndicador, e.target.value)}
+                                            placeholder="Ingrese observación cualitativa para justificar este indicador..."
+                                            className="w-full p-2 text-sm bg-white border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-600"
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios Cualitativos y Retroalimentación</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones Cualitativas Generales y Retroalimentación</label>
                             <textarea 
-                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-600"
+                                className="w-full p-2 bg-white border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-600"
                                 rows="4"
                                 required
                                 disabled={isLocked}

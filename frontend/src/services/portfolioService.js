@@ -249,6 +249,10 @@ export const portfolioService = {
   async agregarRetroalimentacionPlan(id, feedback, options) {
     return apiClient.put(`/api/portafolio/planificaciones/${id}/retroalimentacion`, { feedback }, options);
   },
+
+  async aprobarPlanificacion(planificacionId, opciones) {
+    return apiClient.put(`/api/portafolio/planificaciones/${planificacionId}/aprobar`, {}, opciones);
+  },
 };
 
 export default portfolioService;
