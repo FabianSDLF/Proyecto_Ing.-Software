@@ -230,6 +230,25 @@ export const portfolioService = {
   async deleteDocumentoFinal(id, options) {
     return this.deleteFinalDocument(id, options);
   },
+  // HU1: Consultas para Docente Supervisor
+  async obtenerEvidenciasPorAsignacion(assignmentId, options) {
+    return apiClient.get(`/api/portafolio/asignacion/${assignmentId}/evidencias`, options);
+  },
+
+  async obtenerPlanificacionesPorAsignacion(assignmentId, options) {
+    return apiClient.get(`/api/portafolio/asignacion/${assignmentId}/planificaciones`, options);
+  },
+
+  async obtenerDocumentosFinalesPorAsignacion(assignmentId, options) {
+    return apiClient.get(`/api/portafolio/documentos-finales/asignacion/${assignmentId}`, options);
+  },
+  async agregarRetroalimentacionDocumento(id, feedback, options) {
+    return apiClient.put(`/api/portafolio/documentos/${id}/retroalimentacion`, { feedback }, options);
+  },
+
+  async agregarRetroalimentacionPlan(id, feedback, options) {
+    return apiClient.put(`/api/portafolio/planificaciones/${id}/retroalimentacion`, { feedback }, options);
+  },
 };
 
 export default portfolioService;
