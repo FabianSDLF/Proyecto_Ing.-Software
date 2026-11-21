@@ -156,6 +156,152 @@ export default function Portafolio({ isReadOnly = false }) {
         guardando: false,
     });
 
+    // Estados para el Modal de Aprobación / Solicitud de Cambios de Planificación (con comentarios por sección)
+    const INITIAL_SECTION_COMMENTS = {
+        oa: '',
+        objetivosEspecificos: '',
+        objetivoActitudinal: '',
+        inicio: '',
+        desarrollo: '',
+        cierre: '',
+        recursos: '',
+        evaluacion: '',
+        general: '',
+    };
+
+    const [reviewPlanModal, setReviewPlanModal] = useState({
+        isOpen: false,
+        plan: null,
+        decision: 'APROBADO', // 'APROBADO' | 'REQUIERE_CAMBIOS'
+        secciones: { ...INITIAL_SECTION_COMMENTS },
+        guardando: false,
+    });
+
+    const renderPlanStatusBadge = useCallback((status) => {
+        const s = (status || 'BORRADOR').toUpperCase();
+        if (s === 'APROBADO' || s === 'APROBADA') {
+            return <Badge variant="success">✅ Aprobada</Badge>;
+        }
+        if (s === 'REQUIERE_CAMBIOS' || s === 'RECHAZADO' || s === 'RECHAZADA') {
+            return <Badge variant="danger">⚠️ Requiere Cambios</Badge>;
+        }
+        if (s === 'EN_REVISION_DOCENTE') {
+            return <Badge variant="warning">⏳ En Revisión Docente</Badge>;
+        }
+        return <Badge variant="gray">{s}</Badge>;
+    }, []);
+
+    const abrirModalRevisionPlan = useCallback((plan, defaultDecision = 'APROBADO') => {
+        setReviewPlanModal({
+            isOpen: true,
+            plan,
+            decision: defaultDecision,
+            secciones: {
+                oa: '',
+                objetivosEspecificos: '',
+                objetivoActitudinal: '',
+                inicio: '',
+                desarrollo: '',
+                cierre: '',
+                recursos: '',
+                evaluacion: '',
+                general: '',
+            },
+            guardando: false,
+        });
+    }, []);
+
+    const cerrarModalRevisionPlan = useCallback(() => {
+        if (reviewPlanModal.guardando) return;
+        setReviewPlanModal({
+            isOpen: false,
+            plan: null,
+            decision: 'APROBADO',
+            secciones: {
+                oa: '',
+                objetivosEspecificos: '',
+                objetivoActitudinal: '',
+                inicio: '',
+                desarrollo: '',
+                cierre: '',
+                recursos: '',
+                evaluacion: '',
+                general: '',
+            },
+            guardando: false,
+        });
+    }, [reviewPlanModal.guardando]);
+
+    const actualizarComentarioSeccion = (key, value) => {
+        setReviewPlanModal((prev) => ({
+            ...prev,
+            secciones: {
+                ...prev.secciones,
+                [key]: value,
+            },
+        }));
+    };
+
+    const guardarDecisionPlanificacion = async () => {
+        if (!reviewPlanModal.plan) return;
+        const { plan, decision, secciones } = reviewPlanModal;
+
+        const definicionSecciones = [
+            { key: 'oa', label: 'Objetivo de Aprendizaje (OA)' },
+            { key: 'objetivosEspecificos', label: 'Objetivos Específicos de la Clase' },
+            { key: 'objetivoActitudinal', label: 'Objetivo Actitudinal (OAT)' },
+            { key: 'inicio', label: 'Inicio (Activación y Motivación)' },
+            { key: 'desarrollo', label: 'Desarrollo (Modelamiento y Práctica)' },
+            { key: 'cierre', label: 'Cierre (Síntesis y Metacognición)' },
+            { key: 'recursos', label: 'Recursos Materiales' },
+            { key: 'evaluacion', label: 'Instrumentos de Evaluación / PIE' },
+            { key: 'general', label: 'Observación General' },
+        ];
+
+        const comentariosFormateados = definicionSecciones
+            .map(({ key, label }) => {
+                const textoSeccion = (secciones?.[key] || '').trim();
+                return textoSeccion ? `• [${label}]: ${textoSeccion}` : null;
+            })
+            .filter(Boolean);
+
+        const texto = comentariosFormateados.join('\n');
+
+        if (decision === 'REQUIERE_CAMBIOS' && !texto) {
+            toast.error('Debes ingresar observaciones en al menos una sección para indicar los cambios que debe realizar el estudiante.');
+            return;
+        }
+
+        setReviewPlanModal((prev) => ({ ...prev, guardando: true }));
+        try {
+            const actualizado = await portfolioService.cambiarEstadoPlanificacion(
+                plan.id,
+                decision,
+                texto
+            );
+            await fetchPlanificaciones();
+            if (detailPlan && detailPlan.id === plan.id) {
+                setDetailPlan(actualizado);
+            }
+            if (decision === 'APROBADO') {
+                toast.success('¡Planificación aprobada! Se ha autorizado al estudiante para dictar la clase.');
+            } else {
+                toast.success('Se ha registrado la solicitud de cambios con las observaciones por sección.');
+            }
+            setReviewPlanModal({
+                isOpen: false,
+                plan: null,
+                decision: 'APROBADO',
+                secciones: { ...INITIAL_SECTION_COMMENTS },
+                guardando: false,
+            });
+        } catch (error) {
+            console.error(error);
+            toast.error(error?.message || 'No se pudo actualizar el estado de la planificación.');
+            setReviewPlanModal((prev) => ({ ...prev, guardando: false }));
+        }
+    };
+
     const parseComentarios = useCallback((item) => {
         const raw = item?.teacherFeedback;
         if (!raw || typeof raw !== 'string' || !raw.trim()) return [];
@@ -651,11 +797,7 @@ export default function Portafolio({ isReadOnly = false }) {
         {
             header: 'Estado',
             align: 'center',
-            render: (row) => (
-                <Badge variant={row.status === 'APROBADA' || row.status === 'APROBADO' ? 'success' : row.status === 'RECHAZADA' || row.status === 'RECHAZADO' ? 'danger' : 'gray'}>
-                    {row.status || 'BORRADOR'}
-                </Badge>
-            ),
+            render: (row) => renderPlanStatusBadge(row.status),
         },
         {
             header: 'Archivo',
@@ -681,6 +823,16 @@ export default function Portafolio({ isReadOnly = false }) {
                     >
                         Historial
                     </Button>
+                    {modoSupervision && (
+                        <Button
+                            variant={row.status === 'APROBADO' ? 'success' : 'primary'}
+                            size="sm"
+                            onClick={() => abrirModalRevisionPlan(row, row.status === 'REQUIERE_CAMBIOS' ? 'REQUIERE_CAMBIOS' : 'APROBADO')}
+                            title="Aprobar planificación o solicitar cambios al estudiante"
+                        >
+                            Aprobar
+                        </Button>
+                    )}
                     {!modoSupervision && (
                         <Button
                             variant="secondary"
@@ -712,7 +864,7 @@ export default function Portafolio({ isReadOnly = false }) {
                 </div>
             ),
         },
-    ], [handleDownload, modoSupervision]);
+    ], [handleDownload, modoSupervision, renderPlanStatusBadge, abrirModalRevisionPlan]);
 
     return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -1083,7 +1235,31 @@ export default function Portafolio({ isReadOnly = false }) {
                 showCloseButton={false}
                 size="lg"
                 footer={
-                    <div className="flex justify-end">
+                    <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+                        {modoSupervision && detailPlan ? (
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => {
+                                        setShowDetailModal(false);
+                                        abrirModalRevisionPlan(detailPlan, 'REQUIERE_CAMBIOS');
+                                    }}
+                                >
+                                    ⚠️ Solicitar Cambios
+                                </Button>
+                                <Button
+                                    variant="success"
+                                    size="sm"
+                                    onClick={() => {
+                                        setShowDetailModal(false);
+                                        abrirModalRevisionPlan(detailPlan, 'APROBADO');
+                                    }}
+                                >
+                                    Aprobar
+                                </Button>
+                            </div>
+                        ) : <div />}
                         <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
                             Cerrar
                         </Button>
@@ -1100,9 +1276,7 @@ export default function Portafolio({ isReadOnly = false }) {
                                 <span>Modo solo lectura: Las versiones históricas son inmutables y no pueden editarse ni restaurarse.</span>
                                 <div className="flex items-center gap-2">
                                     <Badge variant="info">v{detailPlan?.version || 1}</Badge>
-                                    <Badge variant={detailPlan?.status === 'APROBADA' || detailPlan?.status === 'APROBADO' ? 'success' : detailPlan?.status === 'RECHAZADA' || detailPlan?.status === 'RECHAZADO' ? 'danger' : 'warning'}>
-                                        {detailPlan?.status || 'BORRADOR'}
-                                    </Badge>
+                                    {renderPlanStatusBadge(detailPlan?.status)}
                                 </div>
                             </div>
 
@@ -1579,6 +1753,220 @@ export default function Portafolio({ isReadOnly = false }) {
                         )}
                     </div>
                 </div>
+            </Modal>
+
+            {/* Modal de Aprobación / Solicitud de Cambios de Planificación (Comentarios Específicos por Sección) */}
+            <Modal
+                isOpen={reviewPlanModal.isOpen}
+                onClose={cerrarModalRevisionPlan}
+                title="Aprobar o Solicitar Cambios en Planificación"
+                size="lg"
+                description={
+                    reviewPlanModal.plan
+                        ? `Versión v${reviewPlanModal.plan.version || 1} • ${reviewPlanModal.plan.schoolGrade || ''} (${reviewPlanModal.plan.mathAxis || ''})`
+                        : ''
+                }
+            >
+                {(() => {
+                    const planActual = reviewPlanModal.plan;
+                    const contenidoEst = parsePlanContent(planActual?.contentJson || planActual?.classActivities);
+                    const oaEst = planActual?.baseLearningObjective || planActual?.objective || '';
+                    const objEspEst = planActual?.objectives || planActual?.specificObjectives || '';
+
+                    const seccionesFormulario = [
+                        {
+                            key: 'oa',
+                            titulo: 'Objetivo de Aprendizaje Basal (OA)',
+                            contenidoAlumno: oaEst,
+                            borderClass: 'border-l-4 border-blue-400 pl-3',
+                        },
+                        {
+                            key: 'objetivosEspecificos',
+                            titulo: 'Objetivos Específicos de la Clase',
+                            contenidoAlumno: objEspEst,
+                            borderClass: 'border-l-4 border-blue-400 pl-3',
+                        },
+                        {
+                            key: 'objetivoActitudinal',
+                            titulo: 'Objetivo Actitudinal (OAT)',
+                            contenidoAlumno: contenidoEst.objetivoActitudinal,
+                            borderClass: 'border-l-4 border-blue-400 pl-3',
+                        },
+                        {
+                            key: 'inicio',
+                            titulo: '1. Inicio (Activación y Motivación)',
+                            contenidoAlumno: contenidoEst.inicio,
+                            borderClass: 'border-l-4 border-indigo-400 pl-3',
+                        },
+                        {
+                            key: 'desarrollo',
+                            titulo: '2. Desarrollo (Modelamiento y Práctica)',
+                            contenidoAlumno: contenidoEst.desarrollo,
+                            borderClass: 'border-l-4 border-blue-600 pl-3',
+                        },
+                        {
+                            key: 'cierre',
+                            titulo: '3. Cierre (Síntesis y Metacognición)',
+                            contenidoAlumno: contenidoEst.cierre,
+                            borderClass: 'border-l-4 border-emerald-500 pl-3',
+                        },
+                        {
+                            key: 'recursos',
+                            titulo: 'Recursos Materiales',
+                            contenidoAlumno: contenidoEst.recursos,
+                            borderClass: 'border-l-4 border-amber-400 pl-3',
+                        },
+                        {
+                            key: 'evaluacion',
+                            titulo: 'Instrumentos de Evaluación / PIE',
+                            contenidoAlumno: contenidoEst.evaluacion,
+                            borderClass: 'border-l-4 border-amber-400 pl-3',
+                        },
+                    ];
+
+                    return (
+                        <div className="max-h-[75vh] overflow-y-auto pr-1 space-y-5">
+                            {planActual && (
+                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs flex items-center justify-between gap-2">
+                                    <span className="font-semibold text-gray-700">
+                                        Curso: <strong>{planActual.schoolGrade}</strong> • Eje: <strong>{planActual.mathAxis}</strong> • Duración: <strong>{contenidoEst.duracion || '90'} min</strong>
+                                    </span>
+                                    {renderPlanStatusBadge(planActual.status)}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                                    1. Selecciona el veredicto de revisión
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setReviewPlanModal((prev) => ({ ...prev, decision: 'APROBADO' }))}
+                                        disabled={reviewPlanModal.guardando}
+                                        className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                                            reviewPlanModal.decision === 'APROBADO'
+                                                ? 'border-green-600 bg-green-50/80 text-green-950 shadow-sm'
+                                                : 'border-gray-200 bg-white text-gray-700 hover:border-green-300'
+                                        }`}
+                                    >
+                                        <div className="font-bold text-sm flex items-center gap-1.5 text-green-800">
+                                            <span>✅</span> Aprobar
+                                        </div>
+                                        <p className="text-xs text-gray-600 mt-1">
+                                            Autoriza al estudiante para que dicte la clase en el centro educativo.
+                                        </p>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setReviewPlanModal((prev) => ({ ...prev, decision: 'REQUIERE_CAMBIOS' }))}
+                                        disabled={reviewPlanModal.guardando}
+                                        className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                                            reviewPlanModal.decision === 'REQUIERE_CAMBIOS'
+                                                ? 'border-red-600 bg-red-50/80 text-red-950 shadow-sm'
+                                                : 'border-gray-200 bg-white text-gray-700 hover:border-red-300'
+                                        }`}
+                                    >
+                                        <div className="font-bold text-sm flex items-center gap-1.5 text-red-800">
+                                            <span>⚠️</span> Solicitar Cambios
+                                        </div>
+                                        <p className="text-xs text-gray-600 mt-1">
+                                            Rechaza la versión actual y solicita ajustes específicos por sección.
+                                        </p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-800">
+                                        2. Observaciones / Retroalimentación por Sección para el estudiante{' '}
+                                        {reviewPlanModal.decision === 'REQUIERE_CAMBIOS' ? (
+                                            <span className="text-red-600 font-bold text-xs">* (Completa al menos una sección a corregir)</span>
+                                        ) : (
+                                            <span className="text-gray-400 font-normal text-xs">(Opcional)</span>
+                                        )}
+                                    </label>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        En cada apartado aparece como pretexto lo que escribió el estudiante. Escribe solo en las secciones que desees retroalimentar o corregir:
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3 bg-gray-50/80 border border-gray-200 rounded-xl p-4">
+                                    {seccionesFormulario.map((sec) => {
+                                        const pretextoAlumno = sec.contenidoAlumno && sec.contenidoAlumno.trim()
+                                            ? `Contenido del estudiante: "${sec.contenidoAlumno.trim()}" — Escribe aquí tu comentario para esta sección...`
+                                            : 'El estudiante no registró contenido en esta sección — Escribe aquí tu observación...';
+
+                                        return (
+                                            <div key={sec.key} className={sec.borderClass}>
+                                                <label
+                                                    htmlFor={`review-sec-${sec.key}`}
+                                                    className="block text-xs font-bold text-blue-950 mb-1"
+                                                >
+                                                    {sec.titulo}
+                                                </label>
+                                                <textarea
+                                                    id={`review-sec-${sec.key}`}
+                                                    rows={2}
+                                                    maxLength={1000}
+                                                    value={reviewPlanModal.secciones?.[sec.key] || ''}
+                                                    onChange={(e) => actualizarComentarioSeccion(sec.key, e.target.value)}
+                                                    placeholder={pretextoAlumno}
+                                                    className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs text-gray-800 placeholder:text-gray-400 placeholder:italic focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    disabled={reviewPlanModal.guardando}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+
+                                    <div className="pt-2 border-t border-gray-200">
+                                        <label
+                                            htmlFor="review-sec-general"
+                                            className="block text-xs font-bold text-gray-800 mb-1"
+                                        >
+                                            Observación General / Conclusión
+                                        </label>
+                                        <textarea
+                                            id="review-sec-general"
+                                            rows={2}
+                                            maxLength={1000}
+                                            value={reviewPlanModal.secciones?.general || ''}
+                                            onChange={(e) => actualizarComentarioSeccion('general', e.target.value)}
+                                            placeholder={
+                                                reviewPlanModal.decision === 'APROBADO'
+                                                    ? 'Comentario general opcional (ej: Excelente planificación, autorizada para dictar la clase)...'
+                                                    : 'Comentario general o síntesis de los ajustes solicitados al estudiante...'
+                                            }
+                                            className="w-full rounded-lg border border-gray-300 bg-white p-2.5 text-xs text-gray-800 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            disabled={reviewPlanModal.guardando}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
+                                <Button
+                                    variant="secondary"
+                                    onClick={cerrarModalRevisionPlan}
+                                    disabled={reviewPlanModal.guardando}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant={reviewPlanModal.decision === 'APROBADO' ? 'success' : 'danger'}
+                                    onClick={guardarDecisionPlanificacion}
+                                    isLoading={reviewPlanModal.guardando}
+                                >
+                                    {reviewPlanModal.decision === 'APROBADO'
+                                        ? 'Confirmar Aprobación'
+                                        : 'Enviar Solicitud de Cambios'}
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                })()}
             </Modal>
         </div>
     );

@@ -102,6 +102,7 @@ public class LessonPlanServiceTest {
         assertNotNull(result.getDocument());
         assertEquals(DocumentType.PLANIFICACION, result.getDocument().getType());
         verify(storageService).store(file);
+        verify(emailService).enviarComprobante("student@ubb.cl", "plan.pdf");
         verify(lessonPlanRepository).save(any(LessonPlan.class));
     }
 
@@ -242,7 +243,7 @@ public class LessonPlanServiceTest {
         List<LessonPlan> plans = lessonPlanService.obtenerMisPlanificaciones("student@ubb.cl");
 
         assertEquals(1, plans.size());
-        assertEquals(1L, plans.get(0).getId());
+        assertEquals(1L, plans.getFirst().getId());
     }
 
     @Test

@@ -167,7 +167,7 @@ public class PortfolioController {
         response.addHeader("Content-Disposition", "attachment; filename=\"informes_finales.zip\"");
         java.util.List<PortfolioDocument> documentos = portfolioDocumentRepository.findAll().stream()
                 .filter(doc -> doc.getType() != null && "INFORME_FINAL".equalsIgnoreCase(doc.getType().name()))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
         java.util.Set<String> nombresUsados = new java.util.HashSet<>();
         try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
             for (PortfolioDocument doc : documentos) {
@@ -328,6 +328,25 @@ public class PortfolioController {
         com.ubb.practicas.model.LessonPlan actualizado = lessonPlanService.agregarRetroalimentacionPlan(
                 id,
                 request.getFeedback(),
+                principal.getName()
+        );
+        return ResponseEntity.ok(actualizado);
+    }
+
+    @RequestMapping(value = "/planificaciones/{id}/estado", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    public ResponseEntity<LessonPlan> cambiarEstadoPlanificacion(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload,
+            Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Sesión no autorizada");
+        }
+        String status = payload != null ? payload.get("status") : null;
+        String feedback = payload != null ? payload.get("feedback") : null;
+        LessonPlan actualizado = lessonPlanService.cambiarEstadoPlanificacion(
+                id,
+                status,
+                feedback,
                 principal.getName()
         );
         return ResponseEntity.ok(actualizado);
