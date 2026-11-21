@@ -9,4 +9,6 @@ public interface PracticeCenterService {
     List<PracticeCenter> listarCentros();
     Optional<PracticeCenter> obtenerPorId(Long id);
     PracticeCenter crearCentro(PracticeCenter center);
+    PracticeCenter actualizarCentro(Long id, PracticeCenter center);
+    void eliminarCentro(Long id);
 }

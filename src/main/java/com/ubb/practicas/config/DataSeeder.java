@@ -244,7 +244,7 @@ public class DataSeeder {
                             "/api/portafolio/descargar/6a49598f-c0ed-48d2-a6d1-107baf60298a.pdf",
                             "6a49598f-c0ed-48d2-a6d1-107baf60298a.pdf",
                             "application/pdf", 245120L, LocalDateTime.now().minusDays(5));
-                    // doc1 se persiste por CascadeType.ALL al guardar plan1
+                    doc1 = documentRepository.save(doc1);
 
                     PortfolioDocument docGuia = new PortfolioDocument(null, asigEstudiante1, DocumentType.GUIA_TRABAJO,
                             "Guia_Ejercicios_Teorema_Pitagoras_8B.pdf",

@@ -2,7 +2,10 @@
  * PITAGORAS - Servicio Cliente para Microservicio de Chatbot e IA Pedagógica
  */
 
-const CHATBOT_BASE_URL = (import.meta.env.VITE_CHATBOT_URL || 'http://localhost:8000').replace(/\/+$/, '');
+const RAW_CHATBOT_URL = import.meta.env.VITE_CHATBOT_URL;
+const CHATBOT_BASE_URL = (RAW_CHATBOT_URL !== undefined && RAW_CHATBOT_URL !== '')
+  ? RAW_CHATBOT_URL.replace(/\/+$/, '')
+  : '/chatbot';
 
 export const chatbotService = {
   /**

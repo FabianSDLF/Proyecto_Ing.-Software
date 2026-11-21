@@ -29,6 +29,12 @@ public class SubjectController {
         return ResponseEntity.ok(created);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'Administrador', 'COORDINADOR_DE_PRACTICAS', 'Coordinador de practicas')")
+    public ResponseEntity<Subject> actualizarAsignatura(@PathVariable Long id, @RequestBody Subject subject) {
+        return ResponseEntity.ok(subjectService.actualizarAsignatura(id, subject));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'Administrador', 'COORDINADOR_DE_PRACTICAS', 'Coordinador de practicas')")
     public ResponseEntity<Map<String, String>> eliminarAsignatura(@PathVariable Long id) {
