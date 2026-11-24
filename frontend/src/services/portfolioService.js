@@ -12,6 +12,7 @@ export const portfolioService = {
    * Subir un archivo de evidencia de aprendizaje
    * @param {File} file
    * @param {number|string} [assignmentId]
+   * @param {Object} [options]
    */
   async uploadEvidence(file, assignmentId, options) {
     const formData = new FormData();
@@ -25,6 +26,7 @@ export const portfolioService = {
   /**
    * Eliminar una evidencia por ID
    * @param {number|string} id
+   * @param {Object} [options]
    */
   async deleteDocument(id, options) {
     return apiClient.delete(`/api/portafolio/documentos/${id}`, options);
@@ -34,6 +36,7 @@ export const portfolioService = {
    * Descargar un documento por su URL o endpoint
    * @param {string} fileUrl
    * @param {string} fileName
+   * @param {Object} [options]
    */
   async downloadDocument(fileUrl, fileName, options) {
     return apiClient.download(fileUrl, fileName, options);
@@ -41,6 +44,7 @@ export const portfolioService = {
 
   /**
    * Obtener planificaciones didácticas del estudiante autenticado
+   * @param {Object} [options]
    */
   async getLessonPlans(options) {
     return apiClient.get('/api/portafolio/planificaciones', options);
@@ -56,6 +60,7 @@ export const portfolioService = {
    * @param {string} [planData.specificObjectives]
    * @param {string|Object} [planData.classActivities]
    * @param {number|string} [planData.assignmentId]
+   * @param {Object} [options]
    */
   async createLessonPlan(planData, options) {
     const formData = new FormData();
@@ -85,6 +90,7 @@ export const portfolioService = {
   /**
    * Eliminar una planificación didáctica por ID
    * @param {number|string} id
+   * @param {Object} [options]
    */
   async deleteLessonPlan(id, options) {
     return apiClient.delete(`/api/portafolio/planificaciones/${id}`, options);
@@ -93,6 +99,7 @@ export const portfolioService = {
   /**
    * Obtener historial completo de versiones de una planificación
    * @param {number|string} id
+   * @param {Object} [options]
    */
   async getLessonPlanHistory(id, options) {
     return apiClient.get(`/api/portafolio/planificaciones/${id}/historial`, options);
@@ -105,6 +112,7 @@ export const portfolioService = {
   /**
    * Obtener detalle de planificación por ID (modo solo lectura)
    * @param {number|string} id
+   * @param {Object} [options]
    */
   async getLessonPlanById(id, options) {
     return apiClient.get(`/api/portafolio/planificaciones/${id}`, options);
@@ -122,6 +130,7 @@ export const portfolioService = {
    * Crear nueva versión o editar planificación existente
    * @param {number|string} id
    * @param {FormData|object} planData
+   * @param {Object} [options]
    */
   async createLessonPlanVersion(id, planData, options) {
     let formData;
@@ -248,6 +257,17 @@ export const portfolioService = {
 
   async agregarRetroalimentacionPlan(id, feedback, options) {
     return apiClient.put(`/api/portafolio/planificaciones/${id}/retroalimentacion`, { feedback }, options);
+  },
+
+  /**
+   * Aprobar o solicitar cambios en una planificación didáctica
+   * @param {number|string} id
+   * @param {string} status
+   * @param {string} [feedback]
+   * @param {Object} [options]
+   */
+  async cambiarEstadoPlanificacion(id, status, feedback = '', options) {
+    return apiClient.put(`/api/portafolio/planificaciones/${id}/estado`, { status, feedback }, options);
   },
 };
 

@@ -280,4 +280,23 @@ public class PortfolioController {
         );
         return ResponseEntity.ok(actualizado);
     }
+
+    @RequestMapping(value = "/planificaciones/{id}/estado", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    public ResponseEntity<LessonPlan> cambiarEstadoPlanificacion(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload,
+            Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Sesión no autorizada");
+        }
+        String status = payload != null ? payload.get("status") : null;
+        String feedback = payload != null ? payload.get("feedback") : null;
+        LessonPlan actualizado = lessonPlanService.cambiarEstadoPlanificacion(
+                id,
+                status,
+                feedback,
+                principal.getName()
+        );
+        return ResponseEntity.ok(actualizado);
+    }
 }

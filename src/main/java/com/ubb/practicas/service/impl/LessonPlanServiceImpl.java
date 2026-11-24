@@ -52,8 +52,8 @@ public class LessonPlanServiceImpl implements LessonPlanService {
             return null;
         }
         return activeAssignments.stream()
-                .max((a1, a2) -> Long.compare(a1.getId() != null ? a1.getId() : 0L, a2.getId() != null ? a2.getId() : 0L))
-                .orElse(activeAssignments.get(0));
+                .max(Comparator.comparingLong(a -> a.getId() != null ? a.getId() : 0L))
+                .orElse(activeAssignments.getFirst());
     }
 
     private boolean isUserAdmin(String email) {
@@ -436,6 +436,92 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         plan.setTeacherFeedback(com.ubb.practicas.util.FeedbackThreadHelper.appendComment(plan.getTeacherFeedback(), plan.getFeedbackDate(), comentarioLimpio, userRepository.findByEmail(userEmail), userEmail));
         plan.setFeedbackDate(java.time.LocalDateTime.now());
         // Un comentario no equivale a enviar ni aprobar una planificación.
+
+        return lessonPlanRepository.save(plan);
+    }
+
+    @Override
+    @Transactional
+    public LessonPlan cambiarEstadoPlanificacion(Long id, String statusStr, String feedback, String userEmail) {
+        LessonPlan plan = lessonPlanRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Planificación no encontrada con ID: " + id));
+
+        PracticeAssignment assignment = plan.getPracticeAssignment();
+        boolean esAdmin = isUserAdmin(userEmail);
+
+        if (assignment != null) {
+            if (assignment.isStudent(userEmail) && !esAdmin) {
+                throw new AccessDeniedException("Los estudiantes no pueden aprobar o rechazar planificaciones.");
+            }
+
+            boolean esDocenteAutorizado = assignment.isProfessor(userEmail)
+                    || assignment.isCollaborator(userEmail)
+                    || assignment.isTutor(userEmail)
+                    || esAdmin;
+
+            if (!esDocenteAutorizado) {
+                throw new AccessDeniedException("No tiene permisos para evaluar el estado de esta planificación.");
+            }
+        } else if (!esAdmin) {
+            throw new AccessDeniedException("La planificación no tiene una asignación de práctica válida.");
+        }
+
+        if (statusStr == null || statusStr.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nuevo estado de la planificación es obligatorio.");
+        }
+
+        String normalized = statusStr.trim().toUpperCase();
+        PlanStatus nuevoEstado;
+        if ("APROBADO".equals(normalized) || "APROBADA".equals(normalized)) {
+            nuevoEstado = PlanStatus.APROBADO;
+        } else if ("REQUIERE_CAMBIOS".equals(normalized) || "RECHAZADO".equals(normalized) || "RECHAZADA".equals(normalized)) {
+            nuevoEstado = PlanStatus.REQUIERE_CAMBIOS;
+        } else if ("EN_REVISION_DOCENTE".equals(normalized)) {
+            nuevoEstado = PlanStatus.EN_REVISION_DOCENTE;
+        } else {
+            try {
+                nuevoEstado = PlanStatus.valueOf(normalized);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Estado de planificación no válido: " + statusStr);
+            }
+        }
+
+        String comentarioLimpio = (feedback != null && !feedback.trim().isEmpty()) ? feedback.trim() : null;
+        if (nuevoEstado == PlanStatus.REQUIERE_CAMBIOS && comentarioLimpio == null) {
+            throw new IllegalArgumentException("Debe ingresar una observación indicando los cambios solicitados al estudiante.");
+        }
+
+        if (comentarioLimpio != null) {
+            String prefijo = (nuevoEstado == PlanStatus.APROBADO)
+                    ? "[✅ PLANIFICACIÓN APROBADA - VISTO BUENO]: "
+                    : (nuevoEstado == PlanStatus.REQUIERE_CAMBIOS)
+                    ? "[⚠️ SOLICITUD DE CAMBIOS]: "
+                    : "";
+            plan.setTeacherFeedback(
+                    com.ubb.practicas.util.FeedbackThreadHelper.appendComment(
+                            plan.getTeacherFeedback(),
+                            plan.getFeedbackDate(),
+                            prefijo + comentarioLimpio,
+                            userRepository.findByEmail(userEmail),
+                            userEmail
+                    )
+            );
+            plan.setFeedbackDate(LocalDateTime.now());
+        } else if (nuevoEstado == PlanStatus.APROBADO) {
+            plan.setTeacherFeedback(
+                    com.ubb.practicas.util.FeedbackThreadHelper.appendComment(
+                            plan.getTeacherFeedback(),
+                            plan.getFeedbackDate(),
+                            "[✅ PLANIFICACIÓN APROBADA - VISTO BUENO]: Planificación aprobada y autorizada para dictar la clase.",
+                            userRepository.findByEmail(userEmail),
+                            userEmail
+                    )
+            );
+            plan.setFeedbackDate(LocalDateTime.now());
+        }
+
+        plan.setStatus(nuevoEstado);
+        plan.setUpdatedAt(LocalDateTime.now());
 
         return lessonPlanRepository.save(plan);
     }
