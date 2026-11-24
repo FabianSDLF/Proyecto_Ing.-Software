@@ -47,6 +47,8 @@ export default function GestionAsignaturas() {
   const [editingPeriod, setEditingPeriod] = useState(null);
   const [periodToDelete, setPeriodToDelete] = useState(null);
   const [deletingPeriod, setDeletingPeriod] = useState(false);
+  const invalidPeriodDates = Boolean(periodForm.startDate && periodForm.endDate && periodForm.startDate > periodForm.endDate);
+  const periodDatesMessage = 'La fecha de término no puede ser anterior a la fecha de inicio.';
 
   const fetchAsignaturas = useCallback(async (signal) => {
     setLoadingData(true);
@@ -174,6 +176,10 @@ export default function GestionAsignaturas() {
       toast.error('El nombre del periodo es obligatorio (ej. 2026-2)');
       return;
     }
+    if (invalidPeriodDates) {
+      toast.error(periodDatesMessage);
+      return;
+    }
     setSavingPeriodo(true);
     try {
       const payload = {
@@ -247,7 +253,6 @@ export default function GestionAsignaturas() {
 
   const cycleOptions = [
     { value: 'INICIAL', label: 'Inicial' },
-    { value: 'BASICO', label: 'Básico' },
     { value: 'INTERMEDIO', label: 'Intermedio' },
     { value: 'AVANZADO', label: 'Avanzado' },
   ];
@@ -258,7 +263,7 @@ export default function GestionAsignaturas() {
 
   const getCycleBadge = (cycleVal) => {
     const norm = (cycleVal || '').toUpperCase();
-    if (norm === 'INICIAL' || norm === 'BASICO') return <Badge variant="success">{cycleVal}</Badge>;
+    if (norm === 'INICIAL') return <Badge variant="success">Inicial</Badge>;
     if (norm === 'INTERMEDIO') return <Badge variant="warning">Intermedio</Badge>;
     if (norm === 'AVANZADO') return <Badge variant="primary">Avanzado</Badge>;
     return <Badge variant="gray">{cycleVal || 'Sin ciclo'}</Badge>;
@@ -543,6 +548,7 @@ export default function GestionAsignaturas() {
                   label="Fecha Inicio"
                   type="date"
                   value={periodForm.startDate}
+                  max={periodForm.endDate || undefined}
                   onChange={(e) => setPeriodForm(prev => ({ ...prev, startDate: e.target.value }))}
                 />
               </div>
@@ -551,6 +557,8 @@ export default function GestionAsignaturas() {
                   label="Fecha Término"
                   type="date"
                   value={periodForm.endDate}
+                  min={periodForm.startDate || undefined}
+                  error={invalidPeriodDates ? periodDatesMessage : undefined}
                   onChange={(e) => setPeriodForm(prev => ({ ...prev, endDate: e.target.value }))}
                 />
               </div>

@@ -1,4 +1,4 @@
-param([string]$CompatibilityDirectory)
+param([string]$CompatibilityDirectory, [switch]$SkipBackendTests)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -15,7 +15,9 @@ try {
     $packageRoot = Join-Path $projectRoot ('deploy/' + $packageName)
     if (Test-Path -LiteralPath $packageRoot) { throw "El paquete ya existe: $packageRoot" }
 
-    & (Join-Path $projectRoot 'mvnw.cmd') clean package
+    $mavenArguments = @('clean', 'package')
+    if ($SkipBackendTests) { $mavenArguments += '-DskipTests' }
+    & (Join-Path $projectRoot 'mvnw.cmd') @mavenArguments
     if ($LASTEXITCODE -ne 0) { throw 'Falló la compilación o las pruebas del backend.' }
     [xml]$pom = Get-Content -LiteralPath (Join-Path $projectRoot 'pom.xml') -Raw
     $jarPath = Join-Path $projectRoot ('target/' + $pom.project.artifactId + '-' + $pom.project.version + '.jar')
@@ -60,7 +62,7 @@ CMD ["nginx", "-g", "daemon off;"]
     foreach ($name in @('docker-compose.yml', '.env.example', 'LEEME-PACHECO.md')) {
         Copy-Item -LiteralPath (Join-Path $projectRoot ('packaging/pacheco/' + $name)) -Destination (Join-Path $appRoot $name)
     }
-    foreach ($name in @('RESPALDOS.md', 'INTEGRACION_TESTING_2026-11-24.md', 'PRUEBAS_VISUALES_2026-11-24.md')) {
+    foreach ($name in @('RESPALDOS.md', 'INTEGRACION_TESTING_2026-11-24.md', 'PRUEBAS_VISUALES_2026-11-24.md', 'PRUEBAS_PACHECO_2026-11-24.md')) {
         Copy-Item -LiteralPath (Join-Path $projectRoot ('docs/' + $name)) -Destination (Join-Path $appRoot ('docs/' + $name))
     }
     if ($CompatibilityDirectory) {
@@ -71,6 +73,7 @@ CMD ["nginx", "-g", "daemon off;"]
         generatedAtUtc = [DateTime]::UtcNow.ToString('o'); backendVersion = [string]$pom.project.version
         javaTarget = 21; port = 8008; frontendApi = '/api'; chatbotApi = '/chatbot'
         compatibilityIncluded = [bool]$CompatibilityDirectory
+        backendTestsDuringPackaging = -not $SkipBackendTests
     }
     $metadata | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $appRoot 'BUILD.json') -Encoding utf8
     $hashLines = Get-ChildItem -LiteralPath $appRoot -Recurse -File -Force | Sort-Object FullName | ForEach-Object {

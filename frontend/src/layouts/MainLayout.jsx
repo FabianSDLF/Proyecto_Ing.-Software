@@ -148,14 +148,14 @@ export default function MainLayout() {
       </header>
       {menuOpen && <div className="fixed inset-0 bg-black/50 z-40 xl:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
       {/* Menú Lateral (Sidebar) */}
-      <aside ref={sidebar} id="main-navigation" aria-label="Menú principal" onClick={e => { if (e.target.closest('a')) setMenuOpen(false); }} className={`${menuOpen ? 'flex fixed inset-y-0 left-0 z-50' : 'hidden'} xl:flex xl:relative xl:z-10 w-64 max-w-[90vw] shrink-0 bg-[#003B70] text-white p-5 flex-col shadow-xl h-dvh xl:h-auto overflow-y-auto`}>
-        <button type="button" className="xl:hidden self-end border rounded p-2" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}>Cerrar</button>
-        <div className="flex items-center gap-3 mb-10 mt-2 px-2">
+      <aside ref={sidebar} id="main-navigation" aria-label="Menú principal" onClick={e => { if (e.target.closest('a')) setMenuOpen(false); }} className={`${menuOpen ? 'flex fixed inset-y-0 left-0 z-50' : 'hidden'} xl:flex xl:sticky xl:top-0 xl:self-start xl:z-10 w-64 max-w-[90vw] shrink-0 bg-[#003B70] text-white p-5 flex-col shadow-xl h-dvh overflow-hidden`}>
+        <button type="button" className="xl:hidden shrink-0 self-end border rounded p-2" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}>Cerrar</button>
+        <div className="flex shrink-0 items-center gap-3 mb-10 mt-2 px-2">
           <img src={logoPitagoras} alt="Logo Pitagoras" className="w-10 h-10 object-contain" />
           <h2 className="text-2xl font-bold tracking-widest text-orange-500">PITAGORAS</h2>
         </div>
 
-        <nav className="flex flex-col space-y-2 flex-grow">
+        <nav className="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain [&>*]:shrink-0">
           <Link
             to="/dashboard"
             className={`${baseLinkClass} ${isActive('/dashboard') ? activeLinkClass : inactiveLinkClass}`}
@@ -348,7 +348,7 @@ export default function MainLayout() {
         </nav>
 
         {/* Sección del Usuario */}
-        <div className="mt-auto border-t border-blue-800 pt-4">
+        <div className="mt-auto shrink-0 border-t border-blue-800 pt-4">
           {user && (
             <div className="flex items-center justify-between">
               <Link
