@@ -59,7 +59,7 @@ export default function DataTable({
 
   return (
     <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className}`}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label="Tabla de datos con desplazamiento horizontal" tabIndex={0}>
         <table className="min-w-full divide-y divide-gray-200 text-left">
           <thead className="bg-gray-50">
             <tr>
@@ -131,7 +131,7 @@ export default function DataTable({
 
       {/* Pagination Controls */}
       {pagination && !isLoading && sortedData.length > pageSize && (
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 text-sm text-gray-600">
+        <div className="flex flex-col items-start gap-3 xl:flex-row xl:items-center xl:justify-between px-3 sm:px-6 py-4 border-t border-gray-100 bg-gray-50 text-sm text-gray-600">
           <div>
             Mostrando <span className="font-semibold">{(currentPage - 1) * pageSize + 1}</span> a{' '}
             <span className="font-semibold">
@@ -139,21 +139,21 @@ export default function DataTable({
             </span>{' '}
             de <span className="font-semibold">{sortedData.length}</span> resultados
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              className="min-h-11 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
             >
               Anterior
             </button>
-            <span className="px-2 font-medium">
+            <span className="order-last basis-full sm:order-none sm:basis-auto sm:px-2 font-medium">
               Página {currentPage} de {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              className="min-h-11 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
             >
               Siguiente
             </button>

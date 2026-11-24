@@ -934,7 +934,7 @@ export default function Portafolio({ isReadOnly = false }) {
             )}
 
             <div>
-                <h1 className="text-3xl font-extrabold text-[#003B70] tracking-tight">
+                <h1 className="page-title">
                     {modoSupervision ? 'Portafolio del Estudiante' : 'Mi Portafolio Digital'}
                 </h1>
                 <p className="text-gray-500 mt-1">

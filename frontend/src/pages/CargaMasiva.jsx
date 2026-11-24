@@ -100,10 +100,10 @@ export default function CargaMasiva() {
         ];
 
     return (
-        <div className="sm:p-4 xl:p-8 max-w-4xl mx-auto space-y-8">
+        <div className="page-shell max-w-3xl">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Carga e Inscripción de Usuarios</h1>
+                    <h1 className="page-title">Carga e Inscripción de Usuarios</h1>
                     <p className="text-gray-500 mt-1">Importa nóminas masivas o registra cuentas individuales para estudiantes y docentes.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">

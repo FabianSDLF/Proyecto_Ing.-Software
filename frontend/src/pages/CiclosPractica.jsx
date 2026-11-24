@@ -113,9 +113,9 @@ export default function CiclosPractica() {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="page-shell">
       <div>
-        <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Ciclos de Práctica</h1>
+        <h1 className="page-title">Ciclos de Práctica</h1>
         <p className="text-gray-500 mt-1">
           Estructura de la formación práctica de la carrera. Cada asignatura se asocia a uno de estos tres ciclos.
         </p>

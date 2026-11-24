@@ -590,11 +590,11 @@ export default function MisEstudiantes() {
         userRole === 'Tutor' ? 'PAUTA_OBSERVACION_TUTOR' : 'PAUTA_OBSERVACION_COLABORADOR';
 
     return (
-        <div className="p-2 sm:p-6 max-w-6xl mx-auto space-y-8">
+        <div className="page-shell">
             <div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                     <div>
-                        <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Mis Estudiantes</h1>
+                        <h1 className="page-title">Mis Estudiantes</h1>
                         <p className="text-gray-500 mt-1">
                             Lleva el control, seguimiento y evaluación estandarizada de los estudiantes asignados a tu supervisión.
                         </p>

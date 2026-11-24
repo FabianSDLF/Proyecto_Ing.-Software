@@ -28,7 +28,7 @@ export default function PracticeSheet({ assignmentId }) {
     </div>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {!error && visible.length === 0 && <p className="text-gray-500">Sin prácticas en esta vista.</p>}
-    {visible.map(a => <article key={a.id} className="bg-white border rounded-xl p-5 space-y-3">
+    {visible.map(a => <article key={a.id} className="surface p-4 sm:p-6 space-y-3">
       <h3 className="font-bold">{a.subject?.name || 'Práctica'} · {a.period?.name || 'Sin periodo'} · {isCurrentPractice(a) ? 'Vigente' : 'Histórica'}</h3>
       <div className="grid gap-4 md:grid-cols-2">
         <div><h4 className="font-semibold">Establecimiento</h4>

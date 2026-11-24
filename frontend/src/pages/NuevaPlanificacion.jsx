@@ -104,7 +104,7 @@ export default function NuevaPlanificacion() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Crear Nueva Planificación</h1>
+        <h1 className="page-title">Crear Nueva Planificación</h1>
       </div>
 
       <form onSubmit={handlePlanSubmit} className="bg-white p-4 sm:p-6 xl:p-8 rounded-2xl shadow-lg border border-gray-100 space-y-6">

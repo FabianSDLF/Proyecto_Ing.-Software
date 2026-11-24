@@ -145,9 +145,9 @@ export default function Dashboard() {
 
 
     return (
-        <div className="space-y-6">
+        <div className="page-shell">
             <header className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+                <h1 className="page-title">
                     Bienvenido, {user?.fullName || 'Usuario'}
                 </h1>
                 <p className="text-gray-500 mt-2 text-lg">

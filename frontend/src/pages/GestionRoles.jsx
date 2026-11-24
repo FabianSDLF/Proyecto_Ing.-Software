@@ -179,10 +179,10 @@ export default function GestionRoles() {
     ), [roles]);
 
     return (
-        <div className="sm:p-4 xl:p-8 max-w-7xl mx-auto space-y-8">
+        <div className="page-shell">
             <div className="flex flex-wrap gap-3 justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Gestión de Usuarios</h1>
+                    <h1 className="page-title">Gestión de Usuarios</h1>
                     <p className="text-gray-500 mt-1">Administra cuentas, roles y estados de los usuarios del sistema.</p>
                 </div>
                 <Button 

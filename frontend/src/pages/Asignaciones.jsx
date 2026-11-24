@@ -678,11 +678,11 @@ export default function Asignaciones() {
     ], []);
 
     return (
-        <div className="sm:p-4 xl:p-8 max-w-7xl mx-auto space-y-6">
+        <div className="page-shell">
             {/* Encabezado */}
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaciones y Centros</h1>
+                    <h1 className="page-title">Gestión de Asignaciones y Centros</h1>
                     <p className="text-gray-500 mt-1">Vincula estudiantes con asignaturas, duplas pedagógicas, centros de práctica y supervisores.</p>
                 </div>
                 {activeTab === 'ASIGNACIONES' && (

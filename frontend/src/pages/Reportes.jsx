@@ -63,10 +63,10 @@ function TeacherReports() {
         : asignaciones.filter(a => String(a.period?.id) === String(filtroPeriodo));
 
     return (
-        <div className="p-2 sm:p-6 max-w-7xl mx-auto space-y-8">
+        <div className="page-shell">
             <div className="flex flex-wrap gap-4 justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Reporte Institucional</h1>
+                    <h1 className="page-title">Reporte Institucional</h1>
                     <p className="text-gray-500 mt-2">Visualiza el estado de las prácticas y exporta la data centralizada.</p>
                 </div>
                 <button
@@ -78,10 +78,10 @@ function TeacherReports() {
             </div>
 
             <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
-                <div className="flex items-center space-x-3 px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50">
+                <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50">
                     <label className="font-semibold text-gray-700">Filtrar por Periodo:</label>
                     <select
-                        className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer w-auto shadow-sm"
+                        className="field-control sm:w-auto"
                         value={filtroPeriodo}
                         onChange={(e) => setFiltroPeriodo(e.target.value)}
                     >

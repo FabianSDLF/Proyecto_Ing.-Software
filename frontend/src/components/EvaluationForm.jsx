@@ -41,7 +41,7 @@ export default function EvaluationForm({ existingEvaluation, activeRubric, isLoc
                                                 key={pts}
                                                 type="button"
                                                 onClick={() => handleSetAllIndicators(pts)}
-                                                className="px-2.5 py-1 rounded border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold transition-colors cursor-pointer"
+                                                className="min-h-11 min-w-11 px-2.5 py-1 rounded border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold transition-colors cursor-pointer"
                                             >
                                                 Todos {pts}
                                             </button>

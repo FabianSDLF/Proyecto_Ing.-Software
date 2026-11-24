@@ -17,7 +17,7 @@ export default function Ayuda() {
   const student = userRole === 'Estudiante';
   const teacher = ['Tutor','Profesor Colaborador','Profesor de Asignatura'].includes(userRole);
   return <article className="max-w-3xl mx-auto space-y-6">
-    <h1 className="text-3xl font-bold text-blue-900">Ayuda y soporte</h1>
+    <h1 className="page-title">Ayuda y soporte</h1>
     <p>Guía para {userRole || 'tu cuenta'}.</p>
     <section className="bg-white border rounded-xl p-4 space-y-2"><h2 className="font-bold text-xl">Acceso y recuperación de cuenta</h2><p>Ingresa con el correo registrado. Si olvidaste tu contraseña, cierra sesión y selecciona «¿Olvidaste tu contraseña?» en el inicio de sesión. Sigue el enlace de recuperación recibido en tu correo.</p><p>Revisa tus datos de contacto en <Link className="text-blue-700 underline" to="/perfil">Mi perfil</Link>. Si tu cuenta está inactiva, contacta a coordinación.</p></section>
     {student && <>

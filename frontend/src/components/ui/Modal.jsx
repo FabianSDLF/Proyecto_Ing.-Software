@@ -83,13 +83,13 @@ export default function Modal({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className={`relative min-w-0 w-full ${sizeClasses} bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 md:p-8 my-2 max-h-[calc(100dvh-2rem)] overflow-y-auto ${className}`}
+        className={`relative min-w-0 w-full ${sizeClasses} bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 md:p-8 my-2 max-h-[calc(100dvh-2rem)] overflow-y-auto [overflow-wrap:anywhere] ${className}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-5 border-b pb-4 border-gray-100">
-          <div>
+          <div className="min-w-0">
             {title && (
-              <h2 id={titleId} className="text-2xl font-bold text-gray-900 tracking-tight">
+              <h2 id={titleId} className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
                 {title}
               </h2>
             )}
@@ -103,7 +103,7 @@ export default function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ml-4 cursor-pointer"
+              className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ml-2 cursor-pointer"
               aria-label="Cerrar modal"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

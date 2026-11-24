@@ -110,7 +110,7 @@ export default function RetroPlani() {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: '¡Hola! Soy **RetroPlani Mate V3 (IA)**, tu asistente pedagógico especializado en revisar y orientar planificaciones de matemática (UBB / MINEDUC).\n\n• **Sube tu planificación en `.pdf` o `.txt`** con el botón **📎 Adjuntar** (o usa la pestaña **«✨ Validador de Planificaciones»**) para revisar **Objetivo, Inicio, Desarrollo, Cierre, Evaluación, DUA (103 acciones) y Errores matemáticos**.\n• **Antes de entregarte la retroalimentación final**, te haré algunas **preguntas diagnósticas** para comprender mejor tus decisiones pedagógicas.\n• Recuerda que mi propósito es orientarte para que mejores autónomamente tu diseño, sin hacer la clase por ti.',
+      text: '¡Hola! Soy **RetroPlani Mate (IA)**, tu asistente pedagógico especializado en revisar y orientar planificaciones de matemática (UBB / MINEDUC).\n\n• **Sube tu planificación en `.pdf` o `.txt`** con el botón **📎 Adjuntar** (o usa la pestaña **«✨ Validador de Planificaciones»**) para revisar **Objetivo, Inicio, Desarrollo, Cierre, Evaluación, DUA (103 acciones) y Errores matemáticos**.\n• **Antes de entregarte la retroalimentación final**, te haré algunas **preguntas diagnósticas** para comprender mejor tus decisiones pedagógicas.\n• Recuerda que mi propósito es orientarte para que mejores autónomamente tu diseño, sin hacer la clase por ti.',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -265,7 +265,7 @@ export default function RetroPlani() {
     try {
       const response = await chatbotService.sendFileMessage(
         file,
-        'Revisa mi planificación adjunta según los criterios de RetroPlani Mate V3',
+        'Revisa mi planificación adjunta según los criterios de RetroPlani Mate',
         'retroplani-student-session'
       );
       setMessages((prev) => [
@@ -315,7 +315,7 @@ export default function RetroPlani() {
         ? await apiClient.post('/api/portafolio/planificaciones/' + selectedPlanId + '/revision-ia')
         : await chatbotService.evaluateLessonPlan(planForm);
       setEvaluationResult(result);
-      toast.success('¡Análisis pedagógico RetroPlani Mate V3 completado!');
+      toast.success('¡Análisis pedagógico RetroPlani Mate completado!');
     } catch (err) {
       toast.error(err.message || 'No se pudo evaluar la planificación con IA.');
     } finally {
@@ -333,7 +333,7 @@ export default function RetroPlani() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-16">
       {/* Encabezado Principal */}
-      <div className="bg-gradient-to-r from-[#003B70] to-blue-800 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-brand rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center text-3xl shadow-md flex-shrink-0">
             🤖
@@ -341,7 +341,7 @@ export default function RetroPlani() {
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                RetroPlani Mate V3 (IA)
+                RetroPlani Mate (IA)
               </h1>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-blue-100 border border-white/20">
                 <span
@@ -375,13 +375,13 @@ export default function RetroPlani() {
       </div>
 
       {/* Selector de Pestañas */}
-      <div className="flex border-b border-gray-200 bg-white rounded-t-2xl px-6 pt-4 gap-6 shadow-sm">
+      <div className="surface grid grid-cols-1 sm:grid-cols-2 p-2 gap-2 [overflow-wrap:normal]">
         <button
           type="button"
           onClick={() => setActiveTab('CHAT')}
-          className={`pb-4 text-sm md:text-base font-bold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`min-h-11 min-w-0 p-3 rounded-xl text-left text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'CHAT'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-orange-600 bg-orange-50 text-orange-800'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -391,9 +391,9 @@ export default function RetroPlani() {
         <button
           type="button"
           onClick={() => setActiveTab('VALIDADOR')}
-          className={`pb-4 text-sm md:text-base font-bold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`min-h-11 min-w-0 p-3 rounded-xl text-left text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'VALIDADOR'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-orange-600 bg-orange-50 text-orange-800'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -410,17 +410,17 @@ export default function RetroPlani() {
           {/* Columna Principal del Chat */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[640px] overflow-hidden">
             {/* Barra superior del chat */}
-            <div className="px-6 py-3.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-4 sm:px-6 py-3.5 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 [overflow-wrap:normal]">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🎓</span>
                 <span className="font-bold text-gray-800 text-sm">
-                  Tutoría Didáctica en Matemática (RetroPlani Mate V3 - UBB)
+                  Tutoría Didáctica en Matemática (RetroPlani Mate - UBB)
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleClearChat}
-                className="text-xs text-gray-500 hover:text-red-600 font-medium px-2.5 py-1 rounded-lg hover:bg-gray-200/60 transition-colors cursor-pointer"
+                className="shrink-0 min-h-11 text-xs text-gray-500 hover:text-red-600 font-medium px-2.5 py-1 rounded-lg hover:bg-gray-200/60 transition-colors cursor-pointer"
               >
                 Limpiar conversación
               </button>
@@ -450,7 +450,7 @@ export default function RetroPlani() {
                     />
                   </div>
                   <span className="text-[11px] text-gray-400 mt-1 px-1">
-                    {msg.sender === 'user' ? 'Tú' : 'RetroPlani Mate V3'} • {msg.time}
+                    {msg.sender === 'user' ? 'Tú' : 'RetroPlani Mate'} • {msg.time}
                   </span>
                 </div>
               ))}
@@ -542,7 +542,7 @@ export default function RetroPlani() {
 
             <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl space-y-3">
               <h4 className="font-bold text-blue-900 text-sm flex items-center gap-2">
-                <span>📋</span> Flujo Dialógico RetroPlani Mate V3
+                <span>📋</span> Flujo Dialógico RetroPlani Mate
               </h4>
               <ul className="text-xs text-blue-900/90 space-y-1.5 leading-relaxed">
                 <li>• <strong>1. Recepción:</strong> Sube tu archivo <code className="bg-white/80 px-1 rounded">.pdf</code> con el botón <strong>📎 Adjuntar PDF</strong> o cárgala en el Validador.</li>
@@ -752,7 +752,7 @@ export default function RetroPlani() {
                   loadingText="Revisando 14 indicadores UBB..."
                   className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3"
                 >
-                  ✨ Revisar con RetroPlani Mate V3
+                  ✨ Revisar con RetroPlani Mate
                 </Button>
               </div>
             </form>
@@ -770,7 +770,7 @@ export default function RetroPlani() {
                 </h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Selecciona una planificación o completa los campos a la izquierda y presiona{' '}
-                  <strong className="text-indigo-600">"Revisar con RetroPlani Mate V3"</strong>.
+                  <strong className="text-indigo-600">"Revisar con RetroPlani Mate"</strong>.
                 </p>
                 <div className="text-xs text-gray-500 bg-gray-50 p-4 rounded-xl text-left space-y-1.5 border border-gray-100">
                   <p className="font-bold text-gray-700">Criterios de la Rúbrica UBB (`02_Rubrica`):</p>

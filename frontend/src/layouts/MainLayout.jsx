@@ -66,6 +66,7 @@ export default function MainLayout() {
   }, [user, cargarNotificaciones]);
 
   const abrirBandejaNotificaciones = () => {
+    setMenuOpen(false);
     setMostrarModalNotificaciones(true);
     cargarNotificaciones();
   };
@@ -386,7 +387,7 @@ export default function MainLayout() {
       </aside>
 
       {/* Contenedor Principal */}
-      <main id="main-content" tabIndex={-1} inert={menuOpen || undefined} className="flex-1 min-w-0 p-3 sm:p-5 xl:p-8">
+      <main id="main-content" tabIndex={-1} inert={menuOpen || undefined} className="flex-1 min-w-0 p-3 sm:p-5 xl:p-8 [overflow-wrap:anywhere]">
         <Outlet />
       </main>
 
@@ -397,7 +398,7 @@ export default function MainLayout() {
         title="Notificaciones"
         size="lg"
         footer={
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             {cantidadNoLeidas > 0 ? (
               <Button variant="outline" size="sm" onClick={marcarTodasNotificacionesLeidas}>
                 Marcar todas como leídas

@@ -381,9 +381,9 @@ export default function GestionAsignaturas() {
   ], []);
 
   return (
-    <div className="sm:p-4 xl:p-8 max-w-6xl mx-auto space-y-8">
+    <div className="page-shell">
       <div>
-        <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaturas y Ciclos Académicos</h1>
+        <h1 className="page-title">Gestión de Asignaturas y Ciclos Académicos</h1>
         <p className="text-gray-500 mt-1">Configura las asignaturas por ciclo formativo, sus profesores responsables y los periodos semestrales activos.</p>
       </div>
 
