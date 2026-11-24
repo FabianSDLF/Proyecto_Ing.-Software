@@ -50,11 +50,17 @@ public class PortfolioExportService {
 
     @Transactional(readOnly = true)
     public void csv(String email, Long periodId, Long subjectId, boolean history, Writer out) throws IOException {
+        csv(email, periodId, subjectId, history, null, out);
+    }
+
+    @Transactional(readOnly = true)
+    public void csv(String email, Long periodId, Long subjectId, boolean history, com.ubb.practicas.model.enums.PracticeCycle cycle, Writer out) throws IOException {
         scope.requireExport(email);
         row(out, "Asignacion", "Estudiante", "Correo", "Asignatura", "Ciclo", "Periodo", "Centro", "Estado practica",
                 "Evaluacion", "Instrumento", "Nota publicada", "Observaciones", "Indicador", "Puntos", "Justificacion", "Evidencias");
-        for (PracticeAssignment a : scope.visible(email, periodId, false)) {
+        for (PracticeAssignment a : scope.visible(email, periodId, history)) {
             if (subjectId != null && (a.getSubject() == null || !subjectId.equals(a.getSubject().getId()))) continue;
+            if (cycle != null && (a.getSubject() == null || cycle != a.getSubject().getCycle())) continue;
             String evidence = documents.findByPracticeAssignment_Id(a.getId()).stream()
                     .map(d -> "/api/portafolio/documentos/" + d.getId() + "/descargar [" + d.getFileName() + "]")
                     .collect(java.util.stream.Collectors.joining(" | "));

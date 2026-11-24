@@ -1,61 +1,10 @@
 import PracticeSheet from '../components/PracticeSheet';
-import { useEffect, useState } from 'react';
+import StatisticsPanel from '../components/StatisticsPanel';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BASE_URL } from '../services/apiClient';
-import assignmentService from '../services/assignmentService';
-import centerService from '../services/centerService';
 
 export default function Dashboard() {
     const { user, userRole } = useAuth();
-    const [stats, setStats] = useState({ asignaciones: 0, centros: 0 });
-    const [misAsignaciones, setMisAsignaciones] = useState([]);
-
-    useEffect(() => {
-        if (userRole === 'Estudiante') {
-            const fetchAsignaciones = async () => {
-                try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch(`${BASE_URL}/api/asignaciones/mis-asignaciones`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        setMisAsignaciones(data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching asignaciones:', error);
-                }
-            };
-            fetchAsignaciones();
-        }
-
-        if (userRole !== 'Coordinador de practicas') return;
-
-        const controller = new AbortController();
-
-        async function loadStats() {
-            try {
-                const [assignments, centers] = await Promise.all([
-                    assignmentService.getAssignments({ signal: controller.signal }),
-                    centerService.getCenters({ signal: controller.signal })
-                ]);
-                setStats({
-                    asignaciones: Array.isArray(assignments) ? assignments.length : 0,
-                    centros: Array.isArray(centers) ? centers.length : 0
-                });
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error('Error cargando estadísticas del dashboard:', err);
-                }
-            }
-        }
-
-        loadStats();
-
-        return () => controller.abort();
-    }, [userRole]);
-
     return (
         <div className="space-y-6">
             <header className="mb-8">
@@ -68,25 +17,9 @@ export default function Dashboard() {
             </header>
 
             {/* Vista de Administrador */}
-            {userRole === 'Coordinador de practicas' && (
+            {['Coordinador de practicas', 'Administrador'].includes(userRole) && (
                 <div className="space-y-6">
-                    {/* Estadísticas (HU9) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-gradient-to-r from-blue-500 to-blue-700 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold opacity-90">Alumnos Asignados</h3>
-                                <p className="text-4xl font-extrabold mt-2">{stats.asignaciones}</p>
-                            </div>
-                            <svg className="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
-                        </div>
-                        <div className="bg-gradient-to-r from-green-500 to-green-700 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold opacity-90">Colegios Activos</h3>
-                                <p className="text-4xl font-extrabold mt-2">{stats.centros}</p>
-                            </div>
-                            <svg className="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"></path></svg>
-                        </div>
-                    </div>
+                    <StatisticsPanel />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Link to="/gestion-roles" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
@@ -162,7 +95,7 @@ export default function Dashboard() {
             )}
             
             {/* Fallback */}
-            {!['Coordinador de practicas', 'Estudiante', 'Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && userRole !== '' && (
+            {!['Administrador', 'Coordinador de practicas', 'Estudiante', 'Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && userRole !== '' && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <p className="text-gray-600">No hay widgets configurados para este rol.</p>
                 </div>

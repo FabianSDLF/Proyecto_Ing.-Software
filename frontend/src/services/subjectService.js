@@ -16,6 +16,7 @@ export const subjectService = {
     const payload = {
       name: subjectData.name,
       cycle: subjectData.cycle,
+      professionalRubrics: Boolean(subjectData.professionalRubrics),
       code: subjectData.code || null,
       professor: subjectData.professorId ? { id: Number(subjectData.professorId) } : null,
     };
@@ -31,6 +32,7 @@ export const subjectService = {
     const payload = {
       name: subjectData.name,
       cycle: subjectData.cycle,
+      professionalRubrics: Boolean(subjectData.professionalRubrics),
       code: subjectData.code || null,
       professor: subjectData.professorId ? { id: Number(subjectData.professorId) } : null,
     };

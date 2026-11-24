@@ -78,6 +78,9 @@ public class SubjectServiceImpl implements SubjectService {
         if (datos.getCycle() != null) {
             existing.setCycle(datos.getCycle());
         }
+        if (datos.getProfessionalRubrics() != null) {
+            existing.setProfessionalRubrics(datos.getProfessionalRubrics());
+        }
         if (datos.getCode() != null) {
             String trimmedCode = datos.getCode().trim();
             existing.setCode(trimmedCode.isEmpty() ? null : trimmedCode);

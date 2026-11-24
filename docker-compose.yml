@@ -16,7 +16,7 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
-    restart: unless-stopped
+    restart: "no"
 
   # Backend Spring Boot
   backend:
@@ -39,10 +39,13 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-admin}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=true
+      - SUPPORT_COORDINATOR_NAME=${SUPPORT_COORDINATOR_NAME:-}
+      - SUPPORT_COORDINATOR_EMAIL=${SUPPORT_COORDINATOR_EMAIL:-}
+      - SUPPORT_COORDINATOR_PHONE=${SUPPORT_COORDINATOR_PHONE:-}
     volumes:
       # Volumen para que los archivos subidos persistan si el contenedor se reinicia
       - backend_uploads:/app/uploads
-    restart: unless-stopped
+    restart: "no"
 
   # Frontend React (Vite + Nginx)
   frontend:
@@ -55,7 +58,7 @@ services:
       - "80:80"
     depends_on:
       - backend
-    restart: unless-stopped
+    restart: "no"
 
   # Chatbot IA (Python FastAPI)
   chatbot:
@@ -66,8 +69,8 @@ services:
     environment:
       - BACKEND_URL=http://backend:8080
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.6-flash,gemini-3.5-flash}
-    restart: unless-stopped
+      - GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite}
+    restart: "no"
 
   backup:
     image: mysql:8.4
@@ -88,3 +91,4 @@ services:
 volumes:
   db_data:
   backend_uploads:
+

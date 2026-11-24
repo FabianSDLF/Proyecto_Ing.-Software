@@ -28,6 +28,15 @@ public class EvaluationCriteria {
     @ToString.Exclude
     private Evaluation evaluation;
 
+    @Column(name = "criterion_code", length = 50)
+    private String criterionCode;
+
+    @Column(name = "dimension", length = 50)
+    private String dimension;
+
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
     private String criteriaName;
 
     @Enumerated(EnumType.STRING)
@@ -37,4 +46,20 @@ public class EvaluationCriteria {
 
     @Column(length = 1000)
     private String justification;
+
+    public EvaluationCriteria(
+            Long id,
+            Evaluation evaluation,
+            String criteriaName,
+            AchievementLevel achievementLevel,
+            Float points,
+            String justification
+    ) {
+        this.id = id;
+        this.evaluation = evaluation;
+        this.criteriaName = criteriaName;
+        this.achievementLevel = achievementLevel;
+        this.points = points;
+        this.justification = justification;
+    }
 }

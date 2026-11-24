@@ -1,6 +1,7 @@
 package com.ubb.practicas.controller;
 
 import com.ubb.practicas.dto.EvaluationCreateDTO;
+import com.ubb.practicas.dto.EvaluationFinalizeDTO;
 import com.ubb.practicas.model.Evaluation;
 import com.ubb.practicas.service.EvaluationService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,20 @@ public class EvaluationController {
     @PostMapping
     public ResponseEntity<Evaluation> crearEvaluacion(@RequestBody EvaluationCreateDTO dto, Principal principal) {
         return ResponseEntity.ok(evaluationService.crearEvaluacion(dto, principal.getName()));
+    }
+
+    @PostMapping("/{id}/finalizar")
+    public ResponseEntity<Evaluation> finalizarEvaluacion(
+            @PathVariable Long id,
+            @RequestBody EvaluationFinalizeDTO dto,
+            Principal principal
+    ) {
+        return ResponseEntity.ok(evaluationService.finalizarEvaluacion(id, dto, principal.getName()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Evaluation> obtenerPorId(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(evaluationService.obtenerEvaluacionPorId(id, principal.getName()));
     }
 
     @GetMapping("/asignacion/{id}")

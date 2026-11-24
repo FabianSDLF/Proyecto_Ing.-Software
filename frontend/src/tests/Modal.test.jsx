@@ -45,9 +45,9 @@ describe('Modal UI Component (FE-18 Accessible Dialog)', () => {
     );
 
     const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveAttribute('aria-labelledby', 'modal-dialog-title');
+    expect(document.getElementById(dialog.getAttribute('aria-labelledby'))).toBe(screen.getByRole('heading', { name: 'Confirmación de Portafolio' }));
     const heading = screen.getByRole('heading', { level: 2 });
-    expect(heading).toHaveAttribute('id', 'modal-dialog-title');
+    expect(heading.id).toBe(dialog.getAttribute('aria-labelledby'));
     expect(heading).toHaveTextContent('Confirmación de Portafolio');
   });
 
@@ -64,8 +64,8 @@ describe('Modal UI Component (FE-18 Accessible Dialog)', () => {
     );
 
     const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveAttribute('aria-describedby', 'modal-dialog-description');
-    expect(screen.getByText(/selecciona un archivo pdf o zip/i)).toHaveAttribute('id', 'modal-dialog-description');
+    expect(document.getElementById(dialog.getAttribute('aria-describedby'))).toBe(screen.getByText(/selecciona un archivo pdf o zip/i));
+    expect(dialog).toHaveAccessibleDescription(/selecciona un archivo pdf o zip/i);
   });
 
   describe('Dismissal & Keyboard Accessibility (FE-18)', () => {

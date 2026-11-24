@@ -1,0 +1,750 @@
+[
+  {
+    "type": "TUTOR_ESP_1",
+    "name": "Primera observación de Especialidad (Tutor)",
+    "role": "TUTOR",
+    "area": "Especialidad",
+    "visit": 1,
+    "rubricVersion": "2025-2-v1",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "indicatorCount": 19,
+    "maxPoints": 133,
+    "source": "PRIMERA PAUTA DE EVALUACIÓN ESPECIALIDAD TUTOR-A.docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "code": "A1",
+        "criterionCode": "A1",
+        "dimension": "A",
+        "order": 1,
+        "text": "Comprende las bases curriculares y su respectivo programa de estudio de la disciplina que enseña."
+      },
+      {
+        "id": "A2",
+        "code": "A2",
+        "criterionCode": "A2",
+        "dimension": "A",
+        "order": 2,
+        "text": "Conoce las características del desarrollo correspondiente a las edades de sus estudiantes y sus necesidades educativas."
+      },
+      {
+        "id": "A3",
+        "code": "A3",
+        "criterionCode": "A3",
+        "dimension": "A",
+        "order": 3,
+        "text": "Incorpora en sus planificaciones variadas estrategias de enseñanza."
+      },
+      {
+        "id": "A4",
+        "code": "A4",
+        "criterionCode": "A4",
+        "dimension": "A",
+        "order": 4,
+        "text": "Elabora secuencias de contenidos coherentes con los objetivos de aprendizaje del marco curricular."
+      },
+      {
+        "id": "B1",
+        "code": "B1",
+        "criterionCode": "B1",
+        "dimension": "B",
+        "order": 5,
+        "text": "Establece un clima de relaciones interpersonales respetuosas y empáticas con sus estudiantes."
+      },
+      {
+        "id": "B2",
+        "code": "B2",
+        "criterionCode": "B2",
+        "dimension": "B",
+        "order": 6,
+        "text": "Presenta situaciones didácticas que motivan la participación de sus estudiantes."
+      },
+      {
+        "id": "B3",
+        "code": "B3",
+        "criterionCode": "B3",
+        "dimension": "B",
+        "order": 7,
+        "text": "Establece normas de comportamiento que son conocidas y comprensibles para sus estudiantes."
+      },
+      {
+        "id": "B4",
+        "code": "B4",
+        "criterionCode": "B4",
+        "dimension": "B",
+        "order": 8,
+        "text": "Utiliza estrategias para crear y mantener un ambiente sano y seguro al interior del aula."
+      },
+      {
+        "id": "C1",
+        "code": "C1",
+        "criterionCode": "C1",
+        "dimension": "C",
+        "order": 9,
+        "text": "Comunica a las/os estudiantes los propósitos de la clase y los aprendizajes a lograr."
+      },
+      {
+        "id": "C2",
+        "code": "C2",
+        "criterionCode": "C2",
+        "dimension": "C",
+        "order": 10,
+        "text": "Desarrolla los contenidos a través de una estrategia de enseñanza clara y definida."
+      },
+      {
+        "id": "C3",
+        "code": "C3",
+        "criterionCode": "C3",
+        "dimension": "C",
+        "order": 11,
+        "text": "Desarrolla los contenidos en forma clara, precisa y adecuada al nivel de las/os estudiantes."
+      },
+      {
+        "id": "C4",
+        "code": "C4",
+        "criterionCode": "C4",
+        "dimension": "C",
+        "order": 12,
+        "text": "Desarrolla los contenidos con una secuencia adecuada a la comprensión de las/os estudiantes."
+      },
+      {
+        "id": "C5",
+        "code": "C5",
+        "criterionCode": "C5",
+        "dimension": "C",
+        "order": 13,
+        "text": "Formula preguntas, problemas, y concede el tiempo necesario para resolverlos."
+      },
+      {
+        "id": "C6",
+        "code": "C6",
+        "criterionCode": "C6",
+        "dimension": "C",
+        "order": 14,
+        "text": "Utiliza estrategias pertinentes para evaluar el logro de los objetivos de aprendizaje definidos para sus clases."
+      },
+      {
+        "id": "D1",
+        "code": "D1",
+        "criterionCode": "D1",
+        "dimension": "D",
+        "order": 15,
+        "text": "Evalúa el grado en que los estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "D2",
+        "code": "D2",
+        "criterionCode": "D2",
+        "dimension": "D",
+        "order": 16,
+        "text": "Dialoga con su profesor/a colaborador/a sobre aspectos pedagógicos y didácticos del proceso enseñanza - aprendizaje."
+      },
+      {
+        "id": "D3",
+        "code": "D3",
+        "criterionCode": "D3",
+        "dimension": "D",
+        "order": 17,
+        "text": "Identifica las fortalezas de sus estudiantes y procura potenciarlas."
+      },
+      {
+        "id": "D4",
+        "code": "D4",
+        "criterionCode": "D4",
+        "dimension": "D",
+        "order": 18,
+        "text": "Demuestra sentido de responsabilidad frente a las tareas asignadas asociadas a su práctica profesional."
+      },
+      {
+        "id": "D5",
+        "code": "D5",
+        "criterionCode": "D5",
+        "dimension": "D",
+        "order": 19,
+        "text": "Presenta anticipadamente la planificación de su clase."
+      }
+    ]
+  },
+  {
+    "type": "TUTOR_ORI_1",
+    "name": "Primera observación de Orientación (Tutor)",
+    "role": "TUTOR",
+    "area": "Orientación",
+    "visit": 1,
+    "rubricVersion": "2025-2-v1",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "indicatorCount": 18,
+    "maxPoints": 126,
+    "source": "PRIMERA PAUTA DE EVALUACIÓN ORIENTACIÓN TUTOR(A).docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "code": "A1",
+        "criterionCode": "A1",
+        "dimension": "A",
+        "order": 1,
+        "text": "Comunica a las/os estudiantes los propósitos de la clase y los aprendizajes a lograr."
+      },
+      {
+        "id": "A2",
+        "code": "A2",
+        "criterionCode": "A2",
+        "dimension": "A",
+        "order": 2,
+        "text": "Utiliza el tiempo disponible para la enseñanza en función de los objetivos de la clase."
+      },
+      {
+        "id": "A3",
+        "code": "A3",
+        "criterionCode": "A3",
+        "dimension": "A",
+        "order": 3,
+        "text": "Especifica en las unidades pedagógicas de orientación, los tres momentos de la clase: inicio, desarrollo y cierre."
+      },
+      {
+        "id": "B1",
+        "code": "B1",
+        "criterionCode": "B1",
+        "dimension": "B",
+        "order": 4,
+        "text": "Formula preguntas y concede el tiempo necesario para resolverlos."
+      },
+      {
+        "id": "B2",
+        "code": "B2",
+        "criterionCode": "B2",
+        "dimension": "B",
+        "order": 5,
+        "text": "Posee la capacidad de empatía, de atención personalizada propiciada por la clase y escucha activamente a los y las estudiantes."
+      },
+      {
+        "id": "B3",
+        "code": "B3",
+        "criterionCode": "B3",
+        "dimension": "B",
+        "order": 6,
+        "text": "Establece un clima de relaciones interpersonales respetuosas y empáticas con sus estudiantes."
+      },
+      {
+        "id": "B4",
+        "code": "B4",
+        "criterionCode": "B4",
+        "dimension": "B",
+        "order": 7,
+        "text": "Establece normas de comportamiento que son conocidas y comprensibles para sus estudiantes."
+      },
+      {
+        "id": "C1",
+        "code": "C1",
+        "criterionCode": "C1",
+        "dimension": "C",
+        "order": 8,
+        "text": "Utiliza diferentes metodologías pedagógicas, que motiven el interés de los y las estudiantes durante las clases."
+      },
+      {
+        "id": "C2",
+        "code": "C2",
+        "criterionCode": "C2",
+        "dimension": "C",
+        "order": 9,
+        "text": "Ofrece oportunidades y desafíos de participación activas a los y las estudiantes del grupo curso, considerando su diversidad."
+      },
+      {
+        "id": "C3",
+        "code": "C3",
+        "criterionCode": "C3",
+        "dimension": "C",
+        "order": 10,
+        "text": "Demuestra conocer variadas estrategias de enseñanza y actividades congruentes con el proceso de enseñanza y aprendizaje."
+      },
+      {
+        "id": "D1",
+        "code": "D1",
+        "criterionCode": "D1",
+        "dimension": "D",
+        "order": 11,
+        "text": "Emplea instrumentos de evaluación, acorde a las temáticas desarrolladas en el grupo curso."
+      },
+      {
+        "id": "D2",
+        "code": "D2",
+        "criterionCode": "D2",
+        "dimension": "D",
+        "order": 12,
+        "text": "Utiliza criterios de evaluación coherentes con los objetivos de aprendizaje propuestos."
+      },
+      {
+        "id": "D3",
+        "code": "D3",
+        "criterionCode": "D3",
+        "dimension": "D",
+        "order": 13,
+        "text": "Evalúa el grado en que las/os estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "E1",
+        "code": "E1",
+        "criterionCode": "E1",
+        "dimension": "E",
+        "order": 14,
+        "text": "Reflexiona sobre la propia práctica pedagógica, considerando la capacidad de preparar y gestionar curricularmente sus clases en el área de orientación, considerando la potenciación de sus fortalezas y la mejora de sus debilidades docentes."
+      },
+      {
+        "id": "E2",
+        "code": "E2",
+        "criterionCode": "E2",
+        "dimension": "E",
+        "order": 15,
+        "text": "Evalúa el nivel de logro de los objetivos de aprendizaje planteados, valorando los aciertos, analizando los errores y planteándose metas para su desempeño profesional futuro."
+      },
+      {
+        "id": "E3",
+        "code": "E3",
+        "criterionCode": "E3",
+        "dimension": "E",
+        "order": 16,
+        "text": "Evidencia el cumplimiento de los compromisos contraídos, presentación personal, asistencia, puntualidad en los talleres de reflexión y en la práctica en general."
+      },
+      {
+        "id": "E4",
+        "code": "E4",
+        "criterionCode": "E4",
+        "dimension": "E",
+        "order": 17,
+        "text": "Analiza críticamente su desempeño durante las clases, a partir de los resultados de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "E5",
+        "code": "E5",
+        "criterionCode": "E5",
+        "dimension": "E",
+        "order": 18,
+        "text": "Presenta anticipadamente la planificación de la clase, de acuerdo a la unidad didáctica, para su debida retroalimentación."
+      }
+    ]
+  },
+  {
+    "type": "TUTOR_ESP_2",
+    "name": "Segunda observación de Especialidad (Tutor)",
+    "role": "TUTOR",
+    "area": "Especialidad",
+    "visit": 2,
+    "rubricVersion": "2025-2-v1",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "indicatorCount": 23,
+    "maxPoints": 161,
+    "source": "SEGUNDA PAUTA DE EVALUACIÓN ESPECIALIDAD TUTOR-A.docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "code": "A1",
+        "criterionCode": "A1",
+        "dimension": "A",
+        "order": 1,
+        "text": "Demuestra conocimiento la relación de los contenidos que enseña y los vincula a la realidad personal de las y los estudiantes."
+      },
+      {
+        "id": "A2",
+        "code": "A2",
+        "criterionCode": "A2",
+        "dimension": "A",
+        "order": 2,
+        "text": "Domina los principios de las bases curriculares y logra alcanzar los objetivos de aprendizaje propuestos durante sus clases."
+      },
+      {
+        "id": "A3",
+        "code": "A3",
+        "criterionCode": "A3",
+        "dimension": "A",
+        "order": 3,
+        "text": "Identifica las fortalezas y debilidades de las y los estudiantes, respecto de los contenidos que se ha propuesto enseñar."
+      },
+      {
+        "id": "A4",
+        "code": "A4",
+        "criterionCode": "A4",
+        "dimension": "A",
+        "order": 4,
+        "text": "Distingue los distintos estilos y ritmos de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "A5",
+        "code": "A5",
+        "criterionCode": "A5",
+        "dimension": "A",
+        "order": 5,
+        "text": "Selecciona distintos recursos de aprendizajes relacionados con los contenidos curriculares, considerando las características de las y los estudiantes."
+      },
+      {
+        "id": "A6",
+        "code": "A6",
+        "criterionCode": "A6",
+        "dimension": "A",
+        "order": 6,
+        "text": "Establece estrategias de evaluación que permitan oportunidades equitativas a los estudiantes, en relación al aprendizaje."
+      },
+      {
+        "id": "B1",
+        "code": "B1",
+        "criterionCode": "B1",
+        "dimension": "B",
+        "order": 7,
+        "text": "Demuestra actitudes de compromiso, responsabilidad y solidaridad con las y los estudiantes durante las clases."
+      },
+      {
+        "id": "B2",
+        "code": "B2",
+        "criterionCode": "B2",
+        "dimension": "B",
+        "order": 8,
+        "text": "Demuestra respeto por la diversidad cultural, étnica, de género y socioeconómica del estudiantado."
+      },
+      {
+        "id": "B3",
+        "code": "B3",
+        "criterionCode": "B3",
+        "dimension": "B",
+        "order": 9,
+        "text": "Favorece el desarrollo de la autonomía de las y los estudiantes en las diferentes situaciones de aprendizaje que les propone."
+      },
+      {
+        "id": "B4",
+        "code": "B4",
+        "criterionCode": "B4",
+        "dimension": "B",
+        "order": 10,
+        "text": "Promueve el esfuerzo y perseverancia en las y los estudiantes para alcanzar el aprendizaje."
+      },
+      {
+        "id": "B5",
+        "code": "B5",
+        "criterionCode": "B5",
+        "dimension": "B",
+        "order": 11,
+        "text": "Modela estrategias de diálogo y resolución de conflictos al interior del aula."
+      },
+      {
+        "id": "C1",
+        "code": "C1",
+        "criterionCode": "C1",
+        "dimension": "C",
+        "order": 12,
+        "text": "Socializa con las y los estudiantes los criterios que los orientarán tanto para autoevaluarse como para ser evaluados/as."
+      },
+      {
+        "id": "C2",
+        "code": "C2",
+        "criterionCode": "C2",
+        "dimension": "C",
+        "order": 13,
+        "text": "Propone actividades que involucran el desarrollo cognitivo y emocional de las y los estudiantes."
+      },
+      {
+        "id": "C3",
+        "code": "C3",
+        "criterionCode": "C3",
+        "dimension": "C",
+        "order": 14,
+        "text": "Desarrolla los contenidos curriculares en forma clara, precisa y adecuada al nivel y a las condiciones personales de las y los estudiantes."
+      },
+      {
+        "id": "C4",
+        "code": "C4",
+        "criterionCode": "C4",
+        "dimension": "C",
+        "order": 15,
+        "text": "Utiliza lenguaje preciso y pertinente de manera gradual."
+      },
+      {
+        "id": "C5",
+        "code": "C5",
+        "criterionCode": "C5",
+        "dimension": "C",
+        "order": 16,
+        "text": "Utiliza estrategias de retroalimentación que permiten a las/los estudiantes tomar conciencia de sus logros de aprendizaje."
+      },
+      {
+        "id": "C6",
+        "code": "C6",
+        "criterionCode": "C6",
+        "dimension": "C",
+        "order": 17,
+        "text": "Adapta las actividades de enseñanza de acuerdo a las evidencias que recoge sobre los aprendizajes de las y los estudiantes."
+      },
+      {
+        "id": "C7",
+        "code": "C7",
+        "criterionCode": "C7",
+        "dimension": "C",
+        "order": 18,
+        "text": "Utiliza recursos didácticos coherentes con las actividades de aprendizaje, facilitando los objetivos de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "D1",
+        "code": "D1",
+        "criterionCode": "D1",
+        "dimension": "D",
+        "order": 19,
+        "text": "Evalúa el grado en que las/os estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "D2",
+        "code": "D2",
+        "criterionCode": "D2",
+        "dimension": "D",
+        "order": 20,
+        "text": "Analiza críticamente su desempeño durante las clases, a partir de los resultados de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "D3",
+        "code": "D3",
+        "criterionCode": "D3",
+        "dimension": "D",
+        "order": 21,
+        "text": "Cumple con las normas y responsabilidades profesionales establecidas en la institución educativa donde trabaja, para la realización de las tareas comprometidas."
+      },
+      {
+        "id": "D4",
+        "code": "D4",
+        "criterionCode": "D4",
+        "dimension": "D",
+        "order": 22,
+        "text": "Demuestra un trabajo asertivo frente a las dificultades que se presentan en el aula."
+      },
+      {
+        "id": "D5",
+        "code": "D5",
+        "criterionCode": "D5",
+        "dimension": "D",
+        "order": 23,
+        "text": "Presenta anticipadamente la planificación de su clase."
+      }
+    ]
+  },
+  {
+    "type": "TUTOR_ORI_2",
+    "name": "Segunda observación de Orientación (Tutor)",
+    "role": "TUTOR",
+    "area": "Orientación",
+    "visit": 2,
+    "rubricVersion": "2025-2-v1",
+    "scale": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "indicatorCount": 23,
+    "maxPoints": 161,
+    "source": "SEGUNDA PAUTA DE EVALUACIÓN ORIENTACIÓN TUTOR(A).docx.md",
+    "indicators": [
+      {
+        "id": "A1",
+        "code": "A1",
+        "criterionCode": "A1",
+        "dimension": "A",
+        "order": 1,
+        "text": "Contextualiza el diseño de unidades didácticas coherentes a temáticas a desarrollar según la base curricular y el programa de estudio."
+      },
+      {
+        "id": "A2",
+        "code": "A2",
+        "criterionCode": "A2",
+        "dimension": "A",
+        "order": 2,
+        "text": "Comunica a las/os estudiantes los propósitos de la clase y los aprendizajes a lograr."
+      },
+      {
+        "id": "A3",
+        "code": "A3",
+        "criterionCode": "A3",
+        "dimension": "A",
+        "order": 3,
+        "text": "Desarrolla los contenidos de la clase especificando los aprendizajes que se desean alcanzar."
+      },
+      {
+        "id": "A4",
+        "code": "A4",
+        "criterionCode": "A4",
+        "dimension": "A",
+        "order": 4,
+        "text": "Utiliza un lenguaje y conceptos de manera precisa y comprensible para sus estudiantes."
+      },
+      {
+        "id": "A5",
+        "code": "A5",
+        "criterionCode": "A5",
+        "dimension": "A",
+        "order": 5,
+        "text": "Estructura las situaciones de aprendizajes considerando los saberes, intereses y experiencia de los y las estudiantes."
+      },
+      {
+        "id": "A6",
+        "code": "A6",
+        "criterionCode": "A6",
+        "dimension": "A",
+        "order": 6,
+        "text": "Planifica Unidad Pedagógica, a partir de los Conocimientos, Habilidades y Actitudes, en función de las experiencias previas, y el aporte reflexivo como desafío personal."
+      },
+      {
+        "id": "A7",
+        "code": "A7",
+        "criterionCode": "A7",
+        "dimension": "A",
+        "order": 7,
+        "text": "Especifica en las unidades pedagógicas de orientación: los tres momentos de la clase: inicio, desarrollo y cierre."
+      },
+      {
+        "id": "B1",
+        "code": "B1",
+        "criterionCode": "B1",
+        "dimension": "B",
+        "order": 8,
+        "text": "Formula preguntas y concede el tiempo necesario para resolverlos."
+      },
+      {
+        "id": "B2",
+        "code": "B2",
+        "criterionCode": "B2",
+        "dimension": "B",
+        "order": 9,
+        "text": "Proporciona a los y las estudiantes oportunidades de participación."
+      },
+      {
+        "id": "B3",
+        "code": "B3",
+        "criterionCode": "B3",
+        "dimension": "B",
+        "order": 10,
+        "text": "Estimula la sensibilización y socialización en la interacción durante la clase."
+      },
+      {
+        "id": "B4",
+        "code": "B4",
+        "criterionCode": "B4",
+        "dimension": "B",
+        "order": 11,
+        "text": "Demuestra capacidades para crear y mantener un clima grato durante el desarrollo de la clase."
+      },
+      {
+        "id": "C1",
+        "code": "C1",
+        "criterionCode": "C1",
+        "dimension": "C",
+        "order": 12,
+        "text": "Ofrece oportunidades y desafíos de participación activas a los y las estudiantes del grupo curso, considerando su diversidad."
+      },
+      {
+        "id": "C2",
+        "code": "C2",
+        "criterionCode": "C2",
+        "dimension": "C",
+        "order": 13,
+        "text": "Aplica estrategias metodológicas activas y desafiantes para el grupo curso, involucrando dimensiones cognitivas, procedimentales y emocionales, que capten el interés y la motivación de todos los/as estudiantes."
+      },
+      {
+        "id": "C3",
+        "code": "C3",
+        "criterionCode": "C3",
+        "dimension": "C",
+        "order": 14,
+        "text": "Considera en el proceso didáctico, el respeto por las diferencias de géneros, culturas, y etnias."
+      },
+      {
+        "id": "C4",
+        "code": "C4",
+        "criterionCode": "C4",
+        "dimension": "C",
+        "order": 15,
+        "text": "Utiliza estrategias metodologías de enseñanza para generar aprendizajes significativos."
+      },
+      {
+        "id": "D1",
+        "code": "D1",
+        "criterionCode": "D1",
+        "dimension": "D",
+        "order": 16,
+        "text": "Los procedimientos de evaluación son coherentes con la complejidad de los contenidos, incluidos en pautas."
+      },
+      {
+        "id": "D2",
+        "code": "D2",
+        "criterionCode": "D2",
+        "dimension": "D",
+        "order": 17,
+        "text": "Emplea la retroalimentación que permite a las/os estudiantes tomar conciencia de sus logros de aprendizaje."
+      },
+      {
+        "id": "D3",
+        "code": "D3",
+        "criterionCode": "D3",
+        "dimension": "D",
+        "order": 18,
+        "text": "Evalúa el grado en que las/os estudiantes alcanzaron los aprendizajes esperados."
+      },
+      {
+        "id": "E1",
+        "code": "E1",
+        "criterionCode": "E1",
+        "dimension": "E",
+        "order": 19,
+        "text": "Reflexiona sobre la propia práctica pedagógica, considerando la capacidad de preparar y gestionar curricularmente sus clases en el área de orientación, considerando la potenciación de sus fortalezas y la mejora de sus debilidades docentes."
+      },
+      {
+        "id": "E2",
+        "code": "E2",
+        "criterionCode": "E2",
+        "dimension": "E",
+        "order": 20,
+        "text": "Evalúa el nivel de logro de los objetivos de aprendizaje planteados, valorando los aciertos, analizando los errores y planteándose metas para su desempeño profesional futuro."
+      },
+      {
+        "id": "E3",
+        "code": "E3",
+        "criterionCode": "E3",
+        "dimension": "E",
+        "order": 21,
+        "text": "Evidencia el cumplimiento de los compromisos contraídos, presentación personal, asistencia, puntualidad en los talleres de reflexión y en la práctica en general."
+      },
+      {
+        "id": "E4",
+        "code": "E4",
+        "criterionCode": "E4",
+        "dimension": "E",
+        "order": 22,
+        "text": "Analiza críticamente su desempeño durante las clases, a partir de los resultados de aprendizaje de las y los estudiantes."
+      },
+      {
+        "id": "E5",
+        "code": "E5",
+        "criterionCode": "E5",
+        "dimension": "E",
+        "order": 23,
+        "text": "Presenta anticipadamente la planificación de la clase, de acuerdo a unidad didáctica, para su debida retroalimentación."
+      }
+    ]
+  }
+]

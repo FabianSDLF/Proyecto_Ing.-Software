@@ -4,6 +4,7 @@ import com.ubb.practicas.model.Evaluation;
 import com.ubb.practicas.model.enums.EvaluationType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,6 +12,23 @@ import java.util.Optional;
 
 @Repository
 public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
+
+    @NonNull
+    @Override
+    @EntityGraph(attributePaths = {
+            "practiceAssignment",
+            "practiceAssignment.student",
+            "practiceAssignment.student.role",
+            "practiceAssignment.subject",
+            "practiceAssignment.subject.professor",
+            "practiceAssignment.center",
+            "practiceAssignment.collaborator",
+            "practiceAssignment.tutor",
+            "practiceAssignment.period",
+            "evaluator",
+            "evaluator.role"
+    })
+    Optional<Evaluation> findById(@NonNull Long id);
 
     @EntityGraph(attributePaths = {
             "practiceAssignment",

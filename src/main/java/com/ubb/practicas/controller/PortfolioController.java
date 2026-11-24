@@ -172,10 +172,10 @@ public class PortfolioController {
 
     @GetMapping(value = "/export-csv", produces = "text/csv; charset=utf-8")
     public void exportToCSV(Principal principal, @RequestParam(required = false) Long periodId,
-            @RequestParam(required = false) Long subjectId, @RequestParam(defaultValue = "false") boolean history, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+            @RequestParam(required = false) Long subjectId, @RequestParam(defaultValue = "false") boolean history, @RequestParam(required = false) com.ubb.practicas.model.enums.PracticeCycle cycle, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=reporte_institucional.csv");
-        exportService.csv(principal.getName(), periodId, subjectId, history, response.getWriter());
+        exportService.csv(principal.getName(), periodId, subjectId, history, cycle, response.getWriter());
     }
 
     // ==========================================
