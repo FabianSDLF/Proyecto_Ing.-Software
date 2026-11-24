@@ -32,7 +32,7 @@ export default function MisEstudiantes() {
     const [evaluationData, setEvaluationData] = useState({
         score: '',
         comments: '',
-                justifications: {},
+        justifications: {},
     });
     const [indicatorPoints, setIndicatorPoints] = useState({});
 
@@ -185,7 +185,7 @@ export default function MisEstudiantes() {
             setEvaluationData({
                 score: '',
                 comments: '',
-        justifications: {},
+                justifications: {},
             });
             setIndicatorPoints({});
             setSavedForm(JSON.stringify({ evaluationData: { score: '', comments: '', justifications: {} }, indicatorPoints: {} }));

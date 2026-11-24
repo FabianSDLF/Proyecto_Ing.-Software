@@ -4,17 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { BASE_URL } from '../services/apiClient';
-import assignmentService from '../services/assignmentService';
-import centerService from '../services/centerService';
 import notificacionService from '../services/notificacionService';
 import userService from '../services/userService';
 import { Badge, Button } from '../components/ui';
 
 export default function Dashboard() {
     const { user, userRole } = useAuth();
-    const [stats, setStats] = useState({ asignaciones: 0, centros: 0 });
-    const [misAsignaciones, setMisAsignaciones] = useState([]);
     const [notificacionesUsuario, setNotificacionesUsuario] = useState([]);
     const [cargandoNotificaciones, setCargandoNotificaciones] = useState(false);
     const [mensajeComunicado, setMensajeComunicado] = useState('');
@@ -147,50 +142,7 @@ export default function Dashboard() {
         (notificacionActual) => !notificacionActual.read
     );
 
-    useEffect(() => {
-        if (userRole === 'Estudiante') {
-            const fetchAsignaciones = async () => {
-                try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch(`${BASE_URL}/api/asignaciones/mis-asignaciones`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        setMisAsignaciones(data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching asignaciones:', error);
-                }
-            };
-            fetchAsignaciones();
-        }
 
-        if (userRole !== 'Coordinador de practicas') return;
-
-        const controller = new AbortController();
-
-        async function loadStats() {
-            try {
-                const [assignments, centers] = await Promise.all([
-                    assignmentService.getAssignments({ signal: controller.signal }),
-                    centerService.getCenters({ signal: controller.signal })
-                ]);
-                setStats({
-                    asignaciones: Array.isArray(assignments) ? assignments.length : 0,
-                    centros: Array.isArray(centers) ? centers.length : 0
-                });
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error('Error cargando estadísticas del dashboard:', err);
-                }
-            }
-        }
-
-        loadStats();
-
-        return () => controller.abort();
-    }, [userRole]);
 
     return (
         <div className="space-y-6">
