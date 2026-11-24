@@ -28,6 +28,7 @@ La rama de Angelo ya está incluida en la de Fabián. Se comprobó con `git merg
 - `npm run build`: correcto; advertencia por tamaño del bundle.
 - `npm run lint`: sin errores; hay advertencias de hooks, memoización e imports en el proyecto.
 - Después de limpiar consultas sin uso del dashboard: build correcto y 8 pruebas de estadísticas/evaluaciones aprobadas.
+- Playwright con Edge (`PLAYWRIGHT_CHANNEL=msedge`): 23 pruebas aprobadas en móvil, tablet vertical, tablet horizontal y escritorio; 1 omitida por ser exclusiva de pantallas pequeñas. Se ejecutó `e2e/fabian-hu.spec.js` con los cuatro proyectos de revisión. Estas pruebas usan respuestas simuladas de API; las notificaciones, el correo y la base real requieren la validación manual indicada abajo.
 
 ## Pruebas manuales antes de publicar en main
 
