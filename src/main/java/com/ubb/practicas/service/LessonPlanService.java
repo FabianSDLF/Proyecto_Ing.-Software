@@ -33,4 +33,5 @@ public interface LessonPlanService {
     List<LessonPlan> obtenerPlanificacionesPorAsignacion(Long assignmentId, String userEmail);
     com.ubb.practicas.model.LessonPlan agregarRetroalimentacionPlan(Long id, String feedback, String userEmail);
     LessonPlan cambiarEstadoPlanificacion(Long id, String status, String feedback, String userEmail);
+    LessonPlan aprobarPlanificacion(Long planificacionId, String correoUsuario);
 }

@@ -269,6 +269,10 @@ export const portfolioService = {
   async cambiarEstadoPlanificacion(id, status, feedback = '', options) {
     return apiClient.put(`/api/portafolio/planificaciones/${id}/estado`, { status, feedback }, options);
   },
+
+  async aprobarPlanificacion(planificacionId, opciones) {
+    return apiClient.put(`/api/portafolio/planificaciones/${planificacionId}/aprobar`, {}, opciones);
+  },
 };
 
 export default portfolioService;

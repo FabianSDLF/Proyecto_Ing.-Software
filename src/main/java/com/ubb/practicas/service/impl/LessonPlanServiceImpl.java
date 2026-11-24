@@ -1,14 +1,17 @@
 package com.ubb.practicas.service.impl;
 
 import com.ubb.practicas.model.LessonPlan;
+import com.ubb.practicas.model.Notification;
 import com.ubb.practicas.model.PortfolioDocument;
 import com.ubb.practicas.model.PracticeAssignment;
 import com.ubb.practicas.model.User;
 import com.ubb.practicas.model.enums.AssignmentStatus;
 import com.ubb.practicas.model.enums.DocumentType;
 import com.ubb.practicas.model.enums.MathAxis;
+import com.ubb.practicas.model.enums.NotificationType;
 import com.ubb.practicas.model.enums.PlanStatus;
 import com.ubb.practicas.repository.LessonPlanRepository;
+import com.ubb.practicas.repository.NotificationRepository;
 import com.ubb.practicas.repository.PortfolioDocumentRepository;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
 import com.ubb.practicas.repository.UserRepository;
@@ -34,6 +37,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final EmailService emailService;
+    private final NotificationRepository notificationRepository;
 
     private PracticeAssignment resolveAssignment(String email, Long explicitAssignmentId) {
         if (explicitAssignmentId != null) {
@@ -520,9 +524,47 @@ public class LessonPlanServiceImpl implements LessonPlanService {
             plan.setFeedbackDate(LocalDateTime.now());
         }
 
+        boolean recienAprobada = nuevoEstado == PlanStatus.APROBADO && plan.getStatus() != PlanStatus.APROBADO;
         plan.setStatus(nuevoEstado);
         plan.setUpdatedAt(LocalDateTime.now());
 
-        return lessonPlanRepository.save(plan);
+        LessonPlan guardada = lessonPlanRepository.save(plan);
+        if (recienAprobada) notificarPlanificacionAprobada(guardada);
+        return guardada;
+    }
+
+    @Override
+    @Transactional
+    public LessonPlan aprobarPlanificacion(Long planificacionId, String correoUsuario) {
+        return cambiarEstadoPlanificacion(planificacionId, "APROBADO", null, correoUsuario);
+    }
+
+    private void notificarPlanificacionAprobada(LessonPlan planificacionGuardada) {
+        PracticeAssignment asignacion = planificacionGuardada.getPracticeAssignment();
+        if (asignacion != null && asignacion.getStudent() != null) {
+            String cursoTexto = planificacionGuardada.getSchoolGrade() != null ? planificacionGuardada.getSchoolGrade() : "";
+            String ejeTexto = planificacionGuardada.getMathAxis() != null ? planificacionGuardada.getMathAxis().name() : "";
+
+            if (notificationRepository != null) {
+                Notification alertaEstudiante = new Notification();
+                alertaEstudiante.setTargetUser(asignacion.getStudent());
+                alertaEstudiante.setType(NotificationType.PLANIFICACION_APROBADA);
+                alertaEstudiante.setMessage("Tu planificación de " + cursoTexto + " (" + ejeTexto + ") fue aprobada. Ya puedes aplicarla en el colegio.");
+                alertaEstudiante.setRead(false);
+                alertaEstudiante.setCreatedAt(LocalDateTime.now());
+                alertaEstudiante.setReferenceId(planificacionGuardada.getId());
+                alertaEstudiante.setReferenceType("PLANIFICACION");
+                notificationRepository.save(alertaEstudiante);
+            }
+
+            if (emailService != null) {
+                emailService.enviarNotificacionPlanificacionAprobada(
+                        asignacion.getStudent().getEmail(),
+                        cursoTexto,
+                        ejeTexto
+                );
+            }
+        }
+
     }
 }

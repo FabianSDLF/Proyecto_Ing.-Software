@@ -32,6 +32,7 @@ export default function MisEstudiantes() {
     const [evaluationData, setEvaluationData] = useState({
         score: '',
         comments: '',
+                justifications: {},
     });
     const [indicatorPoints, setIndicatorPoints] = useState({});
 
@@ -167,6 +168,7 @@ export default function MisEstudiantes() {
                         ? String(evalRecord.score)
                         : '',
                 comments: evalRecord.qualitativeComments || '',
+                justifications: Object.fromEntries((evalRecord.criteria || []).map(c => [c.criterionCode || c.criteriaName, c.justification || ''])),
             });
             const pointsMap = {};
             if (Array.isArray(evalRecord.criteria)) {
@@ -178,14 +180,15 @@ export default function MisEstudiantes() {
                 });
             }
             setIndicatorPoints(pointsMap);
-            setSavedForm(JSON.stringify({ evaluationData: { score: evalRecord.score != null ? String(evalRecord.score) : '', comments: evalRecord.qualitativeComments || '' }, indicatorPoints: pointsMap }));
+            setSavedForm(JSON.stringify({ evaluationData: { score: evalRecord.score != null ? String(evalRecord.score) : '', comments: evalRecord.qualitativeComments || '', justifications: Object.fromEntries((evalRecord.criteria || []).map(c => [c.criterionCode || c.criteriaName, c.justification || ''])) }, indicatorPoints: pointsMap }));
         } else {
             setEvaluationData({
                 score: '',
                 comments: '',
+        justifications: {},
             });
             setIndicatorPoints({});
-            setSavedForm(JSON.stringify({ evaluationData: { score: '', comments: '' }, indicatorPoints: {} }));
+            setSavedForm(JSON.stringify({ evaluationData: { score: '', comments: '', justifications: {} }, indicatorPoints: {} }));
         }
     }, []);
 
@@ -243,6 +246,7 @@ export default function MisEstudiantes() {
                 order: c.order || idx + 1,
                 text: c.text || c.criteriaName || '',
                 points: c.points,
+                justification: c.justification,
             }));
         }
         return activeRubric?.indicators || [];
@@ -310,6 +314,7 @@ export default function MisEstudiantes() {
                     criteriaList.push({
                         criterionCode: code,
                         points: Number(pts),
+                        justification: evaluationData.justifications?.[code] || '',
                     });
                 }
             });
@@ -737,7 +742,7 @@ export default function MisEstudiantes() {
                         )}
 
                         {(isCurrentRubricType || (isLocked && displayedIndicators.length > 0)) && (
-                            <EvaluationForm existingEvaluation={existingEvaluation} activeRubric={activeRubric} isLocked={isLocked} rubricProgress={rubricProgress} handleSetAllIndicators={handleSetAllIndicators} displayedIndicators={displayedIndicators} indicatorPoints={indicatorPoints} handleSetIndicatorPoint={handleSetIndicatorPoint} />
+                            <EvaluationForm justifications={evaluationData.justifications} onJustificationChange={(code, value) => setEvaluationData(prev => ({ ...prev, justifications: { ...prev.justifications, [code]: value } }))} existingEvaluation={existingEvaluation} activeRubric={activeRubric} isLocked={isLocked} rubricProgress={rubricProgress} handleSetAllIndicators={handleSetAllIndicators} displayedIndicators={displayedIndicators} indicatorPoints={indicatorPoints} handleSetIndicatorPoint={handleSetIndicatorPoint} />
                         )}
 
                         <form onSubmit={handleSaveDraft} className="space-y-4">

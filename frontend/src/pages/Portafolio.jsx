@@ -21,9 +21,9 @@ export default function Portafolio({ isReadOnly = false }) {
     const [uploadingEvidencia, setUploadingEvidencia] = useState(false);
     const evidenciaInputRef = useRef(null);
 
-    // Planificaciones
     const [planificaciones, setPlanificaciones] = useState([]);
     const [loadingPlanificaciones, setLoadingPlanificaciones] = useState(true);
+    const [aprobandoPlanificacionId, setAprobandoPlanificacionId] = useState(null);
 
     // Historial de Versiones (HU30)
     const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -448,6 +448,26 @@ export default function Portafolio({ isReadOnly = false }) {
         }
     }, [modoSupervision, assignmentId, history]);
 
+    const aprobarPlanificacionDocente = useCallback(async (planificacion) => {
+        if (!planificacion?.id) return;
+        setAprobandoPlanificacionId(planificacion.id);
+        try {
+            await portfolioService.aprobarPlanificacion(planificacion.id);
+            toast.success('Planificación aprobada y notificación enviada al estudiante');
+            await fetchPlanificaciones();
+        } catch (error) {
+            console.error('Error al aprobar planificación:', error);
+            toast.error(error?.message || 'No se pudo aprobar la planificación');
+        } finally {
+            setAprobandoPlanificacionId(null);
+        }
+    }, [fetchPlanificaciones]);
+
+    const planificacionesAprobadas = useMemo(
+        () => planificaciones.filter((planActual) => planActual.status === 'APROBADO' || planActual.status === 'APROBADA'),
+        [planificaciones]
+    );
+
     const fetchFinalDocuments = useCallback(async (signal) => {
         setLoadingFinalDocuments(true);
         try {
@@ -857,6 +877,16 @@ export default function Portafolio({ isReadOnly = false }) {
                             Editar
                         </Button>
                     )}
+                    {modoSupervision && row.status !== 'APROBADO' && row.status !== 'APROBADA' && (
+                        <Button
+                            variant="success"
+                            size="sm"
+                            isLoading={aprobandoPlanificacionId === row.id}
+                            onClick={() => aprobarPlanificacionDocente(row)}
+                        >
+                            Aprobar
+                        </Button>
+                    )}
                     {renderBotonRetroalimentacion(row, 'PLAN')}
                     {row.document && (
                         <Button
@@ -879,7 +909,7 @@ export default function Portafolio({ isReadOnly = false }) {
                 </div>
             ),
         },
-    ], [handleDownload, modoSupervision, renderPlanStatusBadge, abrirModalRevisionPlan]);
+    ], [handleDownload, modoSupervision, renderPlanStatusBadge, abrirModalRevisionPlan, aprobarPlanificacionDocente, aprobandoPlanificacionId]);
 
     return (
         <div className="max-w-5xl mx-auto sm:p-4 xl:p-6 space-y-6">
@@ -995,6 +1025,20 @@ export default function Portafolio({ isReadOnly = false }) {
 
             {activeTab === 'PLANIFICACIONES' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+                    {!modoSupervision && planificacionesAprobadas.length > 0 && (
+                        <div className="bg-green-50 border border-green-300 text-green-900 rounded-xl p-4 space-y-1">
+                            <p className="text-sm font-bold text-green-900">
+                                Planificación aprobada: ya puedes aplicarla en el colegio
+                            </p>
+                            <ul className="list-disc list-inside text-xs text-green-800 space-y-0.5">
+                                {planificacionesAprobadas.map((planAprobado) => (
+                                    <li key={planAprobado.id}>
+                                        {planAprobado.schoolGrade} — {planAprobado.mathAxis} (v{planAprobado.version || 1})
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <div className="flex flex-wrap gap-3 justify-between items-center">
                         <h2 className="text-xl font-bold text-gray-800">
                             {modoSupervision ? 'Planificaciones del Estudiante' : 'Tus Planificaciones'}

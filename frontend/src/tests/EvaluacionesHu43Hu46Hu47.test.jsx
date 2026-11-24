@@ -165,6 +165,10 @@ describe('HU43, HU46 y HU47 - Suite Frontend de Evaluaciones', () => {
     const fillAll7Btn = await screen.findByRole('button', { name: /Todos 7/i });
     fireEvent.click(fillAll7Btn);
 
+    fireEvent.change(screen.getByLabelText('Observación cualitativa del indicador A1'), {
+      target: { value: 'Relaciona los objetivos con las actividades del curso.' },
+    });
+
     const textarea = screen.getByPlaceholderText(/Escriba sus observaciones/i);
     fireEvent.change(textarea, { target: { value: 'Excelente conducción didáctica.' } });
 
@@ -179,6 +183,9 @@ describe('HU43, HU46 y HU47 - Suite Frontend de Evaluaciones', () => {
           rubricVersion: '2025-2-v1',
           expectedRevision: null,
           isFinalized: false,
+          criteria: expect.arrayContaining([
+            expect.objectContaining({ criterionCode: 'A1', points: 7, justification: 'Relaciona los objetivos con las actividades del curso.' }),
+          ]),
         })
       );
     });

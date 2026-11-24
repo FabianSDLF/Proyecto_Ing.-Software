@@ -1,7 +1,7 @@
 import { Badge } from './ui';
 import RubricIndicators from './RubricIndicators';
 
-export default function EvaluationForm({ existingEvaluation, activeRubric, isLocked, rubricProgress, handleSetAllIndicators, displayedIndicators, indicatorPoints, handleSetIndicatorPoint }) {
+export default function EvaluationForm({ existingEvaluation, activeRubric, isLocked, rubricProgress, handleSetAllIndicators, displayedIndicators, indicatorPoints, handleSetIndicatorPoint, justifications, onJustificationChange }) {
   return (<section className="space-y-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
                                     <div>
@@ -49,6 +49,6 @@ export default function EvaluationForm({ existingEvaluation, activeRubric, isLoc
                                     </div>
                                 )}
 
-                                <RubricIndicators indicators={displayedIndicators} points={indicatorPoints} readOnly={isLocked} onChange={handleSetIndicatorPoint} />
+                                <RubricIndicators justifications={justifications} onJustificationChange={onJustificationChange} indicators={displayedIndicators} points={indicatorPoints} readOnly={isLocked} onChange={handleSetIndicatorPoint} />
                             </section>);
 }

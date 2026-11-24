@@ -52,6 +52,9 @@ public class LessonPlanServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.ubb.practicas.repository.NotificationRepository notificationRepository;
+
     @InjectMocks
     private LessonPlanServiceImpl lessonPlanService;
 
@@ -277,6 +280,28 @@ public class LessonPlanServiceTest {
         assertNotNull(updated.getTeacherFeedback());
         assertTrue(updated.getTeacherFeedback().contains("PLANIFICACIÓN APROBADA"));
         verify(lessonPlanRepository).save(plan);
+    }
+
+    @Test
+    void aprobarDesdeAmbasRutas_NotificaSoloLaPrimeraAprobacion() {
+        LessonPlan plan = new LessonPlan();
+        plan.setId(24L);
+        plan.setPracticeAssignment(assignment);
+        plan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
+        when(lessonPlanRepository.findById(24L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmail("admin@ubb.cl")).thenReturn(admin);
+        when(lessonPlanRepository.save(any(LessonPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        lessonPlanService.cambiarEstadoPlanificacion(24L, "APROBADO", "Lista para aplicar", "admin@ubb.cl");
+        lessonPlanService.aprobarPlanificacion(24L, "admin@ubb.cl");
+
+        assertEquals(PlanStatus.APROBADO, plan.getStatus());
+        assertTrue(plan.getTeacherFeedback().contains("Lista para aplicar"));
+        verify(notificationRepository, times(1)).save(argThat(notification ->
+                notification.getTargetUser() == student
+                && notification.getReferenceId().equals(24L)
+                && notification.getType() == com.ubb.practicas.model.enums.NotificationType.PLANIFICACION_APROBADA));
+        verify(emailService, times(1)).enviarNotificacionPlanificacionAprobada(eq("student@ubb.cl"), anyString(), anyString());
     }
 
     @Test

@@ -1,10 +1,197 @@
 import PracticeSheet from '../components/PracticeSheet';
 import StatisticsPanel from '../components/StatisticsPanel';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { BASE_URL } from '../services/apiClient';
+import assignmentService from '../services/assignmentService';
+import centerService from '../services/centerService';
+import notificacionService from '../services/notificacionService';
+import userService from '../services/userService';
+import { Badge, Button } from '../components/ui';
 
 export default function Dashboard() {
     const { user, userRole } = useAuth();
+    const [stats, setStats] = useState({ asignaciones: 0, centros: 0 });
+    const [misAsignaciones, setMisAsignaciones] = useState([]);
+    const [notificacionesUsuario, setNotificacionesUsuario] = useState([]);
+    const [cargandoNotificaciones, setCargandoNotificaciones] = useState(false);
+    const [mensajeComunicado, setMensajeComunicado] = useState('');
+    const [correoDestinatario, setCorreoDestinatario] = useState('');
+    const [enviarATodos, setEnviarATodos] = useState(true);
+    const [listaDestinatarios, setListaDestinatarios] = useState([]);
+    const [cargandoDestinatarios, setCargandoDestinatarios] = useState(false);
+    const [enviandoComunicado, setEnviandoComunicado] = useState(false);
+
+    const puedePublicarComunicado =
+        userRole === 'Coordinador de practicas' || userRole === 'Profesor de Asignatura';
+
+    const cargarNotificacionesUsuario = useCallback(async (signal) => {
+        if (!user) return;
+        setCargandoNotificaciones(true);
+        try {
+            const datos = await notificacionService.obtenerMisNotificaciones({ signal });
+            setNotificacionesUsuario(Array.isArray(datos) ? datos : []);
+        } catch (error) {
+            if (error?.name !== 'AbortError') {
+                console.error('Error cargando notificaciones del usuario:', error);
+            }
+        } finally {
+            setCargandoNotificaciones(false);
+        }
+    }, [user]);
+
+    const cargarDestinatarios = useCallback(async (signal) => {
+        if (!user || !puedePublicarComunicado) return;
+        setCargandoDestinatarios(true);
+        try {
+            const datos = await notificacionService.obtenerDestinatariosDisponibles({ signal });
+            setListaDestinatarios(Array.isArray(datos) ? datos : []);
+        } catch (error) {
+            if (error?.name !== 'AbortError') {
+                try {
+                    const usuariosRespaldo = await userService.getUsers({ signal });
+                    setListaDestinatarios(Array.isArray(usuariosRespaldo) ? usuariosRespaldo : []);
+                } catch (errorRespaldo) {
+                    if (errorRespaldo?.name !== 'AbortError') {
+                        console.error('Error cargando destinatarios:', errorRespaldo);
+                    }
+                }
+            }
+        } finally {
+            setCargandoDestinatarios(false);
+        }
+    }, [user, puedePublicarComunicado]);
+
+    useEffect(() => {
+        if (!user) return;
+        const controlador = new AbortController();
+        cargarNotificacionesUsuario(controlador.signal);
+        cargarDestinatarios(controlador.signal);
+        return () => controlador.abort();
+    }, [user, cargarNotificacionesUsuario, cargarDestinatarios]);
+
+    const marcarNotificacionLeidaDashboard = async (notificacionId) => {
+        try {
+            await notificacionService.marcarComoLeida(notificacionId);
+            setNotificacionesUsuario((estadoAnterior) =>
+                estadoAnterior.map((elemento) =>
+                    elemento.id === notificacionId ? { ...elemento, read: true } : elemento
+                )
+            );
+        } catch (error) {
+            toast.error(error?.message || 'No se pudo marcar la notificación como leída');
+        }
+    };
+
+    const marcarTodasNotificacionesDashboard = async () => {
+        try {
+            await notificacionService.marcarTodasComoLeidas();
+            setNotificacionesUsuario((estadoAnterior) =>
+                estadoAnterior.map((elemento) => ({ ...elemento, read: true }))
+            );
+            toast.success('Todas las notificaciones marcadas como leídas');
+        } catch (error) {
+            toast.error(error?.message || 'No se pudieron actualizar las notificaciones');
+        }
+    };
+
+    const enviarComunicadoSemestre = async (evento) => {
+        evento.preventDefault();
+        if (!mensajeComunicado.trim()) {
+            toast.error('Debes escribir un mensaje para el comunicado.');
+            return;
+        }
+        if (!enviarATodos && !correoDestinatario.trim()) {
+            toast.error('Debes seleccionar un usuario destinatario.');
+            return;
+        }
+        setEnviandoComunicado(true);
+        try {
+            await notificacionService.publicarComunicado({
+                mensaje: mensajeComunicado.trim(),
+                correoDestinatario: enviarATodos ? 'TODOS' : correoDestinatario.trim(),
+            });
+            toast.success('Comunicado enviado correctamente');
+            setMensajeComunicado('');
+            setCorreoDestinatario('');
+            setEnviarATodos(true);
+            await cargarNotificacionesUsuario();
+        } catch (error) {
+            toast.error(error?.message || 'No se pudo enviar el comunicado');
+        } finally {
+            setEnviandoComunicado(false);
+        }
+    };
+
+    const obtenerEtiquetaNotificacion = (tipoNotificacion) => {
+        if (tipoNotificacion === 'PLANIFICACION_APROBADA') return 'Planificación Aprobada';
+        if (tipoNotificacion === 'ALERTA_SISTEMA') return 'Comunicado del Sistema';
+        if (tipoNotificacion === 'REVISION_PENDIENTE') return 'Revisión Pendiente';
+        if (tipoNotificacion === 'EVALUACION_PUBLICADA') return 'Evaluación Publicada';
+        return 'Notificación';
+    };
+
+    const obtenerVarianteNotificacion = (tipoNotificacion) => {
+        if (tipoNotificacion === 'PLANIFICACION_APROBADA') return 'success';
+        if (tipoNotificacion === 'ALERTA_SISTEMA') return 'info';
+        if (tipoNotificacion === 'REVISION_PENDIENTE') return 'warning';
+        return 'primary';
+    };
+
+    const alertasPlanificacionAprobada = notificacionesUsuario.filter(
+        (notificacionActual) => notificacionActual.type === 'PLANIFICACION_APROBADA'
+    );
+    const notificacionesNoLeidas = notificacionesUsuario.filter(
+        (notificacionActual) => !notificacionActual.read
+    );
+
+    useEffect(() => {
+        if (userRole === 'Estudiante') {
+            const fetchAsignaciones = async () => {
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${BASE_URL}/api/asignaciones/mis-asignaciones`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setMisAsignaciones(data);
+                    }
+                } catch (error) {
+                    console.error('Error fetching asignaciones:', error);
+                }
+            };
+            fetchAsignaciones();
+        }
+
+        if (userRole !== 'Coordinador de practicas') return;
+
+        const controller = new AbortController();
+
+        async function loadStats() {
+            try {
+                const [assignments, centers] = await Promise.all([
+                    assignmentService.getAssignments({ signal: controller.signal }),
+                    centerService.getCenters({ signal: controller.signal })
+                ]);
+                setStats({
+                    asignaciones: Array.isArray(assignments) ? assignments.length : 0,
+                    centros: Array.isArray(centers) ? centers.length : 0
+                });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Error cargando estadísticas del dashboard:', err);
+                }
+            }
+        }
+
+        loadStats();
+
+        return () => controller.abort();
+    }, [userRole]);
+
     return (
         <div className="space-y-6">
             <header className="mb-8">
@@ -15,6 +202,41 @@ export default function Dashboard() {
                     Panel Principal de PITAGORAS {userRole ? `(${userRole})` : ''}
                 </p>
             </header>
+
+            {userRole === 'Estudiante' && alertasPlanificacionAprobada.length > 0 && (
+                <div className="bg-green-50 border-l-4 border-green-500 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-lg font-bold text-green-900">
+                            Tu planificación fue aprobada: ya puedes aplicarla en el colegio
+                        </h2>
+                        <Link
+                            to="/portafolio"
+                            className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                            Ver en Mi Portafolio
+                        </Link>
+                    </div>
+                    <div className="space-y-2">
+                        {alertasPlanificacionAprobada.map((alertaActual) => (
+                            <div
+                                key={alertaActual.id}
+                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/80 border border-green-200 rounded-xl px-4 py-2.5 text-sm text-green-900"
+                            >
+                                <span>{alertaActual.message}</span>
+                                {!alertaActual.read && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => marcarNotificacionLeidaDashboard(alertaActual.id)}
+                                    >
+                                        Marcar leída
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Vista de Administrador */}
             {['Coordinador de practicas', 'Administrador'].includes(userRole) && (
@@ -100,6 +322,160 @@ export default function Dashboard() {
                     <p className="text-gray-600">No hay widgets configurados para este rol.</p>
                 </div>
             )}
+
+            {puedePublicarComunicado && (
+                <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="border-b border-gray-100 pb-4">
+                        <h2 className="text-xl font-bold text-gray-800">
+                            Publicar Comunicado del Semestre
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Envía avisos o comunicados para coordinar las actividades de práctica.
+                        </p>
+                    </div>
+
+                    <form onSubmit={enviarComunicadoSemestre} className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <input
+                                id="enviar-a-todos"
+                                type="checkbox"
+                                checked={enviarATodos}
+                                onChange={(evento) => {
+                                    const marcado = evento.target.checked;
+                                    setEnviarATodos(marcado);
+                                    if (marcado) {
+                                        setCorreoDestinatario('');
+                                    }
+                                }}
+                                className="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                            />
+                            <label htmlFor="enviar-a-todos" className="text-sm font-medium text-gray-700 cursor-pointer">
+                                Enviar a todos los usuarios activos
+                            </label>
+                        </div>
+
+                        {!enviarATodos && (
+                            <div>
+                                <label htmlFor="selector-destinatario" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Seleccionar destinatario
+                                </label>
+                                <select
+                                    id="selector-destinatario"
+                                    required={!enviarATodos}
+                                    value={correoDestinatario}
+                                    onChange={(evento) => setCorreoDestinatario(evento.target.value)}
+                                    disabled={cargandoDestinatarios}
+                                    className="w-full text-sm border border-gray-300 rounded-xl p-2.5 bg-white text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                >
+                                    <option value="">
+                                        {cargandoDestinatarios ? 'Cargando usuarios...' : 'Seleccione un usuario de la base de datos'}
+                                    </option>
+                                    {listaDestinatarios.map((usuarioDestino) => (
+                                        <option key={usuarioDestino.id || usuarioDestino.email} value={usuarioDestino.email}>
+                                            {usuarioDestino.fullName} ({usuarioDestino.email}) - {usuarioDestino.role?.name || 'Usuario'}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div>
+                            <label htmlFor="mensaje-comunicado" className="block text-sm font-medium text-gray-700 mb-1">
+                                Mensaje del comunicado
+                            </label>
+                            <textarea
+                                id="mensaje-comunicado"
+                                rows="3"
+                                required
+                                value={mensajeComunicado}
+                                onChange={(evento) => setMensajeComunicado(evento.target.value)}
+                                placeholder="Escribe el aviso o comunicado para coordinar las actividades del semestre..."
+                                className="w-full text-sm border border-gray-300 rounded-xl p-3 bg-white text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                            />
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button type="submit" variant="primary" size="sm" isLoading={enviandoComunicado}>
+                                Enviar Comunicado
+                            </Button>
+                        </div>
+                    </form>
+                </section>
+            )}
+
+            <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-bold text-gray-800">
+                            Notificaciones
+                        </h2>
+                        {notificacionesNoLeidas.length > 0 && (
+                            <Badge variant="primary" size="sm">
+                                {notificacionesNoLeidas.length} sin leer
+                            </Badge>
+                        )}
+                    </div>
+                    {notificacionesNoLeidas.length > 0 && (
+                        <Button variant="outline" size="sm" onClick={marcarTodasNotificacionesDashboard}>
+                            Marcar todas como leídas
+                        </Button>
+                    )}
+                </div>
+
+                {cargandoNotificaciones ? (
+                    <div className="py-6 text-center text-sm text-gray-500">Cargando notificaciones...</div>
+                ) : notificacionesUsuario.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        No tienes notificaciones registradas.
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {notificacionesUsuario.map((notificacionActual) => (
+                            <div
+                                key={notificacionActual.id}
+                                className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                    notificacionActual.read
+                                        ? 'bg-gray-50 border-gray-200'
+                                        : 'bg-white border-gray-200 border-l-4 border-l-orange-500'
+                                }`}
+                            >
+                                <div className="space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Badge
+                                            variant={obtenerVarianteNotificacion(notificacionActual.type)}
+                                            size="sm"
+                                        >
+                                            {obtenerEtiquetaNotificacion(notificacionActual.type)}
+                                        </Badge>
+                                        {!notificacionActual.read && (
+                                            <span className="text-[11px] font-bold text-orange-600 uppercase">
+                                                Nueva
+                                            </span>
+                                        )}
+                                        {notificacionActual.createdAt && (
+                                            <span className="text-xs text-gray-500">
+                                                {new Date(notificacionActual.createdAt).toLocaleString('es-CL')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                        {notificacionActual.message}
+                                    </p>
+                                </div>
+                                {!notificacionActual.read && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => marcarNotificacionLeidaDashboard(notificacionActual.id)}
+                                    >
+                                        Marcar leída
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
         </div>
     );
 }
