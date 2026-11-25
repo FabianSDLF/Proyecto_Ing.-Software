@@ -42,7 +42,7 @@ export default function Asignaciones() {
     // Estados de modales y cargas para Asignaciones
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState(null);
-    const [filtroPeriodo, setFiltroPeriodo] = useState('TODOS');
+    const [filtroPeriodo, setFiltroPeriodo] = useState('VIGENTE');
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
     const [loadingDuplas, setLoadingDuplas] = useState(false);
@@ -68,6 +68,7 @@ export default function Asignaciones() {
     const [deletingCenter, setDeletingCenter] = useState(false);
     const [centerForm, setCenterForm] = useState({
         name: '',
+        rbd: '',
         dependency: 'PUBLICO_SLEP',
         address: '',
         district: '',
@@ -252,6 +253,7 @@ export default function Asignaciones() {
         setEditingCenter(null);
         setCenterForm({
             name: '',
+            rbd: '',
             dependency: 'PUBLICO_SLEP',
             address: '',
             district: '',
@@ -267,6 +269,7 @@ export default function Asignaciones() {
         setEditingCenter(center);
         setCenterForm({
             name: center.name || '',
+            rbd: center.rbd || '',
             dependency: center.dependency || 'PUBLICO_SLEP',
             address: center.address || '',
             district: center.district || '',
@@ -530,6 +533,7 @@ export default function Asignaciones() {
     ], []);
 
     const asignacionesFiltradas = useMemo(() => {
+        if (filtroPeriodo === 'VIGENTE') return asignaciones.filter(a => a.status === 'ACTIVA' && (!a.period || a.period.status === 'ACTIVO'));
         if (filtroPeriodo === 'TODOS') return asignaciones;
         return asignaciones.filter(a => String(a.period?.id || '') === String(filtroPeriodo));
     }, [asignaciones, filtroPeriodo]);
@@ -674,11 +678,11 @@ export default function Asignaciones() {
     ], []);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6">
+        <div className="page-shell">
             {/* Encabezado */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaciones y Centros</h1>
+                    <h1 className="page-title">Gestión de Asignaciones y Centros</h1>
                     <p className="text-gray-500 mt-1">Vincula estudiantes con asignaturas, duplas pedagógicas, centros de práctica y supervisores.</p>
                 </div>
                 {activeTab === 'ASIGNACIONES' && (
@@ -708,13 +712,13 @@ export default function Asignaciones() {
             </div>
 
             {/* Pestañas de Navegación */}
-            <div className="flex border-b border-gray-200 gap-4" role="tablist">
+            <div className="flex flex-wrap border-b border-gray-200 gap-1 sm:gap-4" role="tablist">
                 <button
                     type="button"
                     role="tab"
                     aria-selected={activeTab === 'ASIGNACIONES'}
                     onClick={() => setActiveTab('ASIGNACIONES')}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors cursor-pointer ${
+                    className={`min-h-11 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors cursor-pointer ${
                         activeTab === 'ASIGNACIONES'
                             ? 'border-orange-600 text-orange-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -727,7 +731,7 @@ export default function Asignaciones() {
                     role="tab"
                     aria-selected={activeTab === 'DUPLAS'}
                     onClick={() => setActiveTab('DUPLAS')}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors cursor-pointer ${
+                    className={`min-h-11 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors cursor-pointer ${
                         activeTab === 'DUPLAS'
                             ? 'border-orange-600 text-orange-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -740,7 +744,7 @@ export default function Asignaciones() {
                     role="tab"
                     aria-selected={activeTab === 'CENTROS'}
                     onClick={() => setActiveTab('CENTROS')}
-                    className={`py-2 px-4 font-semibold border-b-2 transition-colors cursor-pointer ${
+                    className={`min-h-11 px-2 py-2 text-sm sm:px-4 sm:text-base font-semibold border-b-2 transition-colors cursor-pointer ${
                         activeTab === 'CENTROS'
                             ? 'border-orange-600 text-orange-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -754,13 +758,15 @@ export default function Asignaciones() {
             {activeTab === 'ASIGNACIONES' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-4">
                     {periodos.length > 0 && (
-                        <div className="flex items-center gap-3">
-                            <label className="text-sm font-semibold text-gray-700">Filtrar por Periodo:</label>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <label htmlFor="assignment-period" className="text-sm font-semibold text-gray-700">Filtrar por Periodo:</label>
                             <select
+                                id="assignment-period"
                                 value={filtroPeriodo}
                                 onChange={(e) => setFiltroPeriodo(e.target.value)}
-                                className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                className="w-full min-w-0 max-w-full sm:w-auto border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                             >
+                                <option value="VIGENTE">Periodo vigente</option>
                                 <option value="TODOS">Todos los semestres ({asignaciones.length})</option>
                                 {periodos.map(p => (
                                     <option key={p.id} value={p.id}>
@@ -940,6 +946,7 @@ export default function Asignaciones() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input label="RBD" value={centerForm.rbd || ''} onChange={e => setCenterForm(prev => ({ ...prev, rbd: e.target.value }))} />
                         <Input
                             label="Dirección"
                             value={centerForm.address}

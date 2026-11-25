@@ -52,6 +52,9 @@ public class LessonPlanServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.ubb.practicas.repository.NotificationRepository notificationRepository;
+
     @InjectMocks
     private LessonPlanServiceImpl lessonPlanService;
 
@@ -102,6 +105,7 @@ public class LessonPlanServiceTest {
         assertNotNull(result.getDocument());
         assertEquals(DocumentType.PLANIFICACION, result.getDocument().getType());
         verify(storageService).store(file);
+        verify(emailService).enviarComprobante("student@ubb.cl", "plan.pdf");
         verify(lessonPlanRepository).save(any(LessonPlan.class));
     }
 
@@ -242,6 +246,133 @@ public class LessonPlanServiceTest {
         List<LessonPlan> plans = lessonPlanService.obtenerMisPlanificaciones("student@ubb.cl");
 
         assertEquals(1, plans.size());
-        assertEquals(1L, plans.get(0).getId());
+        assertEquals(1L, plans.getFirst().getId());
+    }
+
+    @Test
+    void cambiarEstadoPlanificacion_Aprobar_Success_ProfesorAsignatura() {
+        User professor = new User();
+        professor.setId(3L);
+        professor.setFullName("Dra. Carmen Gloria Soto");
+        professor.setEmail("profesor@ubb.cl");
+        professor.setRole(new Role(4L, "Profesor de Asignatura"));
+
+        com.ubb.practicas.model.Subject subject = new com.ubb.practicas.model.Subject();
+        subject.setId(1L);
+        subject.setName("Práctica Pedagógica");
+        subject.setProfessor(professor);
+        assignment.setSubject(subject);
+
+        LessonPlan plan = new LessonPlan();
+        plan.setId(20L);
+        plan.setPracticeAssignment(assignment);
+        plan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
+
+        when(lessonPlanRepository.findById(20L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmail("profesor@ubb.cl")).thenReturn(professor);
+        when(lessonPlanRepository.save(any(LessonPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        LessonPlan updated = lessonPlanService.cambiarEstadoPlanificacion(
+                20L, "APROBADO", "Excelente planificación, autorizada para dictar la clase.", "profesor@ubb.cl"
+        );
+
+        assertEquals(PlanStatus.APROBADO, updated.getStatus());
+        assertNotNull(updated.getTeacherFeedback());
+        assertTrue(updated.getTeacherFeedback().contains("PLANIFICACIÓN APROBADA"));
+        verify(lessonPlanRepository).save(plan);
+    }
+
+    @Test
+    void aprobarDesdeAmbasRutas_NotificaSoloLaPrimeraAprobacion() {
+        LessonPlan plan = new LessonPlan();
+        plan.setId(24L);
+        plan.setPracticeAssignment(assignment);
+        plan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
+        when(lessonPlanRepository.findById(24L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmail("admin@ubb.cl")).thenReturn(admin);
+        when(lessonPlanRepository.save(any(LessonPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        lessonPlanService.cambiarEstadoPlanificacion(24L, "APROBADO", "Lista para aplicar", "admin@ubb.cl");
+        lessonPlanService.aprobarPlanificacion(24L, "admin@ubb.cl");
+
+        assertEquals(PlanStatus.APROBADO, plan.getStatus());
+        assertTrue(plan.getTeacherFeedback().contains("Lista para aplicar"));
+        verify(notificationRepository, times(1)).save(argThat(notification ->
+                notification.getTargetUser() == student
+                && notification.getReferenceId().equals(24L)
+                && notification.getType() == com.ubb.practicas.model.enums.NotificationType.PLANIFICACION_APROBADA));
+        verify(emailService, times(1)).enviarNotificacionPlanificacionAprobada(eq("student@ubb.cl"), anyString(), anyString());
+    }
+
+    @Test
+    void cambiarEstadoPlanificacion_RequiereCambios_Success_ProfesorAsignatura() {
+        User professor = new User();
+        professor.setId(3L);
+        professor.setFullName("Dra. Carmen Gloria Soto");
+        professor.setEmail("profesor@ubb.cl");
+        professor.setRole(new Role(4L, "Profesor de Asignatura"));
+
+        com.ubb.practicas.model.Subject subject = new com.ubb.practicas.model.Subject();
+        subject.setId(1L);
+        subject.setName("Práctica Pedagógica");
+        subject.setProfessor(professor);
+        assignment.setSubject(subject);
+
+        LessonPlan plan = new LessonPlan();
+        plan.setId(21L);
+        plan.setPracticeAssignment(assignment);
+        plan.setStatus(PlanStatus.EN_REVISION_DOCENTE);
+
+        when(lessonPlanRepository.findById(21L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmail("profesor@ubb.cl")).thenReturn(professor);
+        when(lessonPlanRepository.save(any(LessonPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        LessonPlan updated = lessonPlanService.cambiarEstadoPlanificacion(
+                21L, "REQUIERE_CAMBIOS", "Debe incorporar el ticket de salida y detallar las acciones DUA en el desarrollo.", "profesor@ubb.cl"
+        );
+
+        assertEquals(PlanStatus.REQUIERE_CAMBIOS, updated.getStatus());
+        assertNotNull(updated.getTeacherFeedback());
+        assertTrue(updated.getTeacherFeedback().contains("SOLICITUD DE CAMBIOS"));
+        verify(lessonPlanRepository).save(plan);
+    }
+
+    @Test
+    void cambiarEstadoPlanificacion_RequiereCambiosSinObservacion_ThrowsIllegalArgumentException() {
+        User professor = new User();
+        professor.setId(3L);
+        professor.setEmail("profesor@ubb.cl");
+        professor.setRole(new Role(4L, "Profesor de Asignatura"));
+
+        com.ubb.practicas.model.Subject subject = new com.ubb.practicas.model.Subject();
+        subject.setProfessor(professor);
+        assignment.setSubject(subject);
+
+        LessonPlan plan = new LessonPlan();
+        plan.setId(22L);
+        plan.setPracticeAssignment(assignment);
+
+        when(lessonPlanRepository.findById(22L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmail("profesor@ubb.cl")).thenReturn(professor);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                lessonPlanService.cambiarEstadoPlanificacion(22L, "REQUIERE_CAMBIOS", "   ", "profesor@ubb.cl")
+        );
+        verify(lessonPlanRepository, never()).save(any());
+    }
+
+    @Test
+    void cambiarEstadoPlanificacion_StudentAttempt_ThrowsAccessDeniedException() {
+        LessonPlan plan = new LessonPlan();
+        plan.setId(23L);
+        plan.setPracticeAssignment(assignment);
+
+        when(lessonPlanRepository.findById(23L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmail("student@ubb.cl")).thenReturn(student);
+
+        assertThrows(AccessDeniedException.class, () ->
+                lessonPlanService.cambiarEstadoPlanificacion(23L, "APROBADO", "Me apruebo", "student@ubb.cl")
+        );
+        verify(lessonPlanRepository, never()).save(any());
     }
 }

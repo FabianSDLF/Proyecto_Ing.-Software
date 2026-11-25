@@ -67,6 +67,9 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 '@ | Set-Content -Path (Join-Path $DeployDir "frontend\Dockerfile") -Encoding Ascii
 
+Copy-Item -LiteralPath (Join-Path $RootDir "backup") -Destination (Join-Path $DeployDir "backup") -Recurse
+Copy-Item -LiteralPath (Join-Path $RootDir "scripts") -Destination (Join-Path $DeployDir "scripts") -Recurse
+
 # Copiar Chatbot
 $ChatbotSrc = Join-Path $RootDir "chatbot"
 Copy-Item -Path (Join-Path $ChatbotSrc "main.py") -Destination (Join-Path $DeployDir "chatbot\main.py")
@@ -83,12 +86,12 @@ services:
     image: mysql:8.4
     container_name: practicas_db
     environment:
-      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: sistema_practicas
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin"]
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost -u root"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -103,10 +106,11 @@ services:
         condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
+      - CHATBOT_URL=http://chatbot:8000
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=admin
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=false
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-admin}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=true
     volumes:
       - backend_uploads:/app/uploads
     restart: unless-stopped
@@ -125,8 +129,25 @@ services:
     build: ./chatbot
     container_name: practicas_chatbot
     environment:
+      - BACKEND_URL=http://backend:8080
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
     restart: unless-stopped
+
+  backup:
+    image: mysql:8.4
+    profiles: [maintenance]
+    entrypoint: ["/bin/bash"]
+    command: ["/scripts/backup.sh"]
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      DB_NAME: sistema_practicas
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - backend_uploads:/uploads
+      - ${BACKUP_DIRECTORY:-./backups}:/backups
+      - ./backup:/scripts:ro
 
 volumes:
   db_data:

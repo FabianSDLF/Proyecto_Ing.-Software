@@ -27,6 +27,7 @@ export default function NuevaPlanificacion() {
     duracion: '',
     recursos: '',
     evaluacion: '',
+    inclusion: '',
     inicio: '',
     desarrollo: '',
     cierre: '',
@@ -42,6 +43,7 @@ export default function NuevaPlanificacion() {
       duracion: planForm.duracion,
       recursos: planForm.recursos,
       evaluacion: planForm.evaluacion,
+      inclusion: planForm.inclusion,
       inicio: planForm.inicio,
       desarrollo: planForm.desarrollo,
       cierre: planForm.cierre
@@ -90,7 +92,7 @@ export default function NuevaPlanificacion() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8 pb-20">
+    <div className="sm:p-4 xl:p-8 max-w-4xl mx-auto space-y-8 pb-20">
       <div className="flex items-center gap-4 mb-8">
         <button
           type="button"
@@ -102,10 +104,10 @@ export default function NuevaPlanificacion() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Crear Nueva Planificación</h1>
+        <h1 className="page-title">Crear Nueva Planificación</h1>
       </div>
 
-      <form onSubmit={handlePlanSubmit} className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 space-y-6">
+      <form onSubmit={handlePlanSubmit} className="bg-white p-4 sm:p-6 xl:p-8 rounded-2xl shadow-lg border border-gray-100 space-y-6">
         <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Datos Generales</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,10 +137,11 @@ export default function NuevaPlanificacion() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-oa-basal" className="block text-sm font-medium text-gray-700 mb-1.5">
               Objetivo de Aprendizaje Basal (OA) <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-oa-basal"
               required
               value={planForm.baseLearningObjective}
               onChange={(e) => setPlanForm({ ...planForm, baseLearningObjective: e.target.value })}
@@ -147,10 +150,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-objetivo-especifico" className="block text-sm font-medium text-gray-700 mb-1.5">
               Objetivo de la Clase (Específico) <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-objetivo-especifico"
               required
               value={planForm.objectives}
               onChange={(e) => setPlanForm({ ...planForm, objectives: e.target.value })}
@@ -159,10 +163,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-oat" className="block text-sm font-medium text-gray-700 mb-1.5">
               Objetivo Actitudinal (OAT) <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-oat"
               required
               value={planForm.objetivoActitudinal}
               onChange={(e) => setPlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
@@ -176,10 +181,11 @@ export default function NuevaPlanificacion() {
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-inicio" className="block text-sm font-medium text-gray-700 mb-1.5">
               Inicio <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-inicio"
               required
               value={planForm.inicio}
               onChange={(e) => setPlanForm({ ...planForm, inicio: e.target.value })}
@@ -188,10 +194,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-desarrollo" className="block text-sm font-medium text-gray-700 mb-1.5">
               Desarrollo <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-desarrollo"
               required
               value={planForm.desarrollo}
               onChange={(e) => setPlanForm({ ...planForm, desarrollo: e.target.value })}
@@ -200,10 +207,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-cierre" className="block text-sm font-medium text-gray-700 mb-1.5">
               Cierre <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-cierre"
               required
               value={planForm.cierre}
               onChange={(e) => setPlanForm({ ...planForm, cierre: e.target.value })}
@@ -213,17 +221,22 @@ export default function NuevaPlanificacion() {
           </div>
         </div>
 
+        <label className="block font-semibold">Inclusión y adaptaciones PIE / NEE / DUA
+          <textarea required className="mt-2 w-full border rounded-xl p-3" value={planForm.inclusion} onChange={e => setPlanForm({ ...planForm, inclusion: e.target.value })} placeholder="Describe las barreras previstas y los apoyos o adaptaciones concretas para esta clase." />
+        </label>
         <h2 className="text-xl font-bold text-gray-800 border-b pb-2 pt-6">Anexos y Recursos</h2>
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
+              required
               label="Recursos Materiales"
               value={planForm.recursos}
               onChange={(e) => setPlanForm({ ...planForm, recursos: e.target.value })}
               placeholder="Proyector, guías de trabajo..."
             />
             <Input
+              required
               label="Instrumentos de Evaluación"
               value={planForm.evaluacion}
               onChange={(e) => setPlanForm({ ...planForm, evaluacion: e.target.value })}

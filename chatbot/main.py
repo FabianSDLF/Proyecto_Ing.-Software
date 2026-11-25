@@ -1,4 +1,8 @@
 import os
+import asyncio
+import time
+import urllib.request
+import urllib.error
 import re
 import glob
 import io
@@ -6,7 +10,8 @@ import json
 import unicodedata
 import logging
 from typing import List, Dict, Optional, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -19,6 +24,40 @@ app = FastAPI(
     description="Microservicio de IA pedagógica y retroalimentación formativa para Pedagogía en Matemática (UBB / MINEDUC)",
     version="3.0.0"
 )
+
+def authenticate_user(authorization: str) -> dict:
+    """Validar el token y la cuenta activa en el backend; no confiar en claims enviados por el cliente."""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Inicia sesión en PITÁGORAS")
+    request = urllib.request.Request(
+        os.environ.get("BACKEND_URL", "http://localhost:8080").rstrip("/") + "/api/usuarios/perfil",
+        headers={"Authorization": authorization})
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            user = json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise HTTPException(status_code=401 if exc.code in (401, 403) else 503, detail="No se pudo validar la sesión") from exc
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail="Servicio de autenticación no disponible") from exc
+    if not user.get("id") or not user.get("active"):
+        raise HTTPException(status_code=401, detail="Cuenta no autorizada")
+    return user
+
+
+@app.middleware("http")
+async def authenticated_access(request: Request, call_next):
+    if request.url.path != "/health" and request.method != "OPTIONS":
+        try:
+            request.state.user = await asyncio.to_thread(authenticate_user, request.headers.get("Authorization", ""))
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return await call_next(request)
+
+
+def owned_session(request: Request, session_id: str) -> str:
+    # Un mismo identificador enviado por dos alumnos produce dos conversaciones distintas.
+    return str(request.state.user["id"]) + ":" + (session_id or "default-session")[:120]
+
 
 # Configurar CORS
 app.add_middleware(
@@ -70,6 +109,7 @@ class LessonPlanEvaluationRequest(BaseModel):
     inicio: str = Field(description="Descripción del momento de Inicio")
     desarrollo: str = Field(description="Descripción del momento de Desarrollo")
     cierre: str = Field(description="Descripción del momento de Cierre")
+    inclusion: str = Field(default="", description="Adaptaciones PIE / NEE / DUA")
 
 class LessonPlanEvaluationResponse(BaseModel):
     aiApproved: bool = Field(description="Indica si la planificación cuenta con coherencia pedagógica suficiente.")
@@ -212,14 +252,42 @@ def detectar_nivel_escolar(msg_norm: str) -> Optional[str]:
 
 def get_gemini_client():
     api_key = (RUNTIME_API_KEY or os.environ.get("GOOGLE_API_KEY", "")).strip()
-    if not api_key or api_key == "mock-dev-key" or not api_key.startswith("AIzaSy"):
+    if not api_key or api_key == "mock-dev-key":
         return None
     try:
         from google import genai
-        return genai.Client(api_key=api_key)
+        from google.genai import types
+        return genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(
+                timeout=20000, retry_options=types.HttpRetryOptions(attempts=1)
+            ),
+        )
     except Exception as e:
         logger.warning(f"No se pudo inicializar el cliente oficial google-genai: {e}")
         return None
+
+
+def crear_interaccion_gemini(client, **kwargs):
+    models = list(dict.fromkeys(
+        name.strip() for name in os.environ.get(
+            "GEMINI_MODELS", "gemini-3.5-flash-lite,gemini-3.1-flash-lite"
+        ).split(",") if name.strip()
+    ))
+    if not models:
+        raise ValueError("GEMINI_MODELS debe contener al menos un modelo")
+    for index, model in enumerate(models):
+        try:
+            return client.interactions.create(model=model, **kwargs)
+        except Exception as error:
+            status = getattr(error, "code", None) or getattr(error, "status_code", None)
+            transient = status in (408, 429, 500, 502, 503, 504) or type(error).__name__ in (
+                "InternalServerError", "TimeoutException", "ReadTimeout", "ConnectTimeout",
+                "APITimeoutError", "RateLimitError",
+            )
+            if not transient or index == len(models) - 1:
+                raise
+            logger.warning("Modelo %s temporalmente no disponible; probando respaldo.", model)
 
 # ==============================================================================
 # Instrucciones Oficiales de RetroPlani Mate V3 (Prof. Víctor Parra González - UBB)
@@ -815,13 +883,16 @@ def health_check():
         "service": "pitagoras-chatbot",
         "gemini_api_configured": client is not None,
         "documents_loaded": len(PDF_CHUNKS_INDEX),
-        "mode": "production (Gemini 3.8 Flash + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
+        "mode": "production (Gemini + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
     }
 
 @app.post("/api/config/apikey")
-def configure_api_key(req: ApiKeyConfigRequest):
+def configure_api_key(req: ApiKeyConfigRequest, request: Request):
     """Permite configurar o actualizar la GOOGLE_API_KEY en caliente sin reiniciar el contenedor."""
     global RUNTIME_API_KEY
+    role = (request.state.user.get("role") or {}).get("name", "").upper().replace(" ", "_")
+    if role != "ADMINISTRADOR":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede configurar el proveedor")
     key = req.api_key.strip()
     if not key:
         RUNTIME_API_KEY = None
@@ -830,20 +901,20 @@ def configure_api_key(req: ApiKeyConfigRequest):
             "gemini_api_configured": False,
             "mode": "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
         }
-    if not key.startswith("AIzaSy"):
-        raise HTTPException(status_code=400, detail="La API Key de Google AI Studio debe comenzar con 'AIzaSy'.")
     RUNTIME_API_KEY = key
     client = get_gemini_client()
     return {
         "status": "updated",
         "gemini_api_configured": client is not None,
-        "mode": "production (Gemini 3.8 Flash + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
+        "mode": "production (Gemini + RetroPlani V3)" if client else "RetroPlani Mate V3 (Base Documental UBB/MINEDUC)"
     }
 
 @app.post("/api/chat", response_model=ChatResponse)
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
-    session_id = request.session_id or "default-session"
+async def chat_endpoint(request: ChatRequest, http_request: Request):
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+    session_id = owned_session(http_request, request.session_id)
     client = get_gemini_client()
 
     # Recuperar fragmentos relevantes de los 11 PDFs oficiales para enriquecer el contexto
@@ -868,14 +939,13 @@ async def chat_endpoint(request: ChatRequest):
 
         prev_id = SESSION_INTERACTION_IDS.get(session_id)
         create_kwargs = {
-            "model": "gemini-3.8-flash",
             "system_instruction": SYSTEM_INSTRUCTION_RETROPLANI_V3 + contexto_rag,
             "input": request.message,
         }
         if prev_id:
             create_kwargs["previous_interaction_id"] = prev_id
 
-        interaction = client.interactions.create(**create_kwargs)
+        interaction = crear_interaccion_gemini(client, **create_kwargs)
         if getattr(interaction, "id", None):
             SESSION_INTERACTION_IDS[session_id] = interaction.id
 
@@ -886,7 +956,7 @@ async def chat_endpoint(request: ChatRequest):
         )
 
     except Exception as e:
-        logger.error(f"Error al llamar a Gemini API en chat: {e}. Usando Motor RetroPlani Mate V3.")
+        logger.error("Gemini no disponible (%s). Usando Motor RetroPlani Mate V3.", type(e).__name__)
         return ChatResponse(
             answer=generar_chat_mock(request.message),
             is_mock=True,
@@ -895,6 +965,7 @@ async def chat_endpoint(request: ChatRequest):
 
 @app.post("/api/chat-archivo", response_model=ChatResponse)
 async def chat_con_archivo_endpoint(
+    http_request: Request,
     file: UploadFile = File(...),
     message: str = Form("Por favor revisa y retroalimenta mi planificación adjunta según los criterios de RetroPlani Mate V3."),
     session_id: str = Form("default-session")
@@ -903,7 +974,10 @@ async def chat_con_archivo_endpoint(
     Implementa el Flujo Dialógico de RetroPlani Mate V3 cuando el estudiante adjunta
     un archivo (.pdf, .docx, .txt) de su planificación directamente en el chat.
     """
-    content_bytes = await file.read()
+    session_id = owned_session(http_request, session_id)
+    content_bytes = await file.read(20 * 1024 * 1024 + 1)
+    if len(content_bytes) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="El archivo supera 20 MB")
     filename = file.filename or "planificacion.pdf"
     texto_extraido = extraer_texto_archivo_subido(filename, content_bytes)
 
@@ -917,6 +991,40 @@ async def chat_con_archivo_endpoint(
             ),
             is_mock=True
         )
+
+    client = get_gemini_client()
+    if client:
+        fragmentos_pdf = buscar_en_recursos_pdf(f"{message} {texto_extraido[:600]}", top_k=3)
+        fuentes_usadas = list(dict.fromkeys([f["source"] for f in fragmentos_pdf]))
+        try:
+            contexto_rag = ""
+            if fragmentos_pdf:
+                contexto_rag = "\n\nFRAGMENTOS RECUPERADOS DE LOS DOCUMENTOS OFICIALES UBB/MINEDUC:\n" + "\n".join(
+                    f"[{f['source']} - pág. {f['page']}]: {f['text'][:600]}" for f in fragmentos_pdf
+                )
+            prev_id = SESSION_INTERACTION_IDS.get(session_id)
+            create_kwargs = {
+                "system_instruction": SYSTEM_INSTRUCTION_RETROPLANI_V3 + contexto_rag,
+                "input": (
+                    f"{message}\n\n"
+                    f"ARCHIVO ADJUNTO (`{filename}`):\n"
+                    f"{texto_extraido[:8000]}"
+                ),
+            }
+            if prev_id:
+                create_kwargs["previous_interaction_id"] = prev_id
+
+            interaction = crear_interaccion_gemini(client, **create_kwargs)
+            if getattr(interaction, "id", None):
+                SESSION_INTERACTION_IDS[session_id] = interaction.id
+
+            return ChatResponse(
+                answer=interaction.output_text,
+                is_mock=False,
+                sources=fuentes_usadas
+            )
+        except Exception as e:
+            logger.error("Gemini no disponible en /api/chat-archivo (%s). Usando Motor RetroPlani Mate V3.", type(e).__name__)
 
     texto_norm = normalizar_texto(texto_extraido)
     tiene_objetivo = any(k in texto_norm for k in ["objetivo", "oa ", "aprendizaje"])
@@ -995,6 +1103,7 @@ async def evaluar_planificacion_endpoint(req: LessonPlanEvaluationRequest):
         Objetivo de la Clase (Específico): {req.specificObjectives}
         Objetivo Actitudinal (OAA): {req.objetivoActitudinal}
         Duración: {req.duracion}
+        Inclusión y adaptaciones PIE / NEE / DUA: {req.inclusion}
         Recursos: {req.recursos}
         Estrategia e Instrumento de Evaluación: {req.evaluacion}
         --- Momento de Inicio ---
@@ -1005,8 +1114,8 @@ async def evaluar_planificacion_endpoint(req: LessonPlanEvaluationRequest):
         {req.cierre}
         """
 
-        interaction = client.interactions.create(
-            model="gemini-3.8-flash",
+        interaction = crear_interaccion_gemini(
+            client,
             system_instruction=SYSTEM_INSTRUCTION_RETROPLANI_V3,
             input=f"Evalúa la siguiente planificación aplicando los 14 indicadores de la Rúbrica UBB y el flujo de RetroPlani Mate V3:\n{plan_content}",
             response_format={
@@ -1021,5 +1130,5 @@ async def evaluar_planificacion_endpoint(req: LessonPlanEvaluationRequest):
         return res
 
     except Exception as e:
-        logger.error(f"Error evaluando con Gemini API: {e}. Usando evaluación RetroPlani Mate V3.")
+        logger.error("Gemini no disponible (%s). Usando evaluación RetroPlani Mate V3.", type(e).__name__)
         return generar_evaluacion_mock(req)

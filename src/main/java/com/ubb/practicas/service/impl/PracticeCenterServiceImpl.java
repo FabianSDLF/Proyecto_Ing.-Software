@@ -59,6 +59,7 @@ public class PracticeCenterServiceImpl implements PracticeCenterService {
         if (datos.getDependency() != null) {
             existing.setDependency(datos.getDependency());
         }
+        existing.setRbd(datos.getRbd());
         existing.setAddress(datos.getAddress());
         existing.setCity(datos.getCity());
         existing.setDistrict(datos.getDistrict());

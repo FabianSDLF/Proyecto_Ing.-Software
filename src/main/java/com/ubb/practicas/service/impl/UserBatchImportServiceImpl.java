@@ -60,6 +60,12 @@ public class UserBatchImportServiceImpl implements UserBatchImportService {
             throw new FileProcessingException("No se pudo leer el archivo cargado: " + e.getMessage(), e);
         }
 
+        if (records == null || records.isEmpty()) {
+            throw new FileProcessingException(
+                    "El archivo no contiene registros para importar. Verifica que incluya encabezado y las 4 columnas: Nombre, Correo, Contraseña, Rol."
+            );
+        }
+
         BatchImportResultDto result = BatchImportResultDto.builder()
                 .totalRecords(records.size())
                 .build();
@@ -68,7 +74,10 @@ public class UserBatchImportServiceImpl implements UserBatchImportService {
             try {
                 processSingleRecord(record, result);
             } catch (Exception e) {
-                String errMsg = "Fila " + record.getRowNumber() + " (" + record.getEmail() + "): " + e.getMessage();
+                String label = (record.getEmail() != null && !record.getEmail().isBlank())
+                        ? record.getEmail()
+                        : "sin correo";
+                String errMsg = "Fila " + record.getRowNumber() + " (" + label + "): " + e.getMessage();
                 result.getErrors().add(errMsg);
                 result.setFailureCount(result.getFailureCount() + 1);
             }
@@ -81,8 +90,11 @@ public class UserBatchImportServiceImpl implements UserBatchImportService {
     @Transactional
     public void procesarArchivoMasivo(MultipartFile file) {
         BatchImportResultDto result = importUsers(file);
-        if (result.getSuccessCount() == 0 && !result.getErrors().isEmpty()) {
-            throw new FileProcessingException("Error al procesar archivo: " + result.getErrors().get(0));
+        if (result.getSuccessCount() == 0) {
+            String detail = result.getErrors().isEmpty()
+                    ? "No se importó ningún usuario válido."
+                    : String.join(" | ", result.getErrors());
+            throw new FileProcessingException("Error al procesar archivo: " + detail);
         }
     }
 

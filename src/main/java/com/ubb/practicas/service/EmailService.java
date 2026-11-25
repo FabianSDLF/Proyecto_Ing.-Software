@@ -37,4 +37,30 @@ public class EmailService {
             System.err.println("Error enviando correo: " + e.getMessage());
         }
     }
+
+    public void enviarNotificacionPlanificacionAprobada(String correoDestinatario, String cursoPlanificacion, String ejeMatematico) {
+        try {
+            SimpleMailMessage mensajeCorreo = new SimpleMailMessage();
+            mensajeCorreo.setTo(correoDestinatario);
+            mensajeCorreo.setSubject("Planificación Aprobada - Plataforma de Prácticas UBB");
+
+            String fechaActual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+            String cursoTexto = cursoPlanificacion != null ? cursoPlanificacion : "No especificado";
+            String ejeTexto = ejeMatematico != null && !ejeMatematico.isBlank() ? ejeMatematico : "General";
+
+            mensajeCorreo.setText("Estimado estudiante,\n\n" +
+                    "Te informamos que tu planificación didáctica ha sido aprobada por tu docente.\n\n" +
+                    "DETALLES DE LA PLANIFICACIÓN:\n" +
+                    "- Curso: " + cursoTexto + "\n" +
+                    "- Eje Matemático: " + ejeTexto + "\n" +
+                    "- Fecha de aprobación: " + fechaActual + "\n" +
+                    "- Estado: APROBADA (Lista para aplicar en el colegio)\n\n" +
+                    "Ya puedes aplicar esta planificación en tu centro de práctica.\n\n" +
+                    "Saludos,\nPlataforma de Prácticas UBB");
+
+            mailSender.send(mensajeCorreo);
+        } catch (Exception error) {
+            System.err.println("Error enviando correo de planificación aprobada: " + error.getMessage());
+        }
+    }
 }

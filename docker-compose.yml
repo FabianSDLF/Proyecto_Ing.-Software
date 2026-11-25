@@ -4,19 +4,19 @@ services:
     image: mysql:8.4
     container_name: practicas_db
     environment:
-      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: sistema_practicas
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3307}:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin"]
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost -u root"]
       interval: 3s
       timeout: 3s
       retries: 10
       start_period: 5s
-    restart: unless-stopped
+    restart: "no"
 
   # Backend Spring Boot
   backend:
@@ -34,14 +34,18 @@ services:
       # Sobrescribimos las variables de entorno de application.properties
       # para que apunte al contenedor "db" en vez de "localhost"
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
+      - CHATBOT_URL=http://chatbot:8000
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=admin
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=false
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:-admin}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=true
+      - SUPPORT_COORDINATOR_NAME=${SUPPORT_COORDINATOR_NAME:-}
+      - SUPPORT_COORDINATOR_EMAIL=${SUPPORT_COORDINATOR_EMAIL:-}
+      - SUPPORT_COORDINATOR_PHONE=${SUPPORT_COORDINATOR_PHONE:-}
     volumes:
       # Volumen para que los archivos subidos persistan si el contenedor se reinicia
       - backend_uploads:/app/uploads
-    restart: unless-stopped
+    restart: "no"
 
   # Frontend React (Vite + Nginx)
   frontend:
@@ -54,7 +58,7 @@ services:
       - "80:80"
     depends_on:
       - backend
-    restart: unless-stopped
+    restart: "no"
 
   # Chatbot IA (Python FastAPI)
   chatbot:
@@ -63,10 +67,27 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - BACKEND_URL=http://backend:8080
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-    restart: unless-stopped
+      - GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite}
+    restart: "no"
+
+  backup:
+    image: mysql:8.4
+    profiles: [maintenance]
+    entrypoint: ["/bin/bash"]
+    command: ["/scripts/backup.sh"]
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      DB_NAME: sistema_practicas
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - backend_uploads:/uploads
+      - ${BACKUP_DIRECTORY:-./backups}:/backups
+      - ./backup:/scripts:ro
 
 volumes:
   db_data:
   backend_uploads:
-

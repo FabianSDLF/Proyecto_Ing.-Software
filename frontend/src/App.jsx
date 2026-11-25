@@ -19,9 +19,11 @@ import RetroPlani from './pages/RetroPlani';
 import CargaMasiva from './pages/CargaMasiva';
 import GestionRoles from './pages/GestionRoles';
 import GestionAsignaturas from './pages/GestionAsignaturas';
+import CiclosPractica from './pages/CiclosPractica';
 import Asignaciones from './pages/Asignaciones';
 import MisEstudiantes from './pages/MisEstudiantes';
 import Reportes from './pages/Reportes';
+import Ayuda from './pages/Ayuda';
 
 function App() {
   return (
@@ -41,6 +43,7 @@ function App() {
               {/* Common Routes */}
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/perfil" element={<Perfil />} />
+              <Route path="/ayuda" element={<Ayuda />} />
 
               {/* Student Routes */}
               <Route element={<RoleRoute allowedRoles={['Estudiante']} />}>
@@ -50,9 +53,10 @@ function App() {
               </Route>
 
               {/* Administrator Routes */}
-              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
+              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas', 'Administrador']} />}>
                 <Route path="/carga-masiva" element={<CargaMasiva />} />
                 <Route path="/gestion-roles" element={<GestionRoles />} />
+                <Route path="/ciclos" element={<CiclosPractica />} />
                 <Route path="/asignaturas" element={<GestionAsignaturas />} />
                 <Route path="/asignaciones" element={<Asignaciones />} />
               </Route>
@@ -64,7 +68,7 @@ function App() {
               <Route path="/portafolio/estudiante/:assignmentId" element={<Portafolio isReadOnly={true} />} />
 
               {/* Reportes va AQUÍ ADENTRO, arriba de los dos </Route> de cierre */}
-              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas']} />}>
+              <Route element={<RoleRoute allowedRoles={['Coordinador de practicas', 'Administrador', 'Profesor de Asignatura', 'Profesor Colaborador', 'Tutor']} />}>
                 <Route path="/reportes" element={<Reportes />} />
               </Route>
 

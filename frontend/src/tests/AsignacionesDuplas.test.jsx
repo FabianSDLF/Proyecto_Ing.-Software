@@ -152,7 +152,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T1-01: Renders page and navigates to Duplas tab', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       expect(duplasTab).toBeInTheDocument();
       fireEvent.click(duplasTab);
 
@@ -162,7 +162,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T1-02: Displays duplas table with student names and center', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       await waitFor(() => {
@@ -174,7 +174,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T1-03: Displays status badge indicating definitive assignment', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       await waitFor(() => {
@@ -186,14 +186,14 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T1-04: Clicking "+ Nueva Dupla" opens creation modal', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
       fireEvent.click(nuevaDuplaBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/crear dupla|nueva dupla/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /crear dupla|nueva dupla/i })).toBeInTheDocument();
       });
     });
 
@@ -201,7 +201,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
       const user = userEvent.setup();
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
@@ -227,7 +227,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T2-01: Displays permanent warning banner alerting duplas cannot be broken', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
@@ -241,7 +241,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T2-02: Duplas table does NOT render delete action buttons (inmutability check)', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       await waitFor(() => {
@@ -258,7 +258,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T2-03: Excludes already paired students from candidate list', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
@@ -275,7 +275,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T2-04: Prevents self-pairing when same student is selected in both slots', async () => {
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
@@ -292,7 +292,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
       const user = userEvent.setup();
       render(<Asignaciones />);
 
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
@@ -301,7 +301,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
       const searchInput = screen.queryByPlaceholderText(/buscar estudiante|nombre o correo/i);
       if (searchInput) {
         await user.type(searchInput, 'Valeria');
-        expect(screen.getByText(/Valeria Soto/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Valeria Soto/i)[0]).toBeInTheDocument();
         expect(screen.queryByText(/Ignacio Fuentes/i)).not.toBeInTheDocument();
       }
     });
@@ -315,8 +315,8 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
     it('TC-FE-HU9-T3-01: Switching between Individual Assignments tab and Duplas tab maintains tab state isolation', async () => {
       render(<Asignaciones />);
 
-      const indTab = await screen.findByRole('button', { name: /individuales|asignaciones/i });
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const indTab = await screen.findByRole('tab', { name: /individuales|asignaciones/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
 
       // Click Duplas
       fireEvent.click(duplasTab);
@@ -332,7 +332,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
       const user = userEvent.setup();
 
       render(<Asignaciones />);
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });
@@ -357,7 +357,7 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
       render(<Asignaciones />);
 
       // 1. Ir a pestaña de duplas
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       // 2. Abrir modal
@@ -370,14 +370,14 @@ describe('HU9 E2E Frontend Suite: Duplas de Estudiantes en Ciclo Intermedio (Asi
       });
 
       // 4. Modal visible con título
-      expect(screen.getByText(/crear dupla|nueva dupla/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /crear dupla|nueva dupla/i })).toBeInTheDocument();
     });
 
     it('TC-FE-HU9-T4-02: Handles empty available students gracefully with informative message', async () => {
-      assignmentService.getEstudiantesDisponiblesDupla.mockResolvedValueOnce([]);
+      assignmentService.getEstudiantesDisponiblesDupla.mockResolvedValue([]);
 
       render(<Asignaciones />);
-      const duplasTab = await screen.findByRole('button', { name: /duplas/i });
+      const duplasTab = await screen.findByRole('tab', { name: /duplas/i });
       fireEvent.click(duplasTab);
 
       const nuevaDuplaBtn = await screen.findByRole('button', { name: /\+.*nueva dupla/i });

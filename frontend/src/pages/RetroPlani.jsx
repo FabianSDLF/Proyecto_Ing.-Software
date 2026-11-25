@@ -1,3 +1,4 @@
+import apiClient from '../services/apiClient';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -89,7 +90,8 @@ function extractMomentsFromContentJson(contentJson) {
   };
 
   return {
-    objetivoActitudinal: parsed.objetivoActitudinal || parsed.adaptaciones_pie || '',
+    objetivoActitudinal: parsed.objetivoActitudinal || '',
+    inclusion: parsed.inclusion || parsed.adaptaciones_pie || '',
     duracion: parsed.duracion || '90 minutos',
     recursos: getResourcesText(parsed),
     evaluacion: parsed.evaluacion || '',
@@ -108,7 +110,7 @@ export default function RetroPlani() {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: '¡Hola! Soy **RetroPlani Mate V3 (IA)**, tu asistente pedagógico especializado en revisar y orientar planificaciones de matemática (UBB / MINEDUC).\n\n• **Sube tu planificación en `.pdf` o `.txt`** con el botón **📎 Adjuntar** (o usa la pestaña **«✨ Validador de Planificaciones»**) para revisar **Objetivo, Inicio, Desarrollo, Cierre, Evaluación, DUA (103 acciones) y Errores matemáticos**.\n• **Antes de entregarte la retroalimentación final**, te haré algunas **preguntas diagnósticas** para comprender mejor tus decisiones pedagógicas.\n• Recuerda que mi propósito es orientarte para que mejores autónomamente tu diseño, sin hacer la clase por ti.',
+      text: '¡Hola! Soy **RetroPlani Mate (IA)**, tu asistente pedagógico especializado en revisar y orientar planificaciones de matemática (UBB / MINEDUC).\n\n• **Sube tu planificación en `.pdf` o `.txt`** con el botón **📎 Adjuntar** (o usa la pestaña **«✨ Validador de Planificaciones»**) para revisar **Objetivo, Inicio, Desarrollo, Cierre, Evaluación, DUA (103 acciones) y Errores matemáticos**.\n• **Antes de entregarte la retroalimentación final**, te haré algunas **preguntas diagnósticas** para comprender mejor tus decisiones pedagógicas.\n• Recuerda que mi propósito es orientarte para que mejores autónomamente tu diseño, sin hacer la clase por ti.',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -134,7 +136,8 @@ export default function RetroPlani() {
     evaluacion: '',
     inicio: '',
     desarrollo: '',
-    cierre: ''
+    cierre: '',
+    inclusion: ''
   });
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState(null);
@@ -168,6 +171,16 @@ export default function RetroPlani() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const updatePlanForm = (next) => { setSelectedPlanId(''); setEvaluationResult(null); setPlanForm(next); };
+
+  useEffect(() => {
+    if (!selectedPlanId) return;
+    const controller = new AbortController();
+    apiClient.get('/api/portafolio/planificaciones/' + selectedPlanId + '/revision-ia', { signal: controller.signal })
+      .then(setEvaluationResult).catch(() => {});
+    return () => controller.abort();
+  }, [selectedPlanId]);
+
   const handleSelectSavedPlan = (planId) => {
     setSelectedPlanId(planId);
     if (!planId) return;
@@ -185,6 +198,7 @@ export default function RetroPlani() {
       duracion: moments.duracion,
       recursos: moments.recursos,
       evaluacion: moments.evaluacion,
+      inclusion: moments.inclusion || '',
       inicio: moments.inicio,
       desarrollo: moments.desarrollo,
       cierre: moments.cierre
@@ -251,7 +265,7 @@ export default function RetroPlani() {
     try {
       const response = await chatbotService.sendFileMessage(
         file,
-        'Revisa mi planificación adjunta según los criterios de RetroPlani Mate V3',
+        'Revisa mi planificación adjunta según los criterios de RetroPlani Mate',
         'retroplani-student-session'
       );
       setMessages((prev) => [
@@ -273,6 +287,7 @@ export default function RetroPlani() {
   };
 
   const handleClearChat = () => {
+    chatbotService.resetSession();
     setMessages([
       {
         sender: 'bot',
@@ -296,9 +311,11 @@ export default function RetroPlani() {
 
     setIsEvaluating(true);
     try {
-      const result = await chatbotService.evaluateLessonPlan(planForm);
+      const result = selectedPlanId
+        ? await apiClient.post('/api/portafolio/planificaciones/' + selectedPlanId + '/revision-ia')
+        : await chatbotService.evaluateLessonPlan(planForm);
       setEvaluationResult(result);
-      toast.success('¡Análisis pedagógico RetroPlani Mate V3 completado!');
+      toast.success('¡Análisis pedagógico RetroPlani Mate completado!');
     } catch (err) {
       toast.error(err.message || 'No se pudo evaluar la planificación con IA.');
     } finally {
@@ -316,7 +333,7 @@ export default function RetroPlani() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-16">
       {/* Encabezado Principal */}
-      <div className="bg-gradient-to-r from-[#003B70] to-blue-800 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-brand rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center text-3xl shadow-md flex-shrink-0">
             🤖
@@ -324,7 +341,7 @@ export default function RetroPlani() {
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                RetroPlani Mate V3 (IA)
+                RetroPlani Mate (IA)
               </h1>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-blue-100 border border-white/20">
                 <span
@@ -341,7 +358,7 @@ export default function RetroPlani() {
               )}
             </div>
             <p className="text-blue-100 mt-1 text-sm md:text-base">
-              Valida tus planificaciones con el asistente virtual antes de enviarlas al profesor colaborador.
+              Revisa tus planificaciones con el asistente antes de enviarlas al Profesor de Asignatura.
             </p>
           </div>
         </div>
@@ -358,13 +375,13 @@ export default function RetroPlani() {
       </div>
 
       {/* Selector de Pestañas */}
-      <div className="flex border-b border-gray-200 bg-white rounded-t-2xl px-6 pt-4 gap-6 shadow-sm">
+      <div className="surface grid grid-cols-1 sm:grid-cols-2 p-2 gap-2 [overflow-wrap:normal]">
         <button
           type="button"
           onClick={() => setActiveTab('CHAT')}
-          className={`pb-4 text-sm md:text-base font-bold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`min-h-11 min-w-0 p-3 rounded-xl text-left text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'CHAT'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-orange-600 bg-orange-50 text-orange-800'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -374,9 +391,9 @@ export default function RetroPlani() {
         <button
           type="button"
           onClick={() => setActiveTab('VALIDADOR')}
-          className={`pb-4 text-sm md:text-base font-bold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+          className={`min-h-11 min-w-0 p-3 rounded-xl text-left text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'VALIDADOR'
-              ? 'border-blue-600 text-blue-700'
+              ? 'border-orange-600 bg-orange-50 text-orange-800'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -393,17 +410,17 @@ export default function RetroPlani() {
           {/* Columna Principal del Chat */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[640px] overflow-hidden">
             {/* Barra superior del chat */}
-            <div className="px-6 py-3.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-4 sm:px-6 py-3.5 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 [overflow-wrap:normal]">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🎓</span>
                 <span className="font-bold text-gray-800 text-sm">
-                  Tutoría Didáctica en Matemática (RetroPlani Mate V3 - UBB)
+                  Tutoría Didáctica en Matemática (RetroPlani Mate - UBB)
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleClearChat}
-                className="text-xs text-gray-500 hover:text-red-600 font-medium px-2.5 py-1 rounded-lg hover:bg-gray-200/60 transition-colors cursor-pointer"
+                className="shrink-0 min-h-11 text-xs text-gray-500 hover:text-red-600 font-medium px-2.5 py-1 rounded-lg hover:bg-gray-200/60 transition-colors cursor-pointer"
               >
                 Limpiar conversación
               </button>
@@ -433,7 +450,7 @@ export default function RetroPlani() {
                     />
                   </div>
                   <span className="text-[11px] text-gray-400 mt-1 px-1">
-                    {msg.sender === 'user' ? 'Tú' : 'RetroPlani Mate V3'} • {msg.time}
+                    {msg.sender === 'user' ? 'Tú' : 'RetroPlani Mate'} • {msg.time}
                   </span>
                 </div>
               ))}
@@ -455,7 +472,7 @@ export default function RetroPlani() {
                 e.preventDefault();
                 handleSendChat();
               }}
-              className="p-4 bg-white border-t border-gray-200 flex items-center gap-2.5"
+              className="p-2 sm:p-4 bg-white border-t border-gray-200 flex items-center gap-2"
             >
               <input
                 ref={fileInputRef}
@@ -481,13 +498,13 @@ export default function RetroPlani() {
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Pregunta sobre fracciones, enteros, probabilidad, DUA, rúbrica UBB o sube tu PDF..."
                 disabled={isSendingChat}
-                className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100"
+                className="min-w-0 flex-1 px-3 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100"
               />
               <Button
                 type="submit"
                 variant="primary"
                 disabled={isSendingChat || !chatInput.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3"
+                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-5 py-3"
               >
                 Enviar
               </Button>
@@ -525,7 +542,7 @@ export default function RetroPlani() {
 
             <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl space-y-3">
               <h4 className="font-bold text-blue-900 text-sm flex items-center gap-2">
-                <span>📋</span> Flujo Dialógico RetroPlani Mate V3
+                <span>📋</span> Flujo Dialógico RetroPlani Mate
               </h4>
               <ul className="text-xs text-blue-900/90 space-y-1.5 leading-relaxed">
                 <li>• <strong>1. Recepción:</strong> Sube tu archivo <code className="bg-white/80 px-1 rounded">.pdf</code> con el botón <strong>📎 Adjuntar PDF</strong> o cárgala en el Validador.</li>
@@ -596,32 +613,33 @@ export default function RetroPlani() {
                   label="Curso *"
                   required
                   value={planForm.schoolGrade}
-                  onChange={(e) => setPlanForm({ ...planForm, schoolGrade: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, schoolGrade: e.target.value })}
                   placeholder="Ej. 1° Medio A"
                 />
                 <Select
                   label="Eje Matemático"
                   value={planForm.mathAxis}
-                  onChange={(e) => setPlanForm({ ...planForm, mathAxis: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, mathAxis: e.target.value })}
                   options={MATH_AXIS_OPTIONS}
                 />
                 <Input
                   label="Duración"
                   value={planForm.duracion}
-                  onChange={(e) => setPlanForm({ ...planForm, duracion: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, duracion: e.target.value })}
                   placeholder="90 minutos"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="retro-oa" className="block text-sm font-medium text-gray-700 mb-1">
                   Objetivo de Aprendizaje (OA Curricular MINEDUC) *
                 </label>
                 <textarea
+                  id="retro-oa"
                   rows="2"
                   required
                   value={planForm.baseLearningObjective}
-                  onChange={(e) => setPlanForm({ ...planForm, baseLearningObjective: e.target.value })}
+                  onChange={(e) => updatePlanForm({ ...planForm, baseLearningObjective: e.target.value })}
                   placeholder="Ej: OA 14: Desarrollar las reglas de las probabilidades, la regla aditiva, la regla multiplicativa..."
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
@@ -629,25 +647,27 @@ export default function RetroPlani() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="retro-objetivo-clase" className="block text-sm font-medium text-gray-700 mb-1">
                     Objetivo de la Clase (1 Habilidad + Contenido + Actitud)
                   </label>
                   <textarea
+                    id="retro-objetivo-clase"
                     rows="2"
                     value={planForm.objectives}
-                    onChange={(e) => setPlanForm({ ...planForm, objectives: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, objectives: e.target.value })}
                     placeholder="Ej: Aplicar la Ley de Laplace para calcular probabilidades, trabajando de forma activa y reflexiva."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="retro-oat" className="block text-sm font-medium text-gray-700 mb-1">
                     Objetivo Actitudinal (OAA) / Estrategias DUA y NEE
                   </label>
                   <textarea
+                    id="retro-oat"
                     rows="2"
                     value={planForm.objetivoActitudinal}
-                    onChange={(e) => setPlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
                     placeholder="OA B / Acciones DUA de representación, expresión y compromiso..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -656,25 +676,27 @@ export default function RetroPlani() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label htmlFor="retro-recursos" className="block text-xs font-bold text-gray-700 mb-1">
                     Recursos Didácticos Anexos (Guía, PPT, Geogebra)
                   </label>
                   <input
+                    id="retro-recursos"
                     type="text"
                     value={planForm.recursos}
-                    onChange={(e) => setPlanForm({ ...planForm, recursos: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, recursos: e.target.value })}
                     placeholder="Ej: Guía de trabajo anexada, PPT, Ticket de salida"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label htmlFor="retro-evaluacion" className="block text-xs font-bold text-gray-700 mb-1">
                     Instrumento de Evaluación y Pauta de Corrección
                   </label>
                   <input
+                    id="retro-evaluacion"
                     type="text"
                     value={planForm.evaluacion}
-                    onChange={(e) => setPlanForm({ ...planForm, evaluacion: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, evaluacion: e.target.value })}
                     placeholder="Ej: Ticket de salida con pauta de puntajes y escala de apreciación"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
@@ -687,45 +709,49 @@ export default function RetroPlani() {
                 </h3>
 
                 <div>
-                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                  <label htmlFor="retro-inicio" className="block text-xs font-bold text-blue-900 mb-1">
                     1. Inicio (Saludo, objetivo, Agenda del día, resumen anterior y activación participativa) *
                   </label>
                   <textarea
+                    id="retro-inicio"
                     rows="2"
                     value={planForm.inicio}
-                    onChange={(e) => setPlanForm({ ...planForm, inicio: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, inicio: e.target.value })}
                     placeholder="Describe el saludo, agenda del día (DUA 78) y cómo participarán todos los estudiantes en la activación..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                  <label htmlFor="retro-desarrollo" className="block text-xs font-bold text-blue-900 mb-1">
                     2. Desarrollo (Actividad constructivista, rol de Docente 1 y Docente 2, DUA y errores) *
                   </label>
                   <textarea
+                    id="retro-desarrollo"
                     rows="3"
                     value={planForm.desarrollo}
-                    onChange={(e) => setPlanForm({ ...planForm, desarrollo: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, desarrollo: e.target.value })}
                     placeholder="Describe cómo los estudiantes descubren el concepto, el rol de la dupla docente y cómo abordarás errores matemáticos..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                  <label htmlFor="retro-cierre" className="block text-xs font-bold text-blue-900 mb-1">
                     3. Cierre (Síntesis estudiantil, aclaración de dudas, Ticket de salida y enlace próxima clase) *
                   </label>
                   <textarea
+                    id="retro-cierre"
                     rows="2"
                     value={planForm.cierre}
-                    onChange={(e) => setPlanForm({ ...planForm, cierre: e.target.value })}
+                    onChange={(e) => updatePlanForm({ ...planForm, cierre: e.target.value })}
                     placeholder="Describe la síntesis participativa, aplicación del Ticket de salida y cierre de la sesión..."
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
 
+          <label className="block font-semibold">Inclusión y adaptaciones PIE / NEE / DUA<textarea className="mt-2 w-full border rounded p-3" value={planForm.inclusion || ''} onChange={e => updatePlanForm({ ...planForm, inclusion: e.target.value })} /></label>
               <div className="pt-4 flex justify-end">
                 <Button
                   type="submit"
@@ -734,7 +760,7 @@ export default function RetroPlani() {
                   loadingText="Revisando 14 indicadores UBB..."
                   className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3"
                 >
-                  ✨ Revisar con RetroPlani Mate V3
+                  ✨ Revisar con RetroPlani Mate
                 </Button>
               </div>
             </form>
@@ -752,7 +778,7 @@ export default function RetroPlani() {
                 </h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Selecciona una planificación o completa los campos a la izquierda y presiona{' '}
-                  <strong className="text-indigo-600">"Revisar con RetroPlani Mate V3"</strong>.
+                  <strong className="text-indigo-600">"Revisar con RetroPlani Mate"</strong>.
                 </p>
                 <div className="text-xs text-gray-500 bg-gray-50 p-4 rounded-xl text-left space-y-1.5 border border-gray-100">
                   <p className="font-bold text-gray-700">Criterios de la Rúbrica UBB (`02_Rubrica`):</p>
@@ -798,6 +824,7 @@ export default function RetroPlani() {
                 </div>
 
                 {/* Fortalezas */}
+                {selectedPlanId && <div className="space-y-3"><p>La revisión corresponde al contenido guardado de la versión seleccionada.</p>{evaluationResult.is_mock ? <p role="status" className="text-amber-800">Orientación local: no certifica validación IA ni habilita el envío al docente.</p> : evaluationResult.aiApproved && <Button onClick={async () => { try { await apiClient.post('/api/portafolio/planificaciones/' + selectedPlanId + '/enviar-docente'); toast.success('Versión enviada a revisión docente'); navigate('/portafolio'); } catch (err) { toast.error(err.message); } }}>Enviar esta versión al Profesor de Asignatura</Button>}</div>}
                 {evaluationResult.strengths?.length > 0 && (
                   <div className="p-4 bg-green-50/70 border border-green-200 rounded-xl">
                     <h4 className="text-xs font-bold text-green-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">

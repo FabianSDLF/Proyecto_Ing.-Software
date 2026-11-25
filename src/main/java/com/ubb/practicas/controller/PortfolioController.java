@@ -28,6 +28,8 @@ public class PortfolioController {
     private final LessonPlanService lessonPlanService;
     private final com.ubb.practicas.repository.PortfolioDocumentRepository portfolioDocumentRepository;
     private final com.ubb.practicas.repository.PracticeAssignmentRepository practiceAssignmentRepository;
+    private final com.ubb.practicas.service.PortfolioExportService exportService;
+    private final com.ubb.practicas.service.AssignmentScope assignmentScope;
 
     @GetMapping("/evidencias")
     public ResponseEntity<List<PortfolioDocument>> obtenerMisEvidencias(Principal principal) {
@@ -162,74 +164,18 @@ public class PortfolioController {
         return ResponseEntity.ok(Map.of("message", "Documento eliminado exitosamente"));
     }
     @GetMapping(value = "/download-zip", produces = "application/zip")
-    public void downloadZip(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
-        response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_OK);
-        response.addHeader("Content-Disposition", "attachment; filename=\"informes_finales.zip\"");
-        java.util.List<PortfolioDocument> documentos = portfolioDocumentRepository.findAll().stream()
-                .filter(doc -> doc.getType() != null && "INFORME_FINAL".equalsIgnoreCase(doc.getType().name()))
-                .collect(java.util.stream.Collectors.toList());
-        java.util.Set<String> nombresUsados = new java.util.HashSet<>();
-        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
-            for (PortfolioDocument doc : documentos) {
-                java.io.File file = null;
-                if (doc.getStoredFileName() != null && !doc.getStoredFileName().isBlank()) {
-                    java.nio.file.Path rutaUploads = java.nio.file.Paths.get("uploads").resolve(doc.getStoredFileName()).normalize();
-                    file = rutaUploads.toFile();
-                }
-                if ((file == null || !file.exists()) && doc.getFileUrl() != null) {
-                    java.io.File fallbackFile = new java.io.File(doc.getFileUrl());
-                    if (fallbackFile.exists() && !fallbackFile.isDirectory()) {
-                        file = fallbackFile;
-                    }
-                }
-                String nombreBase = (doc.getPracticeAssignment() != null && doc.getPracticeAssignment().getStudent() != null && doc.getPracticeAssignment().getStudent().getFullName() != null)
-                        ? doc.getPracticeAssignment().getStudent().getFullName().trim().replaceAll("\\s+", "_") + "_" + doc.getFileName()
-                        : doc.getFileName();
-                String nombreFinalZip = nombreBase;
-                int contador = 1;
-                while (nombresUsados.contains(nombreFinalZip)) {
-                    nombreFinalZip = "(" + contador++ + ")_" + nombreBase;
-                }
-                nombresUsados.add(nombreFinalZip);
-                if (file != null && file.exists() && !file.isDirectory()) {
-                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/" + nombreFinalZip);
-                    zos.putNextEntry(zipEntry);
-                    java.nio.file.Files.copy(file.toPath(), zos);
-                    zos.closeEntry();
-                } else {
-                    java.util.zip.ZipEntry zipEntry = new java.util.zip.ZipEntry("Informes/FALTA_" + nombreFinalZip + ".txt");
-                    zos.putNextEntry(zipEntry);
-                    String mensajeError = "El archivo físico no se encontró en el servidor. Ruta buscada: "
-                            + (file != null ? file.getAbsolutePath() : "sin nombre de archivo almacenado");
-                    zos.write(mensajeError.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    zos.closeEntry();
-                }
-            }
-            zos.finish();
-        }
+    public void downloadZip(Principal principal, @RequestParam(required = false) Long periodId,
+            @RequestParam(required = false) Long subjectId, @RequestParam(defaultValue = "false") boolean history, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.setHeader("Content-Disposition", "attachment; filename=informes_finales.zip");
+        exportService.zip(principal.getName(), periodId, subjectId, history, response.getOutputStream());
     }
 
     @GetMapping(value = "/export-csv", produces = "text/csv; charset=utf-8")
-    public void exportToCSV(jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
-        response.setContentType("text/csv");
-        response.setHeader("Content-Disposition", "attachment; filename=\"reporte_institucional.csv\"");
-
-        java.util.List<com.ubb.practicas.model.PracticeAssignment> asignaciones = practiceAssignmentRepository.findAll();
-        java.io.PrintWriter writer = response.getWriter();
-
-        writer.println("Estudiante;Asignatura;Periodo;Centro de Practica;Profesor Colaborador;Tutor;Estado");
-
-        for (com.ubb.practicas.model.PracticeAssignment asig : asignaciones) {
-            String estudiante = (asig.getStudent() != null) ? asig.getStudent().getFullName() : "N/A";
-            String asignatura = (asig.getSubject() != null) ? asig.getSubject().getName() : "N/A";
-            String periodo = (asig.getPeriod() != null) ? asig.getPeriod().getName() : "N/A";
-            String centro = (asig.getCenter() != null) ? asig.getCenter().getName() : "N/A";
-            String colaborador = (asig.getCollaborator() != null) ? asig.getCollaborator().getFullName() : "N/A";
-            String tutor = (asig.getTutor() != null) ? asig.getTutor().getFullName() : "N/A";
-            String estado = (asig.getStatus() != null) ? asig.getStatus().name() : "N/A";
-
-            writer.println(estudiante + ";" + asignatura + ";" + periodo + ";" + centro + ";" + colaborador + ";" + tutor + ";" + estado);
-        }
+    public void exportToCSV(Principal principal, @RequestParam(required = false) Long periodId,
+            @RequestParam(required = false) Long subjectId, @RequestParam(defaultValue = "false") boolean history, @RequestParam(required = false) com.ubb.practicas.model.enums.PracticeCycle cycle, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=reporte_institucional.csv");
+        exportService.csv(principal.getName(), periodId, subjectId, history, cycle, response.getWriter());
     }
 
     // ==========================================
@@ -260,6 +206,7 @@ public class PortfolioController {
 
         List<PortfolioDocument> documentos;
         if (assignmentId != null) {
+            assignmentScope.require(assignmentId, principal.getName());
             documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
         } else {
             documentos = portfolioService.obtenerMisDocumentosFinales(principal.getName());
@@ -273,6 +220,7 @@ public class PortfolioController {
             Principal principal) {
         if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
 
+        assignmentScope.require(assignmentId, principal.getName());
         List<PortfolioDocument> documentos = portfolioService.obtenerDocumentosFinalesPorAsignacion(assignmentId);
         return ResponseEntity.ok(documentos);
     }
@@ -331,5 +279,29 @@ public class PortfolioController {
                 principal.getName()
         );
         return ResponseEntity.ok(actualizado);
+    }
+
+    @RequestMapping(value = "/planificaciones/{id}/estado", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    public ResponseEntity<LessonPlan> cambiarEstadoPlanificacion(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload,
+            Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Sesión no autorizada");
+        }
+        String status = payload != null ? payload.get("status") : null;
+        String feedback = payload != null ? payload.get("feedback") : null;
+        LessonPlan actualizado = lessonPlanService.cambiarEstadoPlanificacion(
+                id,
+                status,
+                feedback,
+                principal.getName()
+        );
+        return ResponseEntity.ok(actualizado);
+    }
+    @PutMapping("/planificaciones/{id}/aprobar")
+    public ResponseEntity<LessonPlan> aprobarPlanificacion(@PathVariable Long id, Principal principal) {
+        if (principal == null) throw new UnauthorizedException("Sesión no autorizada");
+        return ResponseEntity.ok(lessonPlanService.aprobarPlanificacion(id, principal.getName()));
     }
 }

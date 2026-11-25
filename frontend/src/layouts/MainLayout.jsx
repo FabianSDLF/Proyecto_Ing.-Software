@@ -1,12 +1,121 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import logoPitagoras from '../assets/logoUBB.png';
 import ChatbotWidget from '../components/ChatbotWidget';
+import notificacionService from '../services/notificacionService';
+import { Modal, Button, Badge } from '../components/ui';
 
 export default function MainLayout() {
   const { user, userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef(null);
+  const sidebar = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const trigger = menuButton.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusable = () => [...sidebar.current.querySelectorAll('a, button')];
+    focusable()[0]?.focus();
+    const keyboard = e => {
+      if (e.key === 'Escape') { e.preventDefault(); setMenuOpen(false); }
+      if (e.key === 'Tab') {
+        const nodes = focusable(); const first = nodes[0]; const last = nodes.at(-1);
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
+    };
+    document.addEventListener('keydown', keyboard);
+    const resize = () => { if (window.innerWidth >= 1280) setMenuOpen(false); };
+    window.addEventListener('resize', resize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', keyboard);
+      window.removeEventListener('resize', resize);
+      trigger?.focus();
+    };
+  }, [menuOpen]);
+  const [listaNotificaciones, setListaNotificaciones] = useState([]);
+  const [cargandoNotificaciones, setCargandoNotificaciones] = useState(false);
+  const [mostrarModalNotificaciones, setMostrarModalNotificaciones] = useState(false);
+
+  const cargarNotificaciones = useCallback(async (signal) => {
+    if (!user) return;
+    setCargandoNotificaciones(true);
+    try {
+      const datos = await notificacionService.obtenerMisNotificaciones({ signal });
+      setListaNotificaciones(Array.isArray(datos) ? datos : []);
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error al cargar notificaciones:', error);
+      }
+    } finally {
+      setCargandoNotificaciones(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const controlador = new AbortController();
+    cargarNotificaciones(controlador.signal);
+    return () => controlador.abort();
+  }, [user, cargarNotificaciones]);
+
+  const abrirBandejaNotificaciones = () => {
+    setMenuOpen(false);
+    setMostrarModalNotificaciones(true);
+    cargarNotificaciones();
+  };
+
+  const cerrarBandejaNotificaciones = () => {
+    setMostrarModalNotificaciones(false);
+  };
+
+  const marcarNotificacionComoLeida = async (notificacionId) => {
+    try {
+      await notificacionService.marcarComoLeida(notificacionId);
+      setListaNotificaciones((estadoAnterior) =>
+        estadoAnterior.map((elemento) =>
+          elemento.id === notificacionId ? { ...elemento, read: true } : elemento
+        )
+      );
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo marcar la notificación como leída');
+    }
+  };
+
+  const marcarTodasNotificacionesLeidas = async () => {
+    try {
+      await notificacionService.marcarTodasComoLeidas();
+      setListaNotificaciones((estadoAnterior) =>
+        estadoAnterior.map((elemento) => ({ ...elemento, read: true }))
+      );
+      toast.success('Todas las notificaciones marcadas como leídas');
+    } catch (error) {
+      toast.error(error?.message || 'No se pudieron actualizar las notificaciones');
+    }
+  };
+
+  const obtenerEtiquetaTipoNotificacion = (tipoNotificacion) => {
+    if (tipoNotificacion === 'PLANIFICACION_APROBADA') return 'Planificación Aprobada';
+    if (tipoNotificacion === 'ALERTA_SISTEMA') return 'Comunicado del Sistema';
+    if (tipoNotificacion === 'REVISION_PENDIENTE') return 'Revisión Pendiente';
+    if (tipoNotificacion === 'EVALUACION_PUBLICADA') return 'Evaluación Publicada';
+    return 'Notificación';
+  };
+
+  const obtenerVarianteTipoNotificacion = (tipoNotificacion) => {
+    if (tipoNotificacion === 'PLANIFICACION_APROBADA') return 'success';
+    if (tipoNotificacion === 'ALERTA_SISTEMA') return 'info';
+    if (tipoNotificacion === 'REVISION_PENDIENTE') return 'warning';
+    return 'primary';
+  };
+
+  const cantidadNoLeidas = listaNotificaciones.filter((elemento) => !elemento.read).length;
 
   const handleLogout = () => {
     logout();
@@ -30,15 +139,23 @@ export default function MainLayout() {
   const inactiveLinkClass = 'text-gray-300 hover:bg-[#004A8F] hover:text-white';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex flex-col xl:flex-row min-h-screen bg-gray-50">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[70] bg-white p-3">Saltar al contenido</a>
+      <header className="xl:contents flex items-center justify-between gap-2 bg-[#003B70] text-white p-3">
+        <span className="font-bold mr-auto xl:hidden">PITAGORAS</span>
+        {!isActive('/retroplani') && <ChatbotWidget />}
+        <button ref={menuButton} type="button" aria-label="Abrir menú" aria-expanded={menuOpen} aria-controls="main-navigation" className="xl:hidden border rounded p-3" onClick={() => setMenuOpen(true)}>Menú</button>
+      </header>
+      {menuOpen && <div className="fixed inset-0 bg-black/50 z-40 xl:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
       {/* Menú Lateral (Sidebar) */}
-      <aside className="w-64 bg-[#003B70] text-white p-5 flex flex-col shadow-xl z-10 relative">
-        <div className="flex items-center gap-3 mb-10 mt-2 px-2">
+      <aside ref={sidebar} id="main-navigation" aria-label="Menú principal" onClick={e => { if (e.target.closest('a')) setMenuOpen(false); }} className={`${menuOpen ? 'flex fixed inset-y-0 left-0 z-50' : 'hidden'} xl:flex xl:sticky xl:top-0 xl:self-start xl:z-10 w-64 max-w-[90vw] shrink-0 bg-[#003B70] text-white p-5 flex-col shadow-xl h-dvh overflow-hidden`}>
+        <button type="button" className="xl:hidden shrink-0 self-end border rounded p-2" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}>Cerrar</button>
+        <div className="flex shrink-0 items-center gap-3 mb-10 mt-2 px-2">
           <img src={logoPitagoras} alt="Logo Pitagoras" className="w-10 h-10 object-contain" />
           <h2 className="text-2xl font-bold tracking-widest text-orange-500">PITAGORAS</h2>
         </div>
 
-        <nav className="flex flex-col space-y-2 flex-grow">
+        <nav className="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto overscroll-contain [&>*]:shrink-0">
           <Link
             to="/dashboard"
             className={`${baseLinkClass} ${isActive('/dashboard') ? activeLinkClass : inactiveLinkClass}`}
@@ -53,6 +170,29 @@ export default function MainLayout() {
             </svg>
             Inicio
           </Link>
+
+          <button
+            type="button"
+            onClick={abrirBandejaNotificaciones}
+            className={`${baseLinkClass} ${inactiveLinkClass} justify-between cursor-pointer w-full text-left`}
+          >
+            <span className="flex items-center gap-3">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                ></path>
+              </svg>
+              Notificaciones
+            </span>
+            {cantidadNoLeidas > 0 && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-orange-500 text-white rounded-full">
+                {cantidadNoLeidas}
+              </span>
+            )}
+          </button>
 
           {/* Opciones exclusivas de Estudiantes */}
           {userRole === 'Estudiante' && (
@@ -90,7 +230,7 @@ export default function MainLayout() {
           )}
 
           {/* Opciones exclusivas de Administrador */}
-          {userRole === 'Coordinador de practicas' && (
+          {['Coordinador de practicas', 'Administrador'].includes(userRole) && (
             <div className="mt-8">
               <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-4 px-4 opacity-80">
                 Administración
@@ -125,6 +265,16 @@ export default function MainLayout() {
                     ></path>
                   </svg>
                   Gestión de Usuarios
+                </Link>
+
+                <Link
+                  to="/ciclos"
+                  className={`${baseLinkClass} ${isActive('/ciclos') ? activeLinkClass : inactiveLinkClass}`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h10M4 18h6"></path>
+                  </svg>
+                  Ciclos de Práctica
                 </Link>
 
                 <Link
@@ -168,6 +318,7 @@ export default function MainLayout() {
             </div>
           )}
 
+          {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && <Link to="/reportes" className={baseLinkClass}>Exportar notas y evidencias</Link>}
           {/* Opciones exclusivas de Docentes */}
           {['Profesor de Asignatura', 'Profesor Colaborador', 'Tutor'].includes(userRole) && (
             <div className="mt-8">
@@ -193,10 +344,11 @@ export default function MainLayout() {
               </div>
             </div>
           )}
+          <Link to="/ayuda" className={`${baseLinkClass} ${isActive('/ayuda') ? activeLinkClass : inactiveLinkClass}`}>Ayuda y soporte</Link>
         </nav>
 
         {/* Sección del Usuario */}
-        <div className="mt-auto border-t border-blue-800 pt-4">
+        <div className="mt-auto shrink-0 border-t border-blue-800 pt-4">
           {user && (
             <div className="flex items-center justify-between">
               <Link
@@ -235,12 +387,80 @@ export default function MainLayout() {
       </aside>
 
       {/* Contenedor Principal */}
-      <main className="flex-1 p-8">
+      <main id="main-content" tabIndex={-1} inert={menuOpen || undefined} className="flex-1 min-w-0 p-3 sm:p-5 xl:p-8 [overflow-wrap:anywhere]">
         <Outlet />
       </main>
 
-      {/* Asistente Flotante de IA */}
-      {!isActive('/retroplani') && <ChatbotWidget />}
+
+      <Modal
+        isOpen={mostrarModalNotificaciones}
+        onClose={cerrarBandejaNotificaciones}
+        title="Notificaciones"
+        size="lg"
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {cantidadNoLeidas > 0 ? (
+              <Button variant="outline" size="sm" onClick={marcarTodasNotificacionesLeidas}>
+                Marcar todas como leídas
+              </Button>
+            ) : (
+              <span></span>
+            )}
+            <Button variant="secondary" size="sm" onClick={cerrarBandejaNotificaciones}>
+              Cerrar
+            </Button>
+          </div>
+        }
+      >
+        {cargandoNotificaciones ? (
+          <div className="py-8 text-center text-gray-500 text-sm">Cargando notificaciones...</div>
+        ) : listaNotificaciones.length === 0 ? (
+          <div className="py-8 text-center text-gray-500 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            No tienes notificaciones ni comunicados pendientes.
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {listaNotificaciones.map((notificacionActual) => (
+              <div
+                key={notificacionActual.id}
+                className={`p-4 rounded-xl border transition-colors ${
+                  notificacionActual.read
+                    ? 'bg-gray-50 border-gray-200'
+                    : 'bg-white border-gray-200 border-l-4 border-l-orange-500'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={obtenerVarianteTipoNotificacion(notificacionActual.type)} size="sm">
+                      {obtenerEtiquetaTipoNotificacion(notificacionActual.type)}
+                    </Badge>
+                    {!notificacionActual.read && (
+                      <span className="text-[11px] font-bold text-orange-600 uppercase">Nueva</span>
+                    )}
+                  </div>
+                  {notificacionActual.createdAt && (
+                    <span className="text-xs text-gray-500">
+                      {new Date(notificacionActual.createdAt).toLocaleString('es-CL')}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{notificacionActual.message}</p>
+                {!notificacionActual.read && (
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => marcarNotificacionComoLeida(notificacionActual.id)}
+                    >
+                      Marcar leída
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

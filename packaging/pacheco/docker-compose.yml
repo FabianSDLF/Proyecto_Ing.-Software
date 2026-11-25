@@ -1,0 +1,77 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: practicas_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Configura MYSQL_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: sistema_practicas
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost -u root"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: practicas_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/sistema_practicas?allowPublicKeyRetrieval=true&useSSL=false
+      - CHATBOT_URL=http://chatbot:8000
+      - JWT_SECRET=${JWT_SECRET:?Configura JWT_SECRET en .env}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - SUPPORT_COORDINATOR_NAME=${SUPPORT_COORDINATOR_NAME:-}
+      - SUPPORT_COORDINATOR_EMAIL=${SUPPORT_COORDINATOR_EMAIL:-}
+      - SUPPORT_COORDINATOR_PHONE=${SUPPORT_COORDINATOR_PHONE:-}
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD:?Configura MYSQL_ROOT_PASSWORD en .env}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=true
+    volumes:
+      - backend_uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: practicas_frontend
+    ports:
+      - "8008:80"
+    depends_on:
+      - backend
+      - chatbot
+    restart: unless-stopped
+
+  chatbot:
+    build: ./chatbot
+    container_name: practicas_chatbot
+    environment:
+      - BACKEND_URL=http://backend:8080
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODELS=${GEMINI_MODELS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite}
+    restart: unless-stopped
+
+  backup:
+    image: mysql:8.4
+    profiles: [maintenance]
+    entrypoint: ["/bin/bash"]
+    command: ["/scripts/backup.sh"]
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Configura MYSQL_ROOT_PASSWORD en .env}
+      DB_NAME: sistema_practicas
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - backend_uploads:/uploads
+      - ${BACKUP_DIRECTORY:-./backups}:/backups
+      - ./backup:/scripts:ro
+
+volumes:
+  db_data:
+  backend_uploads:

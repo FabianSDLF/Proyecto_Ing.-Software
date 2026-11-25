@@ -1,9 +1,12 @@
 package com.ubb.practicas.controller;
 
+import com.ubb.practicas.dto.BatchImportResultDto;
 import com.ubb.practicas.dto.UserProfileUpdateRequest;
 import com.ubb.practicas.exception.BadRequestException;
+import com.ubb.practicas.exception.FileProcessingException;
 import com.ubb.practicas.exception.UnauthorizedException;
 import com.ubb.practicas.model.User;
+import com.ubb.practicas.service.UserBatchImportService;
 import com.ubb.practicas.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +24,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final UserBatchImportService userBatchImportService;
 
     @GetMapping
     public ResponseEntity<List<User>> obtenerTodosUsuarios() {
@@ -38,9 +43,34 @@ public class UserController {
     }
 
     @PostMapping("/carga-masiva")
-    public ResponseEntity<Map<String, String>> cargaMasivaUsuarios(@RequestParam("archivo") MultipartFile archivo) {
-        userService.procesarArchivoMasivo(archivo);
-        return ResponseEntity.ok(Map.of("message", "Usuarios cargados exitosamente de forma masiva."));
+    public ResponseEntity<Map<String, Object>> cargaMasivaUsuarios(@RequestParam("archivo") MultipartFile archivo) {
+        BatchImportResultDto result = userBatchImportService.importUsers(archivo);
+        if (result.getSuccessCount() == 0) {
+            String detail = result.getErrors().isEmpty()
+                    ? "No se importó ningún usuario válido."
+                    : String.join(" | ", result.getErrors());
+            throw new FileProcessingException("No se pudo importar ningún usuario: " + detail);
+        }
+
+        int createdCount = result.getCreatedUserEmails() != null ? result.getCreatedUserEmails().size() : 0;
+        int updatedCount = result.getUpdatedUserEmails() != null ? result.getUpdatedUserEmails().size() : 0;
+        String message = result.getFailureCount() > 0
+                ? String.format("Importación parcial: %d creados, %d actualizados y %d rechazados.",
+                        createdCount, updatedCount, result.getFailureCount())
+                : String.format("Importación completada: %d creados y %d actualizados.",
+                        createdCount, updatedCount);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", message);
+        body.put("totalRecords", result.getTotalRecords());
+        body.put("successCount", result.getSuccessCount());
+        body.put("createdCount", createdCount);
+        body.put("updatedCount", updatedCount);
+        body.put("failureCount", result.getFailureCount());
+        body.put("errors", result.getErrors());
+        body.put("createdUserEmails", result.getCreatedUserEmails());
+        body.put("updatedUserEmails", result.getUpdatedUserEmails());
+        return ResponseEntity.ok(body);
     }
 
     @PutMapping("/{id}/rol")

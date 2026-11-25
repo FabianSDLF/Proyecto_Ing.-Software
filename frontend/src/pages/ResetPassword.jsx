@@ -58,20 +58,21 @@ export default function ResetPassword() {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            <div className="hidden md:flex md:w-1/2 bg-[#003B70] items-center justify-center relative overflow-hidden">
+        <div className="flex min-h-dvh bg-gray-50">
+            <div className="hidden lg:flex lg:w-1/2 bg-[#003B70] items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[#003B70] opacity-60 z-10"></div>
                 <img src={loginImage} alt="Universidad del Bío-Bío" className="absolute inset-0 object-cover w-full h-full z-0" />
-                <div className="relative z-20 text-white p-12 text-center">
-                    <h1 className="text-5xl font-extrabold mb-6 tracking-widest text-orange-500">PITAGORAS</h1>
+                <div className="relative z-20 min-w-0 text-white p-6 xl:p-12 text-center">
+                    <h1 className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-widest text-orange-500">PITAGORAS</h1>
                     <p className="text-xl font-light text-gray-200">Plataforma de Gestión Académica y Portafolio Digital</p>
                 </div>
             </div>
 
-            <div className="flex flex-1 items-center justify-center w-full md:w-1/2">
-                <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-2xl">
+            <div className="flex flex-1 min-w-0 items-center justify-center w-full lg:w-1/2 p-4 sm:p-6">
+                <div className="w-full max-w-md bg-white p-6 sm:p-8 xl:p-10 rounded-2xl shadow-2xl">
                     <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Crear Nueva Contraseña</h2>
+                        <p className="lg:hidden text-sm font-extrabold tracking-widest text-brand mb-4">PITAGORAS</p>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-brand mb-2">Crear Nueva Contraseña</h2>
                         <p className="text-gray-500">Ingresa tu nueva contraseña para acceder al sistema.</p>
                     </div>
 

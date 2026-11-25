@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useId } from 'react';
+
+const openDialogs = [];
 
 /**
  * Accessible Modal Dialog Component
@@ -21,34 +23,36 @@ export default function Modal({
 }) {
   const dialogRef = useRef(null);
 
-  // Keyboard navigation: Escape key closes modal
+  const titleId = useId();
+  const descriptionId = useId();
+  const closeRef = useRef(onClose);
+  useLayoutEffect(() => { closeRef.current = onClose; }, [onClose]);
   useEffect(() => {
     if (!isOpen) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
+    const opener = document.activeElement;
+    const token = {};
+    openDialogs.push(token);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.focus();
+    const handleKeyDown = e => {
+      if (openDialogs.at(-1) !== token) return;
+      if (e.key === 'Escape') { e.stopPropagation(); closeRef.current(); }
+      if (e.key === 'Tab') {
+        const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')].filter(n => !n.hidden);
+        const first = nodes[0], last = nodes.at(-1);
+        if (!first) { e.preventDefault(); dialogRef.current.focus(); return; }
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { e.preventDefault(); last.focus(); }
+        if (!e.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { e.preventDefault(); first.focus(); }
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keydown', handleKeyDown);
     return () => {
+      openDialogs.splice(openDialogs.indexOf(token), 1);
       window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+      if (opener?.isConnected) opener.focus();
     };
-  }, [isOpen, onClose]);
-
-  // Lock body scroll when modal is active
-  useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -69,27 +73,28 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-hidden"
       onClick={handleBackdropClick}
       aria-modal="true"
       role="dialog"
-      aria-labelledby={title ? 'modal-dialog-title' : undefined}
-      aria-describedby={description ? 'modal-dialog-description' : undefined}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={description ? descriptionId : undefined}
     >
       <div
         ref={dialogRef}
-        className={`relative w-full ${sizeClasses} bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 md:p-8 my-8 transform transition-all animate-in fade-in zoom-in-95 ${className}`}
+        tabIndex={-1}
+        className={`relative min-w-0 w-full ${sizeClasses} bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 md:p-8 my-2 max-h-[calc(100dvh-2rem)] overflow-y-auto [overflow-wrap:anywhere] ${className}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-5 border-b pb-4 border-gray-100">
-          <div>
+          <div className="min-w-0">
             {title && (
-              <h2 id="modal-dialog-title" className="text-2xl font-bold text-gray-900 tracking-tight">
+              <h2 id={titleId} className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
                 {title}
               </h2>
             )}
             {description && (
-              <p id="modal-dialog-description" className="text-sm text-gray-500 mt-1">
+              <p id={descriptionId} className="text-sm text-gray-500 mt-1">
                 {description}
               </p>
             )}
@@ -98,7 +103,7 @@ export default function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ml-4 cursor-pointer"
+              className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors ml-2 cursor-pointer"
               aria-label="Cerrar modal"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -179,10 +179,10 @@ export default function GestionRoles() {
     ), [roles]);
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="page-shell">
+            <div className="flex flex-wrap gap-3 justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Gestión de Usuarios</h1>
+                    <h1 className="page-title">Gestión de Usuarios</h1>
                     <p className="text-gray-500 mt-1">Administra cuentas, roles y estados de los usuarios del sistema.</p>
                 </div>
                 <Button 
@@ -267,10 +267,11 @@ export default function GestionRoles() {
 
             {/* Tabla de Usuarios */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <div className="flex items-center space-x-3 mb-4">
-                    <label className="font-semibold text-gray-700">Filtrar por Rol:</label>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <label htmlFor="user-role-filter" className="font-semibold text-gray-700">Filtrar por Rol:</label>
                     <select
-                        className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer w-auto shadow-sm"
+                        id="user-role-filter"
+                        className="w-full min-w-0 max-w-full sm:w-auto border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
                         value={filtroRol}
                         onChange={(e) => setFiltroRol(e.target.value)}
                     >

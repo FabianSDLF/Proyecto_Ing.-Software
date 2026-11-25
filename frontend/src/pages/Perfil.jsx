@@ -80,10 +80,10 @@ export default function Perfil() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <h1 className="text-3xl font-bold text-[#003B70] mb-8">Mi Perfil</h1>
+        <div className="page-shell max-w-3xl">
+            <h1 className="page-title">Mi Perfil</h1>
             
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <Input 
                         label="Nombre Completo"

@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand: #003b70;
+}
+
+@layer base {
+  *, ::before, ::after { border-color: var(--color-slate-200); }
+  body { @apply bg-gray-50 text-slate-700 antialiased; }
+  table { overflow-wrap: normal; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--color-blue-600); outline-offset: 3px; }
+  main textarea { @apply rounded-xl border-slate-300 bg-white p-3; }
+}
+
+@layer components {
+  .page-shell { @apply mx-auto w-full min-w-0 max-w-7xl space-y-6; }
+  .page-title { @apply text-2xl font-bold tracking-tight text-brand sm:text-3xl; }
+  .surface { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
+  .field-control { @apply block min-h-11 w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100; }
+}

@@ -14,6 +14,7 @@ export default function GestionAsignaturas() {
   const [code, setCode] = useState('');
   const [cycle, setCycle] = useState('INICIAL');
   const [professorId, setProfessorId] = useState('');
+  const [professionalRubrics, setProfessionalRubrics] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -46,6 +47,8 @@ export default function GestionAsignaturas() {
   const [editingPeriod, setEditingPeriod] = useState(null);
   const [periodToDelete, setPeriodToDelete] = useState(null);
   const [deletingPeriod, setDeletingPeriod] = useState(false);
+  const invalidPeriodDates = Boolean(periodForm.startDate && periodForm.endDate && periodForm.startDate > periodForm.endDate);
+  const periodDatesMessage = 'La fecha de término no puede ser anterior a la fecha de inicio.';
 
   const fetchAsignaturas = useCallback(async (signal) => {
     setLoadingData(true);
@@ -106,6 +109,7 @@ export default function GestionAsignaturas() {
         name: name.trim(),
         code: code.trim() || null,
         cycle,
+        professionalRubrics,
         professorId: professorId || null,
       });
       toast.success('Asignatura creada exitosamente');
@@ -127,6 +131,7 @@ export default function GestionAsignaturas() {
       name: subj.name || '',
       code: subj.code || '',
       cycle: subj.cycle || 'INICIAL',
+      professionalRubrics: Boolean(subj.professionalRubrics),
       professorId: subj.professor?.id || '',
     });
   };
@@ -169,6 +174,10 @@ export default function GestionAsignaturas() {
     e.preventDefault();
     if (!periodForm.name.trim()) {
       toast.error('El nombre del periodo es obligatorio (ej. 2026-2)');
+      return;
+    }
+    if (invalidPeriodDates) {
+      toast.error(periodDatesMessage);
       return;
     }
     setSavingPeriodo(true);
@@ -244,7 +253,6 @@ export default function GestionAsignaturas() {
 
   const cycleOptions = [
     { value: 'INICIAL', label: 'Inicial' },
-    { value: 'BASICO', label: 'Básico' },
     { value: 'INTERMEDIO', label: 'Intermedio' },
     { value: 'AVANZADO', label: 'Avanzado' },
   ];
@@ -255,7 +263,7 @@ export default function GestionAsignaturas() {
 
   const getCycleBadge = (cycleVal) => {
     const norm = (cycleVal || '').toUpperCase();
-    if (norm === 'INICIAL' || norm === 'BASICO') return <Badge variant="success">{cycleVal}</Badge>;
+    if (norm === 'INICIAL') return <Badge variant="success">Inicial</Badge>;
     if (norm === 'INTERMEDIO') return <Badge variant="warning">Intermedio</Badge>;
     if (norm === 'AVANZADO') return <Badge variant="primary">Avanzado</Badge>;
     return <Badge variant="gray">{cycleVal || 'Sin ciclo'}</Badge>;
@@ -378,14 +386,14 @@ export default function GestionAsignaturas() {
   ], []);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="page-shell">
       <div>
-        <h1 className="text-3xl font-extrabold text-blue-900 tracking-tight">Gestión de Asignaturas y Ciclos Académicos</h1>
+        <h1 className="page-title">Gestión de Asignaturas y Ciclos Académicos</h1>
         <p className="text-gray-500 mt-1">Configura las asignaturas por ciclo formativo, sus profesores responsables y los periodos semestrales activos.</p>
       </div>
 
       {/* Pestañas */}
-      <div className="flex border-b border-gray-200 gap-4">
+      <div className="flex flex-wrap border-b border-gray-200 gap-1 sm:gap-4">
         <button
           type="button"
           onClick={() => setActiveTab('ASIGNATURAS')}
@@ -412,9 +420,10 @@ export default function GestionAsignaturas() {
 
       {activeTab === 'ASIGNATURAS' && (
         <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Nueva Asignatura</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-end">
+              <label className="col-span-full"><input type="checkbox" checked={professionalRubrics} onChange={e => setProfessionalRubrics(e.target.checked)} /> Aplicar las ocho pautas de práctica profesional (2025-2)</label>
               <div>
                 <Input
                   label="Código"
@@ -423,7 +432,7 @@ export default function GestionAsignaturas() {
                   onChange={(e) => setCode(e.target.value)}
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2 xl:col-span-1">
                 <Input
                   label="Nombre"
                   placeholder="Ej: Práctica Pedagógica I"
@@ -450,7 +459,7 @@ export default function GestionAsignaturas() {
                   placeholder="-- Opcional --"
                 />
               </div>
-              <div className="md:col-span-5 flex justify-end">
+              <div className="col-span-full flex justify-end">
                 <Button
                   type="submit"
                   variant="primary"
@@ -478,8 +487,8 @@ export default function GestionAsignaturas() {
 
       {activeTab === 'PERIODOS' && (
         <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-wrap gap-3 items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-800">
                 {editingPeriod ? `Editando Periodo: ${editingPeriod.name}` : 'Nuevo Periodo Académico (Semestre)'}
               </h2>
@@ -503,7 +512,7 @@ export default function GestionAsignaturas() {
                 </Button>
               )}
             </div>
-            <form onSubmit={handleSavePeriod} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <form onSubmit={handleSavePeriod} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-end">
               <div>
                 <Input
                   label="Nombre (Ej: 2026-2)"
@@ -539,6 +548,7 @@ export default function GestionAsignaturas() {
                   label="Fecha Inicio"
                   type="date"
                   value={periodForm.startDate}
+                  max={periodForm.endDate || undefined}
                   onChange={(e) => setPeriodForm(prev => ({ ...prev, startDate: e.target.value }))}
                 />
               </div>
@@ -547,6 +557,8 @@ export default function GestionAsignaturas() {
                   label="Fecha Término"
                   type="date"
                   value={periodForm.endDate}
+                  min={periodForm.startDate || undefined}
+                  error={invalidPeriodDates ? periodDatesMessage : undefined}
                   onChange={(e) => setPeriodForm(prev => ({ ...prev, endDate: e.target.value }))}
                 />
               </div>
@@ -563,7 +575,7 @@ export default function GestionAsignaturas() {
                   placeholder={null}
                 />
               </div>
-              <div className="md:col-span-6 flex justify-end">
+              <div className="col-span-full flex justify-end">
                 <Button
                   type="submit"
                   variant="primary"
@@ -596,6 +608,7 @@ export default function GestionAsignaturas() {
         size="md"
       >
         <form onSubmit={handleSaveEditSubject} className="space-y-4">
+          <label className="block"><input type="checkbox" checked={Boolean(editSubjectForm.professionalRubrics)} onChange={e => setEditSubjectForm(prev => ({ ...prev, professionalRubrics: e.target.checked }))} /> Aplicar las ocho pautas de práctica profesional (2025-2)</label>
           <Input
             label="Código"
             value={editSubjectForm.code}

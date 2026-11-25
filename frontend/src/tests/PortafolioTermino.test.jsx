@@ -299,7 +299,7 @@ describe('HU19 E2E Frontend Suite: Subida de Documentos de Término de Práctica
 
       // Verify UI renders and handles empty state
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /documento de t[eé]rmino/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /informe de t[eé]rmino|documento de t[eé]rmino/i })).toBeInTheDocument();
       });
     });
 

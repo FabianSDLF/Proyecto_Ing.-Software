@@ -1,16 +1,24 @@
+import StatisticsPanel from '../components/StatisticsPanel';
+import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { BASE_URL } from '../services/apiClient';
 
 export default function Reportes() {
+    const { userRole } = useAuth();
+    if (["Administrador", "Coordinador de practicas"].includes(userRole)) return <StatisticsPanel />;
+    return <TeacherReports />;
+}
+
+function TeacherReports() {
     const [asignaciones, setAsignaciones] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [filtroPeriodo, setFiltroPeriodo] = useState('TODOS');
+    const [filtroPeriodo, setFiltroPeriodo] = useState('VIGENTE');
 
     useEffect(() => {
         const fetchDatos = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const respuesta = await fetch(`${BASE_URL}/api/asignaciones`, {
+                const respuesta = await fetch(`${BASE_URL}/api/asignaciones/visibles?history=true`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (respuesta.ok) {
@@ -29,7 +37,7 @@ export default function Reportes() {
     const handleExportarExcel = async () => {
         try {
             const token = localStorage.getItem('token');
-            const respuesta = await fetch(`${BASE_URL}/api/portafolio/export-csv`, {
+            const respuesta = await fetch(`${BASE_URL}/api/portafolio/export-csv?${filtroPeriodo === 'TODOS' ? 'history=true' : filtroPeriodo === 'VIGENTE' ? '' : 'periodId=' + encodeURIComponent(filtroPeriodo)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (respuesta.ok) {
@@ -49,37 +57,38 @@ export default function Reportes() {
         }
     };
 
-    const periodosUnicos = [...new Set(asignaciones.map(a => a.period?.name).filter(Boolean))];
-    const asignacionesFiltradas = filtroPeriodo === 'TODOS'
+    const periodosUnicos = [...new Set(asignaciones.map(a => a.period?.id).filter(Boolean))];
+    const asignacionesFiltradas = filtroPeriodo === 'VIGENTE' ? asignaciones.filter(a => a.status === 'ACTIVA' && (!a.period || a.period.status === 'ACTIVO')) : filtroPeriodo === 'TODOS'
         ? asignaciones
-        : asignaciones.filter(a => a.period?.name === filtroPeriodo);
+        : asignaciones.filter(a => String(a.period?.id) === String(filtroPeriodo));
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="page-shell">
+            <div className="flex flex-wrap gap-4 justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">Reporte Institucional</h1>
+                    <h1 className="page-title">Reporte Institucional</h1>
                     <p className="text-gray-500 mt-2">Visualiza el estado de las prácticas y exporta la data centralizada.</p>
                 </div>
                 <button
                     onClick={handleExportarExcel}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center gap-2"
                 >
-                    📊 Descargar CSV / Excel
+                    📊 Descargar CSV
                 </button>
             </div>
 
             <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
-                <div className="flex items-center space-x-3 px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50">
+                <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 pt-5 pb-4 border-b border-gray-100 bg-gray-50">
                     <label className="font-semibold text-gray-700">Filtrar por Periodo:</label>
                     <select
-                        className="border border-gray-300 bg-white text-gray-800 rounded-lg py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer w-auto shadow-sm"
+                        className="field-control sm:w-auto"
                         value={filtroPeriodo}
                         onChange={(e) => setFiltroPeriodo(e.target.value)}
                     >
+                        <option value="VIGENTE">Periodo vigente</option>
                         <option value="TODOS">Todos los periodos</option>
                         {periodosUnicos.map(periodo => (
-                            <option key={periodo} value={periodo}>{periodo}</option>
+                            <option key={periodo} value={periodo}>{asignaciones.find(a => a.period?.id === periodo)?.period?.name}</option>
                         ))}
                     </select>
                 </div>

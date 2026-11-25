@@ -1,6 +1,5 @@
 package com.ubb.practicas.dto;
 
-import com.ubb.practicas.model.enums.AchievementLevel;
 import com.ubb.practicas.model.enums.EvaluationType;
 import lombok.Data;
 import java.util.List;
@@ -9,6 +8,8 @@ import java.util.List;
 public class EvaluationCreateDTO {
     private Long practiceAssignmentId;
     private EvaluationType type;
+    private String rubricVersion;
+    private Long expectedRevision;
     private Float score;
     private String qualitativeComments;
     private Boolean isFinalized;

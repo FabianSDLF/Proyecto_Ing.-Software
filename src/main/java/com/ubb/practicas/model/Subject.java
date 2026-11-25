@@ -30,6 +30,23 @@ public class Subject {
 
     private String code;
 
+    /** Configuración explícita: un ciclo avanzado no implica práctica profesional. */
+    private Boolean professionalRubrics;
+
+    @PrePersist
+    void initializeRubricConfiguration() {
+        if (professionalRubrics == null) professionalRubrics = false;
+    }
+
+    public Subject(Long id, String name, PracticeCycle cycle, String code, User professor) {
+        this.id = id;
+        this.name = name;
+        this.cycle = cycle;
+        this.code = code;
+        this.professor = professor;
+        this.professionalRubrics = false;
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professor_id")
     @ToString.Exclude

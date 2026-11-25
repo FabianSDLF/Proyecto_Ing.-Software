@@ -3,11 +3,15 @@ package com.ubb.practicas.service.impl;
 import com.ubb.practicas.dto.DownloadedDocument;
 import com.ubb.practicas.exception.BadRequestException;
 import com.ubb.practicas.exception.ResourceConflictException;
+import com.ubb.practicas.model.ChatbotLog;
+import com.ubb.practicas.model.LessonPlan;
 import com.ubb.practicas.model.PortfolioDocument;
 import com.ubb.practicas.model.PracticeAssignment;
 import com.ubb.practicas.model.User;
 import com.ubb.practicas.model.enums.AssignmentStatus;
 import com.ubb.practicas.model.enums.DocumentType;
+import com.ubb.practicas.repository.ChatbotLogRepository;
+import com.ubb.practicas.repository.ChatbotMessageRepository;
 import com.ubb.practicas.repository.LessonPlanRepository;
 import com.ubb.practicas.repository.PortfolioDocumentRepository;
 import com.ubb.practicas.repository.PracticeAssignmentRepository;
@@ -20,12 +24,15 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -45,6 +52,30 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final EmailService emailService;
+    private final ChatbotLogRepository chatbotLogRepository;
+    private final ChatbotMessageRepository chatbotMessageRepository;
+
+    private void deletePhysicalFileAfterCommit(String storedFileName) {
+        if (storedFileName == null || storedFileName.isBlank()) {
+            return;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        storageService.deleteFile(storedFileName);
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
+        } else {
+            try {
+                storageService.deleteFile(storedFileName);
+            } catch (Exception ignored) {
+            }
+        }
+    }
 
     private PracticeAssignment resolveAssignment(String email, Long explicitAssignmentId) {
         if (explicitAssignmentId != null) {
@@ -147,13 +178,43 @@ public class PortfolioServiceImpl implements PortfolioService {
             throw new AccessDeniedException("No tiene permisos para eliminar este documento");
         }
 
-        storageService.deleteFile(doc.getStoredFileName());
+        String storedFileName = doc.getStoredFileName();
 
         if (doc.getType() == DocumentType.PLANIFICACION) {
-            lessonPlanRepository.findByDocumentId(doc.getId()).ifPresent(lessonPlanRepository::delete);
+            lessonPlanRepository.findByDocumentId(doc.getId()).ifPresent(plan -> {
+                List<LessonPlan> children = lessonPlanRepository.findByParentPlanId(plan.getId());
+                if (children != null && !children.isEmpty()) {
+                    for (LessonPlan child : children) {
+                        child.setParentPlan(plan.getParentPlan());
+                    }
+                    lessonPlanRepository.saveAll(children);
+                }
+                if (chatbotLogRepository != null) {
+                    List<ChatbotLog> logs = chatbotLogRepository.findByLessonPlanId(plan.getId());
+                    if (logs != null && !logs.isEmpty()) {
+                        List<Long> logIds = logs.stream()
+                                .map(ChatbotLog::getId)
+                                .filter(Objects::nonNull)
+                                .toList();
+                        if (!logIds.isEmpty() && chatbotMessageRepository != null) {
+                            chatbotMessageRepository.deleteByChatbotLogIdIn(logIds);
+                        }
+                        chatbotLogRepository.deleteAll(logs);
+                    }
+                }
+                plan.setDocument(null);
+                lessonPlanRepository.delete(plan);
+                lessonPlanRepository.flush();
+            });
         }
 
         portfolioDocumentRepository.delete(doc);
+        portfolioDocumentRepository.flush();
+
+        if (storedFileName != null && !storedFileName.isBlank()
+                && portfolioDocumentRepository.countByStoredFileName(storedFileName) == 0) {
+            deletePhysicalFileAfterCommit(storedFileName);
+        }
     }
 
     // ==========================================
@@ -234,26 +295,25 @@ public class PortfolioServiceImpl implements PortfolioService {
 
             PortfolioDocument savedDoc = portfolioDocumentRepository.save(docToUpdate);
 
-            // Una vez guardado exitosamente el nuevo archivo y la entidad, eliminar el archivo previo
-            if (oldStoredFileName != null && !oldStoredFileName.equals(storedFileName)) {
-                try {
-                    storageService.deleteFile(oldStoredFileName);
-                } catch (Exception ignored) {
-                }
-            }
-
             // Si existiesen duplicados previos, removerlos para mantener unicidad estricta
+            java.util.List<String> filesToDeleteAfterCommit = new java.util.ArrayList<>();
+            if (oldStoredFileName != null && !oldStoredFileName.equals(storedFileName)) {
+                filesToDeleteAfterCommit.add(oldStoredFileName);
+            }
             for (int i = 1; i < existingFinalDocs.size(); i++) {
                 PortfolioDocument extra = existingFinalDocs.get(i);
-                if (extra.getStoredFileName() != null) {
-                    try {
-                        storageService.deleteFile(extra.getStoredFileName());
-                    } catch (Exception ignored) {
-                    }
+                if (extra.getStoredFileName() != null && !extra.getStoredFileName().equals(storedFileName)) {
+                    filesToDeleteAfterCommit.add(extra.getStoredFileName());
                 }
                 portfolioDocumentRepository.delete(extra);
             }
             portfolioDocumentRepository.flush();
+
+            for (String fileToDelete : filesToDeleteAfterCommit) {
+                if (portfolioDocumentRepository.countByStoredFileName(fileToDelete) == 0) {
+                    deletePhysicalFileAfterCommit(fileToDelete);
+                }
+            }
 
             return savedDoc;
         }
@@ -318,13 +378,13 @@ public class PortfolioServiceImpl implements PortfolioService {
             throw new BadRequestException("El documento no corresponde a un documento de término.");
         }
 
-        if (doc.getStoredFileName() != null) {
-            try {
-                storageService.deleteFile(doc.getStoredFileName());
-            } catch (Exception ignored) {
-            }
-        }
+        String storedFileName = doc.getStoredFileName();
         portfolioDocumentRepository.delete(doc);
+        portfolioDocumentRepository.flush();
+        if (storedFileName != null && !storedFileName.isBlank()
+                && portfolioDocumentRepository.countByStoredFileName(storedFileName) == 0) {
+            deletePhysicalFileAfterCommit(storedFileName);
+        }
     }
 
     @Override

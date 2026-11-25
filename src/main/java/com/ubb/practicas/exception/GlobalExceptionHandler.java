@@ -57,6 +57,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             BadRequestException.class,
             IllegalArgumentException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
             FileProcessingException.class,
             UnsupportedFileFormatException.class
     })
@@ -173,7 +174,9 @@ public class GlobalExceptionHandler {
             ResourceConflictException.class,
             EmailAlreadyInUseException.class,
             IllegalStateException.class,
-            DataIntegrityViolationException.class
+            DataIntegrityViolationException.class,
+            org.springframework.dao.OptimisticLockingFailureException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class
     })
     public ResponseEntity<ApiErrorResponse> handleConflict(Exception ex, HttpServletRequest request) {
         log.warn("Conflicto de estado o integridad [{}]: {}", request.getRequestURI(), ex.getMessage());

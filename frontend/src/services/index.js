@@ -5,5 +5,7 @@ export { default as assignmentService } from './assignmentService';
 export { default as portfolioService } from './portfolioService';
 export { default as subjectService } from './subjectService';
 export { default as centerService } from './centerService';
+export { default as cycleService } from './cycleService';
 export { default as chatbotService } from './chatbotService';
 export { default as evaluationService } from './evaluationService';
+export { default as notificacionService } from './notificacionService';

@@ -1,5 +1,6 @@
 package com.ubb.practicas.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ubb.practicas.model.enums.AchievementLevel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,7 +27,17 @@ public class EvaluationCriteria {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evaluation_id")
     @ToString.Exclude
+    @JsonIgnore
     private Evaluation evaluation;
+
+    @Column(name = "criterion_code", length = 50)
+    private String criterionCode;
+
+    @Column(name = "dimension", length = 50)
+    private String dimension;
+
+    @Column(name = "display_order")
+    private Integer displayOrder;
 
     private String criteriaName;
 
@@ -37,4 +48,20 @@ public class EvaluationCriteria {
 
     @Column(length = 1000)
     private String justification;
+
+    public EvaluationCriteria(
+            Long id,
+            Evaluation evaluation,
+            String criteriaName,
+            AchievementLevel achievementLevel,
+            Float points,
+            String justification
+    ) {
+        this.id = id;
+        this.evaluation = evaluation;
+        this.criteriaName = criteriaName;
+        this.achievementLevel = achievementLevel;
+        this.points = points;
+        this.justification = justification;
+    }
 }

@@ -167,6 +167,7 @@ public class DataSeeder {
                 Subject s3 = new Subject(null, "Práctica Pedagógica Intermedia: Diseño y Transposición Didáctica", PracticeCycle.INTERMEDIO, "PEM-210", profIntermedio);
                 Subject s4 = new Subject(null, "Práctica Pedagógica Intermedia: Gestión y Evaluación de Aula", PracticeCycle.INTERMEDIO, "PEM-220", profIntermedio);
                 Subject s5 = new Subject(null, "Práctica Profesional y Síntesis Curricular", PracticeCycle.AVANZADO, "PEM-310", profAvanzado);
+                s5.setProfessionalRubrics(true);
                 subjectRepository.saveAll(List.of(s1, s2, s3, s4, s5));
             }
 

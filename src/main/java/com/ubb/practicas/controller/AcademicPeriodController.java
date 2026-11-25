@@ -42,6 +42,7 @@ public class AcademicPeriodController {
         if (period.getName() == null || period.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre del periodo académico es obligatorio (ej. 2026-2)");
         }
+        validarFechas(period);
         period.setId(null);
         period.setName(period.getName().trim());
         if (period.getStatus() == null) {
@@ -57,6 +58,7 @@ public class AcademicPeriodController {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'Administrador', 'COORDINADOR_DE_PRACTICAS', 'Coordinador de practicas')")
     public ResponseEntity<AcademicPeriod> actualizarPeriodo(@PathVariable Long id, @RequestBody AcademicPeriod datos) {
+        validarFechas(datos);
         AcademicPeriod existing = periodRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Periodo académico no encontrado"));
 
@@ -115,6 +117,13 @@ public class AcademicPeriodController {
             throw new IllegalStateException("No se puede eliminar el periodo porque tiene registros asociados.", e);
         }
         return ResponseEntity.ok(Map.of("message", "Periodo académico eliminado exitosamente"));
+    }
+
+    private void validarFechas(AcademicPeriod period) {
+        if (period.getStartDate() != null && period.getEndDate() != null
+                && period.getStartDate().isAfter(period.getEndDate())) {
+            throw new IllegalArgumentException("La fecha de término no puede ser anterior a la fecha de inicio.");
+        }
     }
 
     private void desactivarOtrosPeriodosActivos(Long excludeId) {
