@@ -46,7 +46,10 @@ Imágenes desplegadas:
 3. La sesión SSH se cerró al terminar. No se instaló ni configuró `ssh-agent`, y no se modificaron servicios de Windows.
 4. No se publicó una versión en `main`. Las pruebas de cinco roles, F01–F14, descarga ZIP, formatos de pantalla y Gemini real fueron ejecutadas por Antigravity sobre `ceedbb3`:
    - **Aprobado en Pacheco:** bundle `/assets/index-1m5II2gH.js`, F01–F14 (incluyendo Gemini real `is_mock: false` en `/chatbot/api/chat` y `/chatbot/api/evaluar-planificacion`, F14 con revisión IA real y con versiones compartiendo adjunto), descarga ZIP del profesor y vistas responsivas (`1440×900`, `768×1024`, `844×390`, `320×740`).
-   - **Nuevo hallazgo bloqueante para pautas profesionales (F15):** `POST /api/evaluaciones` con `TUTOR_ESP_1` devuelve HTTP 500 en MySQL de Pacheco (mientras `RUBRICA_INFORME` devuelve 200 y H2 local aprueba) por columna `evaluaciones.type` con `ENUM` heredado. Requiere migración `V8` (`MODIFY COLUMN type VARCHAR(50)`).
-   - **Observación chatbot archivo:** `POST /chatbot/api/chat-archivo` respondió HTTP 200 con `is_mock: true`.
+   - **Nuevo hallazgo bloqueante para pautas profesionales (F15) y `/chatbot/api/chat-archivo` — CORREGIDO Y VALIDADO EN PACHECO (`testing @ 237c25a`):**
+     - Desplegado en `~/pitagoras-testing-237c25a/pitagoras` (ZIP POSIX `pitagoras-pacheco-2026-11-24-237c25a.zip`, SHA-256 `8a3d22a5f87e732506cbb5a696ed45e93edf6e603f3a72825729d088a915d583`, con `flyway-ubb/migrations/V8__ampliar_columna_tipo_evaluacion.sql`).
+     - Reconstruidos `backend` (`5434843f4aa8`) y `chatbot` (`0a812e3138d3`), reiniciado `practicas_frontend` para refrescar DNS interno, conservando `.env`, `.compose-project`, `.compose-compat`, `rollback-ceedbb3` y los volúmenes `pitagoras_db_data` y `pitagoras_backend_uploads`.
+     - **F15 validado en Pacheco:** `POST /api/evaluaciones` con `TUTOR_ESP_1` sobre asignación QA `9` devolvió `200` (`evalId: 4`), firma digital `200` (`score: 5.9`, `finalizedAt: 2026-11-25T00:58:23.204390926Z`), y re-edición post-firma bloqueada con `409`.
+     - **`/chatbot/api/chat-archivo` validado en Pacheco:** devolvió `200` con **Gemini real (`is_mock: false`)** y fuentes RAG oficiales (`answerLen: 3522`).
 
 Usar como matriz [PRUEBAS_FUNCIONALES_ROLES_2026-11-24.md](PRUEBAS_FUNCIONALES_ROLES_2026-11-24.md). Los resultados distinguiendo comprobación local y validación efectiva en Pacheco ya fueron incorporados en dicho informe y en [PENDIENTES_PACHECO_2026-11-25.md](PENDIENTES_PACHECO_2026-11-25.md).

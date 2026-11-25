@@ -8,12 +8,12 @@ Informe preparado el 24 de noviembre de 2026. Sitio: http://pacheco.chillan.ubio
 
 ## Estado de la entrega
 
-`testing @ ceedbb3` está desplegado en Pacheco (`~/pitagoras-testing-ceedbb3/pitagoras`). Se corrigieron en `testing` los tres puntos detectados durante la validación en servidor:
-1. **F15:** nueva migración Flyway `V8__ampliar_columna_tipo_evaluacion.sql` (sincronizada también en `flyway-ubb/migrations/` por `Package-Pacheco.ps1` sin tocar `V1`–`V7`).
-2. **`/chatbot/api/chat-archivo`:** integrado con Gemini real (`is_mock: false`) cuando hay clave configurada, conservando respaldo heurístico.
-3. **Empaquetador ZIP POSIX:** `scripts/Package-Pacheco.ps1` genera entradas con `/` (sin barras invertidas de Windows).
+`testing @ 237c25a` está **desplegado y validado en Pacheco** (`~/pitagoras-testing-237c25a/pitagoras`), con los 15 hallazgos **F01–F15** aprobados en el servidor:
+1. **F01–F14:** validados en navegador y API (incluyendo Gemini real `is_mock: false` en `/api/chat`, `/api/evaluar-planificacion` y `/api/chat-archivo`, descarga ZIP y 4 tamaños de pantalla).
+2. **F15:** resuelto con migración Flyway `V8__ampliar_columna_tipo_evaluacion.sql` y validado en Pacheco (`TUTOR_ESP_1` guardado `200`, firma `200` con `finalizedAt` UTC `Z`, bloqueo post-firma `409`).
+3. **Empaquetador ZIP POSIX:** `scripts/Package-Pacheco.ps1` genera rutas `/` sin barras invertidas.
 
-Se generó un nuevo paquete listo para subir a Pacheco (reconstruir `backend` y `chatbot`, conservando `.env`, `.compose-project`, `.compose-compat` y volúmenes). `main` sigue pendiente de las pruebas manuales de Fabián. No publicar en `main` hasta desplegar esta actualización y verificar `TUTOR_ESP_1` y `/api/chat-archivo` en Pacheco.
+`main` sigue pendiente únicamente de las pruebas manuales finales de Fabián. No publicar ni mezclar en `main` hasta su aprobación explícita.
 
 El usuario informó que no puede acceder por **SSH** desde su conexión actual y que no dispone de VPN. La aclaración se refiere a SSH; no demuestra una caída del sitio ni del contenedor del chatbot. Se retomará el acceso desde el wifi universitario.
 
