@@ -31,7 +31,7 @@
 		<!-- Versión fija para carga masiva de Excel -->
 		<poi.version>5.4.0</poi.version>
 		<!-- Versión fija para la gestión de tokens de seguridad -->
-		<jjwt.version>0.12.6</jjwt.version>
+		<jjwt.version>0.13.0</jjwt.version>
 	</properties>
 	<dependencies>
 		<dependency>
