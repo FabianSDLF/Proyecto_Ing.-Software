@@ -22,6 +22,13 @@ public class PracticeCenterController {
         return ResponseEntity.ok(practiceCenterService.listarCentros());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<PracticeCenter> obtenerCentro(@PathVariable Long id) {
+        PracticeCenter center = practiceCenterService.obtenerPorId(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Centro de práctica no encontrado"));
+        return ResponseEntity.ok(center);
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'Administrador', 'COORDINADOR_DE_PRACTICAS', 'Coordinador de practicas')")
     public ResponseEntity<PracticeCenter> crearCentro(@RequestBody PracticeCenter center) {

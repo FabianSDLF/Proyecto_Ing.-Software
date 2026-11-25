@@ -912,6 +912,8 @@ def configure_api_key(req: ApiKeyConfigRequest, request: Request):
 @app.post("/api/chat", response_model=ChatResponse)
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest, http_request: Request):
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
     session_id = owned_session(http_request, request.session_id)
     client = get_gemini_client()
 
