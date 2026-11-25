@@ -2,13 +2,18 @@
 
 Informe preparado el 24 de noviembre de 2026. Sitio: http://pacheco.chillan.ubiobio.cl:8008/.
 
-**Ampliación de pruebas por los cinco roles:** ver [la matriz funcional y los 14 hallazgos](PRUEBAS_FUNCIONALES_ROLES_2026-11-24.md). Los 14 hallazgos (F01–F14), incluyendo F14 (eliminación de planificación revisada y preservación de adjuntos), F06/F07 (permisos de comunicados y destinatarios), F01–F04 (autenticación de chatbot y supervisión de coordinación), F05/F08/F09/F12 y F10/F11/F13, **ya fueron corregidos y validados en local en `testing`** con 352 pruebas backend y 140 pruebas frontend aprobadas. Se generó un nuevo paquete listo para subir a Pacheco (conservando `flyway-ubb`). El paquete anterior `212535a` actualmente desplegado en Pacheco conserva los fallos documentados hasta aplicar la actualización.
+**Actualización del despliegue:** `ceedbb3` ya fue subido y desplegado por Codex; arranque confirmado a las 21:23 de Santiago del 24 de noviembre. Ver [DESPLIEGUE_PACHECO_2026-11-24.md](DESPLIEGUE_PACHECO_2026-11-24.md) para respaldo, imágenes, extracción del ZIP y estado real. Las pruebas funcionales en Pacheco corresponden a Antigravity. El chatbot informa `gemini_api_configured: false`, pendiente configurar clave para validar Gemini real. Las referencias posteriores a `212535a` describen el estado anterior a esta actualización.
+
+**Ampliación de pruebas por los cinco roles:** ver [la matriz funcional y los 14 hallazgos](PRUEBAS_FUNCIONALES_ROLES_2026-11-24.md). La versión `testing @ ceedbb3` ya fue desplegada y probada en Pacheco (`/assets/index-1m5II2gH.js`). **Los 14 hallazgos F01–F14 quedaron validados en Pacheco** (incluyendo Gemini real en chat y validador con `is_mock: false`, descarga ZIP y 4 tamaños de pantalla), pero se detectó un nuevo fallo de esquema MySQL (**F15 — Alta**): `POST /api/evaluaciones` con tipos profesionales nuevos (`TUTOR_ESP_1`, etc.) devuelve HTTP 500 en Pacheco (mientras `RUBRICA_INFORME` devuelve 200), porque la columna heredada `evaluaciones.type` en MySQL sigue como `ENUM` antiguo en lugar de `VARCHAR(50)`. También se observó que `/chatbot/api/chat-archivo` devolvió `is_mock: true`.
 
 ## Estado de la entrega
 
-Las tres correcciones iniciales (opción Básico inexistente, fechas invertidas y cierre de sesión fuera de pantalla) están desplegadas en Pacheco con `212535a`. Las correcciones de F01–F14 están confirmadas en `testing` y empaquetadas en un nuevo ZIP listo para desplegar desde la red universitaria.
+`testing @ ceedbb3` está desplegado en Pacheco (`~/pitagoras-testing-ceedbb3/pitagoras`). Se corrigieron en `testing` los tres puntos detectados durante la validación en servidor:
+1. **F15:** nueva migración Flyway `V8__ampliar_columna_tipo_evaluacion.sql` (sincronizada también en `flyway-ubb/migrations/` por `Package-Pacheco.ps1` sin tocar `V1`–`V7`).
+2. **`/chatbot/api/chat-archivo`:** integrado con Gemini real (`is_mock: false`) cuando hay clave configurada, conservando respaldo heurístico.
+3. **Empaquetador ZIP POSIX:** `scripts/Package-Pacheco.ps1` genera entradas con `/` (sin barras invertidas de Windows).
 
-`main` sigue pendiente de las pruebas manuales de Fabián. No publicar en `main` hasta completar la verificación manual sobre Pacheco.
+Se generó un nuevo paquete listo para subir a Pacheco (reconstruir `backend` y `chatbot`, conservando `.env`, `.compose-project`, `.compose-compat` y volúmenes). `main` sigue pendiente de las pruebas manuales de Fabián. No publicar en `main` hasta desplegar esta actualización y verificar `TUTOR_ESP_1` y `/api/chat-archivo` en Pacheco.
 
 El usuario informó que no puede acceder por **SSH** desde su conexión actual y que no dispone de VPN. La aclaración se refiere a SSH; no demuestra una caída del sitio ni del contenedor del chatbot. Se retomará el acceso desde el wifi universitario.
 

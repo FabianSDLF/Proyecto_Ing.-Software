@@ -200,13 +200,47 @@ Los 14 hallazgos documentados (F01 a F14) fueron corregidos en la rama `testing`
 | **F12** | Corregido y validado en local | `Evaluation.java` serializa `finalizedAt` en formato ISO-8601 UTC (`Z`); `evaluationFormat.js` convierte instantes con zona a `America/Santiago` (formato 24 h) sin alterar registros históricos sin zona. |
 | **F13** | Corregido y validado en local | `LocalStorageServiceImpl` lanza `UnsupportedFileFormatException` / `BadRequestException` (HTTP 400) para extensiones prohibidas, archivos vacíos y path traversal, reservando `StorageException` (500) para fallos reales de disco. |
 
-**Pendiente en Pacheco (tras desplegar el nuevo paquete):** verificación con Gemini real del servidor, descarga ZIP del profesor y pruebas manuales de Fabián antes de publicar en `main`. El despliegue actual `212535a` en Pacheco sigue conservando los fallos documentados hasta aplicar el nuevo paquete.
+**Validación efectiva en Pacheco (`testing @ ceedbb3`, 24 de noviembre de 2026, ~21:34–21:45 America/Santiago):**
+
+Se ejecutó la verificación completa en navegador real y por API sobre `http://pacheco.chillan.ubiobio.cl:8008/` confirmando la carga de `/assets/index-1m5II2gH.js`, las 5 cuentas de demostración (`coordinador@ubb.cl`, `profesor.avanzado@ubb.cl`, `tutor@ubb.cl`, `colaborador@ubb.cl`, `estudiante@ubb.cl`), los 4 tamaños de pantalla (`1440×900`, `768×1024`, `844×390`, `320×740`) y los 14 hallazgos F01–F14:
+
+- **F01 — Aprobado en Pacheco (con observación en adjuntos de chat):** `/chatbot/health` devolvió HTTP 200 (`status: healthy`, `gemini_api_configured: true`, `rag_chunks: 132`). Sin token devuelve HTTP 401. Con sesión válida de estudiante, `POST /chatbot/api/chat` (también comprobado en navegador en `/retroplani`) y `POST /chatbot/api/evaluar-planificacion` respondieron HTTP 200 con **Gemini real (`is_mock: false`)** y badge `production (Gemini + RetroPlani V3)`. Observación: `POST /chatbot/api/chat-archivo` devolvió HTTP 200 pero con `is_mock: true` (respuesta de respaldo); documentado para revisión futura del microservicio chatbot.
+- **F02 — Aprobado en Pacheco (navegador y API):** `GET /api/portafolio/asignacion/1/planificaciones` devolvió HTTP 200 a coordinación (pestaña Planificaciones cargó `v2` sin errores) y HTTP 403 a estudiante ajeno (`estudiante2@ubb.cl`).
+- **F03 — Aprobado en Pacheco (navegador):** en `/portafolio/estudiante/1` como coordinación, el encabezado mostró `Estudiante: Valentina Ignacia Castro Rivas` y `Práctica Pedagógica Intermedia: Diseño y Transposición Didáctica • Colegio Concepción San Pedro`.
+- **F04 — Aprobado en Pacheco (navegador):** botón `← Volver a Reportes` redirigió correctamente a `/reportes`.
+- **F05 — Aprobado en Pacheco (navegador):** en la pauta histórica publicada (`6.8`, vista de Tutor), el modal muestra `Registro histórico sin escala oficial documentada por indicador (solo lectura)`, valores `1 pts (histórico)` / `0.8 pts (histórico)`, sin `/ 7 pts` ni leyenda `2 a 7 puntos`, con controles deshabilitados.
+- **F06 — Aprobado en Pacheco (API):** `POST /api/notificaciones/comunicado` devolvió 401 sin sesión, 403 para estudiante (individual y `TODOS`), colaborador y tutor; 200 para coordinación y para `profesor.avanzado@ubb.cl` hacia destinatario QA en alcance, y 403 cuando el profesor intentó enviar fuera de su alcance (`estudiante1@ubb.cl`). No se enviaron comunicados generales.
+- **F07 — Aprobado en Pacheco (API):** `GET /api/notificaciones/destinatarios` devolvió 401 sin sesión, 403 para estudiante, colaborador y tutor; 200 para coordinación (`21` destinatarios) y profesor (`6` destinatarios en alcance), sin exponer `phone` ni `passwordHash`.
+- **F08 / F09 — Aprobado en Pacheco (navegador y API):** `/carga-masiva` muestra instrucciones de 4 columnas (`Nombre, Correo, Contraseña, Rol`) y botón `Descargar plantilla CSV`. Por API: CSV de 3 columnas (400), `.txt` (400), XLSX válido de 4 columnas (200, 1 creado), y CSV parcial de 4 columnas (200 con `createdCount: 1`, `failureCount: 1`, detalle `Fila 3 (...)` y persistencia exclusiva del usuario válido).
+- **F10 — Aprobado en Pacheco (navegador):** en `/mis-estudiantes` como Tutor, la estudiante de práctica intermedia sin pautas profesionales muestra el botón deshabilitado `Sin pautas configuradas`, conservando acceso a `Ver Oficial` en su pauta histórica.
+- **F11 — Aprobado en Pacheco (navegador):** en `/portafolio/nueva-planificacion`, los seis campos (`plan-oa-basal`, `plan-objetivo-especifico`, `plan-oat`, `plan-inicio`, `plan-desarrollo`, `plan-cierre`) tienen `<label for="...">` asociado a su `id`.
+- **F12 — Aprobado en Pacheco (API y navegador):** al finalizar la evaluación QA `id=3` (`RUBRICA_INFORME`), la API devolvió `finalizedAt: "2026-11-25T00:43:30.057323888Z"` (sufijo UTC `Z`), y en interfaz las fechas se muestran en hora local de Santiago (ej. pauta histórica `17-10-2026, 20:08:31`).
+- **F13 — Aprobado en Pacheco (API):** subir `qa.exe` a `/api/portafolio/evidencias/upload` devolvió HTTP 400 (no 500) con el detalle de formatos permitidos; archivo de 21 MB devolvió HTTP 400 con mensaje de tamaño máximo.
+- **F14 — Aprobado en Pacheco (API, ambos escenarios):**
+  - Planificación revisada con IA real (`is_mock: false`) y PDF adjunto: creación 200 → descarga 200 → revisión IA 200 → consulta revisión 200 → eliminación **200** → consulta posterior 404 y descarga posterior 404.
+  - Versiones compartiendo adjunto (`v1` id `8` y `v2` id `9`): al eliminar `v1` (200), el PDF de `v2` continuó descargando con **200**; al eliminar `v2` (200), el archivo quedó eliminado (404).
+- **Descarga ZIP del profesor — Aprobado en Pacheco (API y navegador):** botón visible en `/mis-estudiantes`; `GET /api/portafolio/download-zip?history=false` devolvió HTTP 200 (ZIP vacío válido de 22 bytes sin informes, y ZIP no vacío válido de 225 bytes con firma `PK\x03\x04` tras subir un informe final QA temporal, eliminado después).
+- **Responsivo (4 tamaños) — Aprobado en Pacheco (navegador):** en `1440×900`, `768×1024`, `844×390` y `320×740` (Inicio y Gestión de Usuarios), sin desplazamiento horizontal (`horizontalShifted=false`) y con botón `Cerrar sesión` visible tras desplazarse (directo en escritorio y en cajón `Menú` en tablet/móvil).
+
+### Nuevo hallazgo detectado en Pacheco (MySQL heredado)
+
+#### F15 — Alta — Creación de borradores de pautas profesionales nuevas (`TUTOR_ESP_1`, etc.) devuelve HTTP 500 en MySQL de Pacheco
+
+- **Entorno:** Reproducido en **Pacheco (MySQL 8 con esquema heredado `flyway-ubb`)**; **no se reproduce en local (H2)** donde las 352 pruebas (incluyendo `EvaluationWorkflowE2ETest`) pasan.
+- **Reproducción:** Como Tutor (`tutor@ubb.cl`), enviar `POST /api/evaluaciones` con `type: "TUTOR_ESP_1"` sobre la asignación profesional QA `id=9` (incluso con `criteria: []`). Devuelve **HTTP 500 Internal Server Error**. En cambio, sobre la misma asignación QA `id=9`, `POST /api/evaluaciones` como `profesor.avanzado@ubb.cl` con el tipo heredado `type: "RUBRICA_INFORME"` devuelve **HTTP 200** y permite guardar y firmar correctamente.
+- **Causa probable y cambio aplicado en `testing`:** En la base MySQL heredada de Pacheco, la columna `evaluaciones.type` conserva una definición `ENUM(...)` anterior a los 8 tipos profesionales (`TUTOR_ESP_1..2`, `TUTOR_ORI_1..2`, `COLAB_ESP_1..2`, `COLAB_ORI_1..2`). Se agregó la migración Flyway `V8__ampliar_columna_tipo_evaluacion.sql` (`ALTER TABLE evaluaciones MODIFY COLUMN type VARCHAR(50);` y `ALTER TABLE criterios_evaluacion MODIFY COLUMN achievement_level VARCHAR(50);`) y se actualizó `scripts/Package-Pacheco.ps1` para sincronizar automáticamente migraciones nuevas (`V8+`) dentro de `flyway-ubb/migrations/` sin alterar `V1`–`V7`, además de generar ZIP con rutas POSIX (`/`). También se actualizó `chatbot/main.py` (`/api/chat-archivo`) para usar Gemini real (`is_mock: false`) cuando la clave está configurada, con respaldo heurístico. Pendiente desplegar este paquete en Pacheco y validar `POST /api/evaluaciones` con `TUTOR_ESP_1` y `/chatbot/api/chat-archivo` con Gemini real antes de promover a `main`.
+
+### Registros QA sintéticos generados en esta verificación
+
+- Usuarios QA creados y **desactivados** (`active=false`): `qa261124c.alumno@ubb.cl` (`id=23`), `qa261124c.parcial.ok@ubb.cl`, `qa.excel.valido@example.test`, `qa261124d.alumno@ubb.cl` (`id=26`).
+- Asignaciones QA creadas y **canceladas** (`status=CANCELADA`): `id=8` y `id=9` (conserva evaluación QA `id=3` `RUBRICA_INFORME` firmada como evidencia de F12).
+- Planificaciones, informes finales y adjuntos sintéticos QA fueron eliminados durante las pruebas. Evidencias locales guardadas en `.verification/pacheco-ceedbb3-api-results.json`, `pacheco-ceedbb3-api-part2-results.json` y `pacheco-ceedbb3-api-part3-results.json`.
 
 ## Orden para mañana
 
-1. ~~Corregir F14 y añadir regresión que impida perder adjuntos cuando falle una transacción.~~ **(Completado y validado en local)**
-2. ~~Restringir comunicados y destinatarios (F06/F07) con pruebas de permisos por rol.~~ **(Completado y validado en local)**
-3. ~~Corregir chatbot y supervisión de coordinación (F01–F04).~~ **(Completado y validado en local)**
-4. ~~Corregir importación y presentación de evaluaciones (F05, F08/F09, F12).~~ **(Completado y validado en local)**
-5. ~~Revisar F10/F11/F13;~~ **(Completado y validado en local)**; repetir ZIP, Gemini real y flujos afectados en Pacheco desde la red universitaria.
-6. ~~Ejecutar regresiones y generar un paquete nuevo~~ **(Completado)**; subir y desplegar siguiendo [el procedimiento para Pacheco](PENDIENTES_PACHECO_2026-11-25.md), conservando `.env`, `.compose-project`, `.compose-compat` y los volúmenes existentes. Mantener `main` sin publicar hasta las pruebas manuales.
+1. ~~Corregir F14 y añadir regresión que impida perder adjuntos cuando falle una transacción.~~ **(Validado en Pacheco)**
+2. ~~Restringir comunicados y destinatarios (F06/F07) con pruebas de permisos por rol.~~ **(Validado en Pacheco)**
+3. ~~Corregir chatbot y supervisión de coordinación (F01–F04).~~ **(Validado en Pacheco; revisar `is_mock: true` en `/api/chat-archivo`)**
+4. ~~Corregir importación y presentación de evaluaciones (F05, F08/F09, F12).~~ **(Validado en Pacheco)**
+5. ~~Revisar F10/F11/F13 y repetir ZIP y vistas responsivas en Pacheco.~~ **(Validado en Pacheco)**
+6. **Resolver F15** (migración `V8` para `evaluaciones.type` a `VARCHAR(50)` en MySQL), volver a empaquetar/desplegar en `testing` y probar creación/firma de `TUTOR_ESP_1` y `COLAB_ESP_1` en Pacheco antes de publicar en `main`.

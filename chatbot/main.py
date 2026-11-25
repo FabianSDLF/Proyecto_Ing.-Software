@@ -990,6 +990,40 @@ async def chat_con_archivo_endpoint(
             is_mock=True
         )
 
+    client = get_gemini_client()
+    if client:
+        fragmentos_pdf = buscar_en_recursos_pdf(f"{message} {texto_extraido[:600]}", top_k=3)
+        fuentes_usadas = list(dict.fromkeys([f["source"] for f in fragmentos_pdf]))
+        try:
+            contexto_rag = ""
+            if fragmentos_pdf:
+                contexto_rag = "\n\nFRAGMENTOS RECUPERADOS DE LOS DOCUMENTOS OFICIALES UBB/MINEDUC:\n" + "\n".join(
+                    f"[{f['source']} - pág. {f['page']}]: {f['text'][:600]}" for f in fragmentos_pdf
+                )
+            prev_id = SESSION_INTERACTION_IDS.get(session_id)
+            create_kwargs = {
+                "system_instruction": SYSTEM_INSTRUCTION_RETROPLANI_V3 + contexto_rag,
+                "input": (
+                    f"{message}\n\n"
+                    f"ARCHIVO ADJUNTO (`{filename}`):\n"
+                    f"{texto_extraido[:8000]}"
+                ),
+            }
+            if prev_id:
+                create_kwargs["previous_interaction_id"] = prev_id
+
+            interaction = crear_interaccion_gemini(client, **create_kwargs)
+            if getattr(interaction, "id", None):
+                SESSION_INTERACTION_IDS[session_id] = interaction.id
+
+            return ChatResponse(
+                answer=interaction.output_text,
+                is_mock=False,
+                sources=fuentes_usadas
+            )
+        except Exception as e:
+            logger.error("Gemini no disponible en /api/chat-archivo (%s). Usando Motor RetroPlani Mate V3.", type(e).__name__)
+
     texto_norm = normalizar_texto(texto_extraido)
     tiene_objetivo = any(k in texto_norm for k in ["objetivo", "oa ", "aprendizaje"])
     tiene_inicio = "inicio" in texto_norm

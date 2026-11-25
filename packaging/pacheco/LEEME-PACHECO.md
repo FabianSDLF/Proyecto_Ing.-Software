@@ -15,7 +15,7 @@ El frontend usa `/api` y `/chatbot` del mismo servidor mediante Nginx. El servid
 
 ## Base de datos y compatibilidad
 
-El JAR incluye las migraciones V1 a V7 y mantiene su validación. Consulta `docs/RESPALDOS.md` para los historiales antiguos con versiones V2 duplicadas. No ejecutes `repair` ni desactives validaciones automáticamente.
+El JAR incluye las migraciones V1 a V8 y mantiene su validación. Consulta `docs/RESPALDOS.md` para los historiales antiguos con versiones V2 duplicadas. No ejecutes `repair` ni desactives validaciones automáticamente.
 
 Si aparece `flyway-ubb/`, contiene la compatibilidad conservada del paquete UBB anterior. **No se activa por defecto**. En un servidor que ya emplee esa configuración, conserva el mismo archivo Compose adicional y contrasta el historial Flyway antes de continuar. Para esa instalación, los comandos deben incluir `-f docker-compose.yml -f flyway-ubb/compose.yml`, como en la entrega anterior.
 

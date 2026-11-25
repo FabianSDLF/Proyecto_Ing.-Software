@@ -67,6 +67,15 @@ CMD ["nginx", "-g", "daemon off;"]
     }
     if ($CompatibilityDirectory) {
         Copy-Item -LiteralPath $CompatibilityDirectory -Destination (Join-Path $appRoot 'flyway-ubb') -Recurse
+        $compatMigrations = Join-Path $appRoot 'flyway-ubb/migrations'
+        if (Test-Path -LiteralPath $compatMigrations) {
+            Get-ChildItem -LiteralPath (Join-Path $projectRoot 'src/main/resources/db/migration') -Filter 'V*.sql' -File | ForEach-Object {
+                $targetMigration = Join-Path $compatMigrations $_.Name
+                if (-not (Test-Path -LiteralPath $targetMigration)) {
+                    Copy-Item -LiteralPath $_.FullName -Destination $targetMigration
+                }
+            }
+        }
     }
     $metadata = [ordered]@{
         commit = $sourceCommit; branch = $sourceBranch; release = $false
@@ -83,7 +92,23 @@ CMD ["nginx", "-g", "daemon off;"]
     [IO.File]::WriteAllText((Join-Path $appRoot 'SHA256SUMS'), ($hashLines -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
     if (Get-ChildItem -LiteralPath $appRoot -Recurse -File -Force | Where-Object Name -eq '.env') { throw 'El paquete contiene un .env inesperado.' }
     $zipPath = $packageRoot + '.zip'
-    Compress-Archive -LiteralPath $appRoot -DestinationPath $zipPath -CompressionLevel Optimal
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+    $zipArchive = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        Get-ChildItem -LiteralPath $appRoot -Recurse -File -Force | Sort-Object FullName | ForEach-Object {
+            $entryName = 'pitagoras/' + $_.FullName.Substring($appRoot.Length + 1).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $zipArchive,
+                $_.FullName,
+                $entryName,
+                [System.IO.Compression.CompressionLevel]::Optimal
+            ) | Out-Null
+        }
+    } finally {
+        $zipArchive.Dispose()
+    }
     ((Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($zipPath)) | Set-Content -LiteralPath ($zipPath + '.sha256') -Encoding ascii
     Write-Output "Carpeta: $appRoot"
     Write-Output "ZIP: $zipPath"
