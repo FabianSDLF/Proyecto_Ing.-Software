@@ -35,7 +35,7 @@ Los datos de prueba incluyen nombres, correos y enlaces largos, tablas con pagin
 
 La suite de frontend pasó sus 129 pruebas (`npm test -- --maxWorkers=2`). La compilación de producción termina correctamente y el linter no presenta errores; conserva advertencias de hooks/memoización e imports en el proyecto.
 
-Las capturas y mediciones quedan localmente en `.verification/visual/coherent/<ancho>x<alto>/`; las capturas previas están en `.verification/visual/before/`. Se inspeccionaron visualmente ejemplos de móvil, tablet, escritorio y horizontal, además de las comprobaciones geométricas automatizadas. Las capturas no se incorporan al código fuente ni al paquete del servidor.
+Las capturas y mediciones finales se conservan localmente en `.verification/visual/coherent/<ancho>x<alto>/`. Las capturas previas y duplicadas se eliminaron durante la limpieza solicitada el 24 de noviembre. Se inspeccionaron visualmente ejemplos de móvil, tablet, escritorio y horizontal, además de las comprobaciones geométricas automatizadas. Las capturas no se incorporan al código fuente ni al paquete del servidor.
 
 Para repetir:
 

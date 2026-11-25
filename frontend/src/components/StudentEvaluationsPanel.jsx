@@ -4,6 +4,7 @@ import apiClient from '../services/apiClient';
 import evaluationService from '../services/evaluationService';
 import { isCurrentPractice } from './PracticeSheet';
 import { Badge, Button, Modal } from './ui';
+import { formatEvaluationTimestamp, hasOfficialRubricScale } from '../utils/evaluationFormat';
 
 const PROFESSIONAL_EXPECTED_INSTRUMENTS = [
     { type: 'COLAB_ESP_1', name: 'Primera observación de Especialidad (Colaborador)', role: 'Profesor Colaborador', area: 'Especialidad', visit: 1 },
@@ -303,7 +304,7 @@ export default function StudentEvaluationsPanel({
                                                                     <>
                                                                         {' '}
                                                                         • Publicada el{' '}
-                                                                        {new Date(publishedDate).toLocaleString('es-CL')}
+                                                                        {formatEvaluationTimestamp(publishedDate)}
                                                                     </>
                                                                 )}
                                                             </p>
@@ -397,6 +398,7 @@ export default function StudentEvaluationsPanel({
                         detailModalEval.finalizedAt ||
                         detailModalEval.evaluationDate ||
                         detailModalEval.createdAt;
+                    const officialScale = hasOfficialRubricScale(detailModalEval);
                     return (
                         <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
                             <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -405,6 +407,7 @@ export default function StudentEvaluationsPanel({
                                         <Badge variant="success">Calificación Oficial Firmada</Badge>
                                         {meta.area && <Badge variant="info">Área: {meta.area}</Badge>}
                                         {meta.visit && <Badge variant="gray">Visita {meta.visit}</Badge>}
+                                        {!officialScale && <Badge variant="warning">Registro histórico</Badge>}
                                     </div>
                                     <h3 className="text-base font-bold text-emerald-950">{meta.name}</h3>
                                     <p className="text-xs text-emerald-900">
@@ -419,7 +422,7 @@ export default function StudentEvaluationsPanel({
                                     </p>
                                     {publishedDate && (
                                         <p className="text-xs text-emerald-800">
-                                            Fecha de publicación: {new Date(publishedDate).toLocaleString('es-CL')}
+                                            Fecha de publicación: {formatEvaluationTimestamp(publishedDate)}
                                         </p>
                                     )}
                                     {detailModalEval.rubricVersion && (
@@ -462,6 +465,11 @@ export default function StudentEvaluationsPanel({
                                 </div>
                             ) : (
                                 <div className="space-y-4">
+                                    {!officialScale && (
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                                            Registro histórico sin escala oficial 2–7 documentada por indicador. La calificación oficial publicada se mantiene intacta en modo lectura.
+                                        </div>
+                                    )}
                                     {groupedCriteriaByDimension.map(([dimension, items]) => (
                                         <div
                                             key={dimension}
@@ -487,7 +495,9 @@ export default function StudentEvaluationsPanel({
                                                         <div className="shrink-0">
                                                             <Badge variant="info">
                                                                 {item.points != null
-                                                                    ? `${Number(item.points)} / 7 pts`
+                                                                    ? (officialScale
+                                                                        ? `${Number(item.points)} / 7 pts`
+                                                                        : `${Number(item.points)} pts (histórico)`)
                                                                     : '—'}
                                                             </Badge>
                                                         </div>

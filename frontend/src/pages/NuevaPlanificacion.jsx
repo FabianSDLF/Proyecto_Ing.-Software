@@ -137,10 +137,11 @@ export default function NuevaPlanificacion() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-oa-basal" className="block text-sm font-medium text-gray-700 mb-1.5">
               Objetivo de Aprendizaje Basal (OA) <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-oa-basal"
               required
               value={planForm.baseLearningObjective}
               onChange={(e) => setPlanForm({ ...planForm, baseLearningObjective: e.target.value })}
@@ -149,10 +150,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-objetivo-especifico" className="block text-sm font-medium text-gray-700 mb-1.5">
               Objetivo de la Clase (Específico) <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-objetivo-especifico"
               required
               value={planForm.objectives}
               onChange={(e) => setPlanForm({ ...planForm, objectives: e.target.value })}
@@ -161,10 +163,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-oat" className="block text-sm font-medium text-gray-700 mb-1.5">
               Objetivo Actitudinal (OAT) <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-oat"
               required
               value={planForm.objetivoActitudinal}
               onChange={(e) => setPlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
@@ -178,10 +181,11 @@ export default function NuevaPlanificacion() {
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-inicio" className="block text-sm font-medium text-gray-700 mb-1.5">
               Inicio <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-inicio"
               required
               value={planForm.inicio}
               onChange={(e) => setPlanForm({ ...planForm, inicio: e.target.value })}
@@ -190,10 +194,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-desarrollo" className="block text-sm font-medium text-gray-700 mb-1.5">
               Desarrollo <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-desarrollo"
               required
               value={planForm.desarrollo}
               onChange={(e) => setPlanForm({ ...planForm, desarrollo: e.target.value })}
@@ -202,10 +207,11 @@ export default function NuevaPlanificacion() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="plan-cierre" className="block text-sm font-medium text-gray-700 mb-1.5">
               Cierre <span className="text-red-500">*</span>
             </label>
             <textarea
+              id="plan-cierre"
               required
               value={planForm.cierre}
               onChange={(e) => setPlanForm({ ...planForm, cierre: e.target.value })}

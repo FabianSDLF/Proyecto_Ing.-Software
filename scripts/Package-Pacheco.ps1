@@ -1,4 +1,4 @@
-param([string]$CompatibilityDirectory, [switch]$SkipBackendTests)
+﻿param([string]$CompatibilityDirectory, [switch]$SkipBackendTests)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -62,7 +62,7 @@ CMD ["nginx", "-g", "daemon off;"]
     foreach ($name in @('docker-compose.yml', '.env.example', 'LEEME-PACHECO.md')) {
         Copy-Item -LiteralPath (Join-Path $projectRoot ('packaging/pacheco/' + $name)) -Destination (Join-Path $appRoot $name)
     }
-    foreach ($name in @('RESPALDOS.md', 'INTEGRACION_TESTING_2026-11-24.md', 'PRUEBAS_VISUALES_2026-11-24.md', 'PRUEBAS_PACHECO_2026-11-24.md')) {
+    foreach ($name in @('RESPALDOS.md', 'INTEGRACION_TESTING_2026-11-24.md', 'PRUEBAS_VISUALES_2026-11-24.md', 'PRUEBAS_PACHECO_2026-11-24.md', 'PRUEBAS_FUNCIONALES_ROLES_2026-11-24.md', 'PENDIENTES_PACHECO_2026-11-25.md')) {
         Copy-Item -LiteralPath (Join-Path $projectRoot ('docs/' + $name)) -Destination (Join-Path $appRoot ('docs/' + $name))
     }
     if ($CompatibilityDirectory) {

@@ -1,7 +1,9 @@
 package com.ubb.practicas.service.impl;
 
+import com.ubb.practicas.exception.BadRequestException;
 import com.ubb.practicas.exception.StorageException;
 import com.ubb.practicas.exception.StorageFileNotFoundException;
+import com.ubb.practicas.exception.UnsupportedFileFormatException;
 import com.ubb.practicas.service.StorageService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +55,7 @@ public class LocalStorageServiceImpl implements StorageService {
     @Override
     public String store(MultipartFile file, String subfolder) {
         if (file == null || file.isEmpty()) {
-            throw new StorageException("No se puede almacenar un archivo vacío.");
+            throw new BadRequestException("No se puede almacenar un archivo vacío.");
         }
 
         String originalFilename = StringUtils.cleanPath(
@@ -61,7 +63,7 @@ public class LocalStorageServiceImpl implements StorageService {
         );
 
         if (originalFilename.contains("..")) {
-            throw new StorageException("Secuencia de ruta relativa inválida en el nombre del archivo: " + originalFilename);
+            throw new BadRequestException("Secuencia de ruta relativa inválida en el nombre del archivo: " + originalFilename);
         }
 
         String fileExtension = "";
@@ -71,7 +73,10 @@ public class LocalStorageServiceImpl implements StorageService {
         }
 
         if (FORBIDDEN_EXTENSIONS.contains(fileExtension)) {
-            throw new StorageException("Tipo de archivo no permitido por políticas de seguridad: " + fileExtension);
+            throw new UnsupportedFileFormatException(
+                    "Tipo de archivo no permitido por políticas de seguridad: " + fileExtension
+                            + ". Formatos permitidos: .pdf, .doc, .docx, .ppt, .pptx o imágenes."
+            );
         }
 
         String storedFileName = UUID.randomUUID().toString() + fileExtension;
@@ -84,7 +89,7 @@ public class LocalStorageServiceImpl implements StorageService {
                 sanitizedSubfolder = sanitizedSubfolder.substring(1);
             }
             if (sanitizedSubfolder.contains("..")) {
-                throw new StorageException("Secuencia de ruta inválida en subcarpeta: " + subfolder);
+                throw new BadRequestException("Secuencia de ruta inválida en subcarpeta: " + subfolder);
             }
 
             targetDirectory = this.rootLocation.resolve(sanitizedSubfolder).normalize();

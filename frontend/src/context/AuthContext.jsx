@@ -4,7 +4,7 @@ import authService from '../services/authService';
 const STORAGE_KEY_TOKEN = 'token';
 const STORAGE_KEY_USER = 'usuarioActivo';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   // Lazy initializer to read localStorage synchronously without cascading useEffect re-renders (FE-12)

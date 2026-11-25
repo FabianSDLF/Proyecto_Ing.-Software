@@ -1,7 +1,8 @@
 package com.ubb.practicas.service;
 
-import com.ubb.practicas.exception.StorageException;
+import com.ubb.practicas.exception.BadRequestException;
 import com.ubb.practicas.exception.StorageFileNotFoundException;
+import com.ubb.practicas.exception.UnsupportedFileFormatException;
 import com.ubb.practicas.service.impl.LocalStorageServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,27 +69,27 @@ public class LocalStorageServiceImplTest {
     }
 
     @Test
-    void testStoreEmptyFileThrowsStorageException() {
+    void testStoreEmptyFileThrowsBadRequestException() {
         MockMultipartFile file = new MockMultipartFile("file", "vacio.pdf", "application/pdf", new byte[0]);
-        assertThrows(StorageException.class, () -> storageService.store(file));
+        assertThrows(BadRequestException.class, () -> storageService.store(file));
     }
 
     @Test
-    void testStoreForbiddenExtensionThrowsStorageException() {
+    void testStoreForbiddenExtensionThrowsUnsupportedFileFormatException() {
         MockMultipartFile exeFile = new MockMultipartFile("file", "malware.exe", "application/octet-stream", "bin".getBytes());
-        assertThrows(StorageException.class, () -> storageService.store(exeFile));
+        assertThrows(UnsupportedFileFormatException.class, () -> storageService.store(exeFile));
 
         MockMultipartFile shFile = new MockMultipartFile("file", "script.sh", "text/plain", "echo hi".getBytes());
-        assertThrows(StorageException.class, () -> storageService.store(shFile));
+        assertThrows(UnsupportedFileFormatException.class, () -> storageService.store(shFile));
     }
 
     @Test
     void testStorePathTraversalThrowsException() {
         MockMultipartFile traversalFile = new MockMultipartFile("file", "../../../etc/passwd", "text/plain", "data".getBytes());
-        assertThrows(StorageException.class, () -> storageService.store(traversalFile));
+        assertThrows(BadRequestException.class, () -> storageService.store(traversalFile));
 
         MockMultipartFile file = new MockMultipartFile("file", "safe.txt", "text/plain", "data".getBytes());
-        assertThrows(StorageException.class, () -> storageService.store(file, "../outside"));
+        assertThrows(BadRequestException.class, () -> storageService.store(file, "../outside"));
     }
 
     @Test

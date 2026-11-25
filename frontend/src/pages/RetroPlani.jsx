@@ -631,10 +631,11 @@ export default function RetroPlani() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="retro-oa" className="block text-sm font-medium text-gray-700 mb-1">
                   Objetivo de Aprendizaje (OA Curricular MINEDUC) *
                 </label>
                 <textarea
+                  id="retro-oa"
                   rows="2"
                   required
                   value={planForm.baseLearningObjective}
@@ -646,10 +647,11 @@ export default function RetroPlani() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="retro-objetivo-clase" className="block text-sm font-medium text-gray-700 mb-1">
                     Objetivo de la Clase (1 Habilidad + Contenido + Actitud)
                   </label>
                   <textarea
+                    id="retro-objetivo-clase"
                     rows="2"
                     value={planForm.objectives}
                     onChange={(e) => updatePlanForm({ ...planForm, objectives: e.target.value })}
@@ -658,10 +660,11 @@ export default function RetroPlani() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="retro-oat" className="block text-sm font-medium text-gray-700 mb-1">
                     Objetivo Actitudinal (OAA) / Estrategias DUA y NEE
                   </label>
                   <textarea
+                    id="retro-oat"
                     rows="2"
                     value={planForm.objetivoActitudinal}
                     onChange={(e) => updatePlanForm({ ...planForm, objetivoActitudinal: e.target.value })}
@@ -673,10 +676,11 @@ export default function RetroPlani() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label htmlFor="retro-recursos" className="block text-xs font-bold text-gray-700 mb-1">
                     Recursos Didácticos Anexos (Guía, PPT, Geogebra)
                   </label>
                   <input
+                    id="retro-recursos"
                     type="text"
                     value={planForm.recursos}
                     onChange={(e) => updatePlanForm({ ...planForm, recursos: e.target.value })}
@@ -685,10 +689,11 @@ export default function RetroPlani() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label htmlFor="retro-evaluacion" className="block text-xs font-bold text-gray-700 mb-1">
                     Instrumento de Evaluación y Pauta de Corrección
                   </label>
                   <input
+                    id="retro-evaluacion"
                     type="text"
                     value={planForm.evaluacion}
                     onChange={(e) => updatePlanForm({ ...planForm, evaluacion: e.target.value })}
@@ -704,10 +709,11 @@ export default function RetroPlani() {
                 </h3>
 
                 <div>
-                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                  <label htmlFor="retro-inicio" className="block text-xs font-bold text-blue-900 mb-1">
                     1. Inicio (Saludo, objetivo, Agenda del día, resumen anterior y activación participativa) *
                   </label>
                   <textarea
+                    id="retro-inicio"
                     rows="2"
                     value={planForm.inicio}
                     onChange={(e) => updatePlanForm({ ...planForm, inicio: e.target.value })}
@@ -717,10 +723,11 @@ export default function RetroPlani() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                  <label htmlFor="retro-desarrollo" className="block text-xs font-bold text-blue-900 mb-1">
                     2. Desarrollo (Actividad constructivista, rol de Docente 1 y Docente 2, DUA y errores) *
                   </label>
                   <textarea
+                    id="retro-desarrollo"
                     rows="3"
                     value={planForm.desarrollo}
                     onChange={(e) => updatePlanForm({ ...planForm, desarrollo: e.target.value })}
@@ -730,10 +737,11 @@ export default function RetroPlani() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                  <label htmlFor="retro-cierre" className="block text-xs font-bold text-blue-900 mb-1">
                     3. Cierre (Síntesis estudiantil, aclaración de dudas, Ticket de salida y enlace próxima clase) *
                   </label>
                   <textarea
+                    id="retro-cierre"
                     rows="2"
                     value={planForm.cierre}
                     onChange={(e) => updatePlanForm({ ...planForm, cierre: e.target.value })}

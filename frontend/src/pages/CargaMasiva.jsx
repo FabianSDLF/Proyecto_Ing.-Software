@@ -7,6 +7,7 @@ import { Button, Modal, Input, Select } from '../components/ui';
 export default function CargaMasiva() {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [importResult, setImportResult] = useState(null);
 
     // Creación manual individual de usuario (HU1)
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -48,11 +49,18 @@ export default function CargaMasiva() {
 
         const loadingToast = toast.loading("Procesando usuarios...");
         setLoading(true);
+        setImportResult(null);
 
         try {
-            await userService.uploadBatch(file);
+            const response = await userService.uploadBatch(file);
             toast.dismiss(loadingToast);
-            toast.success("¡Usuarios cargados con éxito!");
+            const resultData = response && typeof response === 'object' ? response : null;
+            setImportResult(resultData);
+            if (resultData?.failureCount > 0) {
+                toast(resultData.message || `Importación parcial con ${resultData.failureCount} filas rechazadas.`, { icon: '⚠️' });
+            } else {
+                toast.success(resultData?.message || "¡Usuarios cargados con éxito!");
+            }
             setFile(null);
             e.target.reset();
         } catch (err) {
@@ -61,6 +69,21 @@ export default function CargaMasiva() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDownloadTemplate = () => {
+        const csvTemplate = "Nombre,Correo,Contraseña,Rol\n"
+            + "Ejemplo Estudiante,estudiante.ejemplo@ubiobio.cl,Temporal2026!,Estudiante\n"
+            + "Ejemplo Tutor,tutor.ejemplo@ubiobio.cl,Temporal2026!,Tutor\n";
+        const blob = new Blob(["\uFEFF" + csvTemplate], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla_carga_usuarios.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const handleCreateManualUser = async (e) => {
@@ -133,6 +156,27 @@ export default function CargaMasiva() {
                     </div>
                 </div>
 
+                <div className="mb-4 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-semibold">
+                            Estructura obligatoria (4 columnas con fila de encabezado):
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleDownloadTemplate}
+                            className="text-blue-700 hover:text-blue-900 underline font-semibold cursor-pointer"
+                        >
+                            Descargar plantilla CSV
+                        </button>
+                    </div>
+                    <p className="font-mono bg-white/80 px-2.5 py-1.5 rounded border border-blue-100">
+                        Nombre, Correo, Contraseña, Rol
+                    </p>
+                    <p className="text-blue-800">
+                        Roles válidos: Estudiante, Profesor de Asignatura, Tutor, Profesor Colaborador, Coordinador de practicas.
+                    </p>
+                </div>
+
                 <form onSubmit={handleUpload} className="flex flex-col space-y-5 mt-4">
                     <div className="border-2 border-dashed border-gray-300 rounded-xl p-3 sm:p-6 text-center hover:bg-gray-50 transition-colors">
                         <input
@@ -152,6 +196,35 @@ export default function CargaMasiva() {
                         Procesar Usuarios
                     </Button>
                 </form>
+
+                {importResult && (
+                    <div
+                        role="status"
+                        className={`mt-5 p-4 rounded-xl border text-sm space-y-2 ${
+                            importResult.failureCount > 0
+                                ? 'bg-amber-50 border-amber-300 text-amber-950'
+                                : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                        }`}
+                    >
+                        <p className="font-bold">{importResult.message}</p>
+                        <div className="flex flex-wrap gap-4 text-xs">
+                            <span>Procesados: <strong>{importResult.totalRecords ?? 0}</strong></span>
+                            <span>Creados: <strong>{importResult.createdCount ?? 0}</strong></span>
+                            <span>Actualizados: <strong>{importResult.updatedCount ?? 0}</strong></span>
+                            <span>Rechazados: <strong>{importResult.failureCount ?? 0}</strong></span>
+                        </div>
+                        {Array.isArray(importResult.errors) && importResult.errors.length > 0 && (
+                            <div className="pt-2 border-t border-amber-200">
+                                <p className="font-semibold text-xs mb-1">Detalle de filas rechazadas:</p>
+                                <ul className="list-disc list-inside space-y-1 text-xs">
+                                    {importResult.errors.map((errItem, idx) => (
+                                        <li key={idx}>{errItem}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Modal de Creación Manual Individual (HU1) */}

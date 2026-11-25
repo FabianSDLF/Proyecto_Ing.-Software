@@ -1,9 +1,9 @@
 package com.ubb.practicas.controller;
 
 import com.ubb.practicas.dto.ComunicadoRequest;
+import com.ubb.practicas.dto.NotificationRecipientDTO;
 import com.ubb.practicas.exception.UnauthorizedException;
 import com.ubb.practicas.model.Notification;
-import com.ubb.practicas.model.User;
 import com.ubb.practicas.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -59,10 +59,10 @@ public class NotificationController {
     }
 
     @GetMapping("/destinatarios")
-    public ResponseEntity<List<User>> obtenerDestinatariosActivos(Principal principal) {
+    public ResponseEntity<List<NotificationRecipientDTO>> obtenerDestinatariosActivos(Principal principal) {
         if (principal == null) {
             throw new UnauthorizedException("Sesión no autorizada");
         }
-        return ResponseEntity.ok(notificationService.obtenerDestinatariosActivos());
+        return ResponseEntity.ok(notificationService.obtenerDestinatariosActivos(principal.getName()));
     }
 }

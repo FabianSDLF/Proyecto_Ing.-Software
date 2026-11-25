@@ -1,5 +1,6 @@
 package com.ubb.practicas.model;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ubb.practicas.dto.EvaluationCriteriaDTO;
@@ -13,6 +14,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Getter
@@ -70,8 +73,16 @@ public class Evaluation {
     private LocalDateTime evaluationDate;
     private LocalDateTime createdAt;
 
+    @JsonIgnore
     @Column(name = "finalized_at")
     private LocalDateTime finalizedAt;
+
+    @JsonGetter("finalizedAt")
+    public String getFinalizedAtIsoUtc() {
+        return finalizedAt != null
+                ? finalizedAt.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                : null;
+    }
 
     @Column(name = "finalized_by_id")
     private Long finalizedById;

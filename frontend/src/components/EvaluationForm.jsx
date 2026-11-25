@@ -1,7 +1,9 @@
 import { Badge } from './ui';
 import RubricIndicators from './RubricIndicators';
+import { hasOfficialRubricScale } from '../utils/evaluationFormat';
 
 export default function EvaluationForm({ existingEvaluation, activeRubric, isLocked, rubricProgress, handleSetAllIndicators, displayedIndicators, indicatorPoints, handleSetIndicatorPoint, justifications, onJustificationChange }) {
+  const officialScale = hasOfficialRubricScale(existingEvaluation, activeRubric);
   return (<section className="space-y-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-xl p-3">
                                     <div>
@@ -9,7 +11,9 @@ export default function EvaluationForm({ existingEvaluation, activeRubric, isLoc
                                             {existingEvaluation?.instrumentName || activeRubric?.name || 'Desglose por Indicadores'}
                                         </h3>
                                         <p className="text-xs text-gray-600">
-                                            Escala oficial por indicador: 2 a 7 puntos (enteros). Exigencia del 60% para nota 4.0.
+                                            {officialScale
+                                                ? 'Escala oficial por indicador: 2 a 7 puntos (enteros). Exigencia del 60% para nota 4.0.'
+                                                : 'Registro histórico sin escala oficial documentada por indicador (solo lectura).'}
                                         </p>
                                     </div>
                                     {!isLocked && rubricProgress && (
@@ -49,6 +53,14 @@ export default function EvaluationForm({ existingEvaluation, activeRubric, isLoc
                                     </div>
                                 )}
 
-                                <RubricIndicators justifications={justifications} onJustificationChange={onJustificationChange} indicators={displayedIndicators} points={indicatorPoints} readOnly={isLocked} onChange={handleSetIndicatorPoint} />
+                                <RubricIndicators
+                                    justifications={justifications}
+                                    onJustificationChange={onJustificationChange}
+                                    indicators={displayedIndicators}
+                                    points={indicatorPoints}
+                                    readOnly={isLocked}
+                                    onChange={handleSetIndicatorPoint}
+                                    maxIndicatorPoints={officialScale ? 7 : null}
+                                />
                             </section>);
 }

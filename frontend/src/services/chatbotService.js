@@ -10,7 +10,18 @@ const CHATBOT_BASE_URL = (RAW_CHATBOT_URL !== undefined && RAW_CHATBOT_URL !== '
 const createSessionId = () => typeof crypto.randomUUID === 'function' ? crypto.randomUUID()
   : Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
 let session = createSessionId();
-const authenticatedHeaders = () => ({ Authorization: 'Bearer ' + (localStorage.getItem('token') || '') });
+const authenticatedHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const formatChatbotError = async (response, fallbackMessage) => {
+  const err = await response.json().catch(() => ({}));
+  if (response.status === 401 || response.status === 403) {
+    return err.detail || 'Sesión inválida o expirada. Inicia sesión nuevamente para usar el asistente de IA.';
+  }
+  return err.detail || `${fallbackMessage} (${response.status})`;
+};
 
 export const chatbotService = {
   resetSession() { session = createSessionId(); },
@@ -52,12 +63,12 @@ export const chatbotService = {
   async sendMessage(message, sessionId = 'web') {
     const response = await fetch(`${CHATBOT_BASE_URL}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authenticatedHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, session_id: session + ":" + sessionId })
     });
 
     if (!response.ok) {
-      throw new Error(`Error en el chatbot (${response.status})`);
+      throw new Error(await formatChatbotError(response, 'Error en el chatbot'));
     }
     return await response.json();
   },
@@ -81,7 +92,7 @@ export const chatbotService = {
     });
 
     if (!response.ok) {
-      throw new Error(`Error al procesar el archivo en el chatbot (${response.status})`);
+      throw new Error(await formatChatbotError(response, 'Error al procesar el archivo en el chatbot'));
     }
     return await response.json();
   },
@@ -108,12 +119,12 @@ export const chatbotService = {
 
     const response = await fetch(`${CHATBOT_BASE_URL}/api/evaluar-planificacion`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authenticatedHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      throw new Error(`No se pudo conectar con el servicio de IA (${response.status})`);
+      throw new Error(await formatChatbotError(response, 'No se pudo conectar con el servicio de IA'));
     }
     return await response.json();
   }

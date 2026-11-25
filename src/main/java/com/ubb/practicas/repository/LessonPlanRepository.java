@@ -36,4 +36,7 @@ public interface LessonPlanRepository extends JpaRepository<LessonPlan, Long> {
            "JOIN FETCH lp.practiceAssignment pa " +
            "WHERE pa.id = :assignmentId")
     List<LessonPlan> findByPracticeAssignmentId(@Param("assignmentId") Long assignmentId);
+
+    @Query("SELECT lp FROM LessonPlan lp WHERE lp.parentPlan.id = :parentPlanId")
+    List<LessonPlan> findByParentPlanId(@Param("parentPlanId") Long parentPlanId);
 }

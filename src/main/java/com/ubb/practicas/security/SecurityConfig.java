@@ -80,6 +80,11 @@ public class SecurityConfig {
                     "Administrador", "ADMINISTRADOR",
                     "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS"
                 )
+                .requestMatchers("/api/notificaciones/comunicado", "/api/notificaciones/destinatarios").hasAnyRole(
+                    "Administrador", "ADMINISTRADOR",
+                    "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS",
+                    "Profesor de Asignatura", "PROFESOR_DE_ASIGNATURA"
+                )
                 .requestMatchers("/api/portafolio/download-zip").hasAnyRole("Administrador", "ADMINISTRADOR", "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS", "Profesor de Asignatura", "PROFESOR_DE_ASIGNATURA")
                 .requestMatchers("/api/portafolio/export-csv").hasAnyRole("Administrador", "ADMINISTRADOR", "Coordinador de practicas", "COORDINADOR_DE_PRACTICAS", "Profesor de Asignatura", "PROFESOR_DE_ASIGNATURA", "Profesor Colaborador", "PROFESOR_COLABORADOR", "Tutor", "TUTOR")
                 .requestMatchers("/api/portafolio/**", "/api/profesor/**").authenticated()

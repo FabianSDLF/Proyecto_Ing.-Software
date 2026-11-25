@@ -68,4 +68,6 @@ public interface PortfolioDocumentRepository extends JpaRepository<PortfolioDocu
            "JOIN FETCH d.practiceAssignment pa " +
            "WHERE pa.id = :assignmentId")
     List<PortfolioDocument> findByPracticeAssignment_Id(@Param("assignmentId") Long assignmentId);
+
+    long countByStoredFileName(String storedFileName);
 }

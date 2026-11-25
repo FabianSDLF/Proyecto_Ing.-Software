@@ -21,12 +21,11 @@ public class CsvUserBatchParser implements UserBatchParser {
 
     @Override
     public boolean supports(String filename, String contentType) {
-        if (filename != null && filename.toLowerCase().endsWith(".csv")) {
-            return true;
+        if (filename != null && !filename.isBlank()) {
+            return filename.toLowerCase().endsWith(".csv");
         }
         if (contentType != null) {
-            return contentType.equals("text/csv") || contentType.equals("application/csv")
-                    || contentType.equals("text/plain");
+            return contentType.equals("text/csv") || contentType.equals("application/csv");
         }
         return false;
     }
@@ -59,14 +58,11 @@ public class CsvUserBatchParser implements UserBatchParser {
                 }
 
                 List<String> tokens = parseCsvLine(line, delimiter);
-                if (tokens.size() < 4) {
-                    continue;
-                }
 
-                String fullName = tokens.get(0).trim();
-                String email = tokens.get(1).trim();
-                String password = tokens.get(2).trim();
-                String roleName = tokens.get(3).trim();
+                String fullName = tokens.size() > 0 ? tokens.get(0).trim() : "";
+                String email = tokens.size() > 1 ? tokens.get(1).trim() : "";
+                String password = tokens.size() > 2 ? tokens.get(2).trim() : "";
+                String roleName = tokens.size() > 3 ? tokens.get(3).trim() : "";
 
                 records.add(UserImportRecordDto.builder()
                         .rowNumber(rowNumber)

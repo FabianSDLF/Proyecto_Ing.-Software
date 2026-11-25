@@ -1,5 +1,6 @@
 package com.ubb.practicas.service.impl;
 
+import com.ubb.practicas.model.ChatbotLog;
 import com.ubb.practicas.model.LessonPlan;
 import com.ubb.practicas.model.Notification;
 import com.ubb.practicas.model.PortfolioDocument;
@@ -10,6 +11,8 @@ import com.ubb.practicas.model.enums.DocumentType;
 import com.ubb.practicas.model.enums.MathAxis;
 import com.ubb.practicas.model.enums.NotificationType;
 import com.ubb.practicas.model.enums.PlanStatus;
+import com.ubb.practicas.repository.ChatbotLogRepository;
+import com.ubb.practicas.repository.ChatbotMessageRepository;
 import com.ubb.practicas.repository.LessonPlanRepository;
 import com.ubb.practicas.repository.NotificationRepository;
 import com.ubb.practicas.repository.PortfolioDocumentRepository;
@@ -22,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -38,6 +43,24 @@ public class LessonPlanServiceImpl implements LessonPlanService {
     private final StorageService storageService;
     private final EmailService emailService;
     private final NotificationRepository notificationRepository;
+    private final ChatbotLogRepository chatbotLogRepository;
+    private final ChatbotMessageRepository chatbotMessageRepository;
+
+    private void deletePhysicalFileAfterCommit(String storedFileName) {
+        if (storedFileName == null || storedFileName.isBlank()) {
+            return;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    storageService.deleteFile(storedFileName);
+                }
+            });
+        } else {
+            storageService.deleteFile(storedFileName);
+        }
+    }
 
     private PracticeAssignment resolveAssignment(String email, Long explicitAssignmentId) {
         if (explicitAssignmentId != null) {
@@ -164,10 +187,47 @@ public class LessonPlanServiceImpl implements LessonPlanService {
             throw new AccessDeniedException("No tiene permisos para eliminar esta planificación");
         }
 
-        if (plan.getDocument() != null) {
-            storageService.deleteFile(plan.getDocument().getStoredFileName());
+        // Re-vincular versiones hijas si existieran para evitar violar fk_plan_parent
+        List<LessonPlan> children = lessonPlanRepository.findByParentPlanId(plan.getId());
+        if (children != null && !children.isEmpty()) {
+            for (LessonPlan child : children) {
+                child.setParentPlan(plan.getParentPlan());
+            }
+            lessonPlanRepository.saveAll(children);
         }
+
+        // Eliminar registros de revisión IA y mensajes asociados antes de eliminar la planificación
+        if (chatbotLogRepository != null) {
+            List<ChatbotLog> logs = chatbotLogRepository.findByLessonPlanId(plan.getId());
+            if (logs != null && !logs.isEmpty()) {
+                List<Long> logIds = logs.stream()
+                        .map(ChatbotLog::getId)
+                        .filter(Objects::nonNull)
+                        .toList();
+                if (!logIds.isEmpty() && chatbotMessageRepository != null) {
+                    chatbotMessageRepository.deleteByChatbotLogIdIn(logIds);
+                }
+                chatbotLogRepository.deleteAll(logs);
+            }
+        }
+
+        PortfolioDocument doc = plan.getDocument();
+        String storedFileName = doc != null ? doc.getStoredFileName() : null;
+        if (doc != null) {
+            plan.setDocument(null);
+        }
+
         lessonPlanRepository.delete(plan);
+        lessonPlanRepository.flush();
+
+        if (doc != null) {
+            portfolioDocumentRepository.delete(doc);
+            portfolioDocumentRepository.flush();
+            if (storedFileName != null && !storedFileName.isBlank()
+                    && portfolioDocumentRepository.countByStoredFileName(storedFileName) == 0) {
+                deletePhysicalFileAfterCommit(storedFileName);
+            }
+        }
     }
 
     @Override
@@ -396,7 +456,7 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         PracticeAssignment assignment = practiceAssignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new NoSuchElementException("Asignación no encontrada: " + assignmentId));
 
-        if (!assignment.hasParticipant(userEmail)) {
+        if (!isUserAdmin(userEmail) && !assignment.hasParticipant(userEmail)) {
             throw new AccessDeniedException("No tienes permisos para ver las planificaciones de esta práctica.");
         }
 

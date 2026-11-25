@@ -1,18 +1,23 @@
 import PracticeSheet, { isCurrentPractice } from '../components/PracticeSheet';
 import StudentEvaluationsPanel from '../components/StudentEvaluationsPanel';
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import portfolioService from '../services/portfolioService';
+import apiClient from '../services/apiClient';
+import { AuthContext } from '../context/AuthContext';
 import { DataTable, ConfirmDialog, Button, Badge, Select, Modal, Input } from '../components/ui';
 
 export default function Portafolio({ isReadOnly = false }) {
     const navigate = useNavigate();
     const { assignmentId } = useParams();
     const location = useLocation();
+    const auth = useContext(AuthContext);
+    const userRole = auth?.userRole || null;
     const modoSupervision = isReadOnly || Boolean(assignmentId);
     const [activeTab, setActiveTab] = useState('EVIDENCIAS');
     const [history, setHistory] = useState(false);
+    const [loadedAssignment, setLoadedAssignment] = useState(null);
 
 
     // Evidencias
@@ -405,11 +410,40 @@ export default function Portafolio({ isReadOnly = false }) {
         }
     };
 
-    // Respaldo de datos de la asignación (desde MisEstudiantes o desde las entidades si el docente recarga con F5)
-    const assignment = location.state?.assignment
+    useEffect(() => {
+        if (!modoSupervision || !assignmentId) {
+            setLoadedAssignment(null);
+            return;
+        }
+        const controller = new AbortController();
+        apiClient.get(`/api/asignaciones/${assignmentId}/ficha`, { signal: controller.signal })
+            .then((data) => {
+                if (data && typeof data === 'object') {
+                    setLoadedAssignment(data);
+                }
+            })
+            .catch((err) => {
+                if (err?.name !== 'AbortError') {
+                    setLoadedAssignment(null);
+                }
+            });
+        return () => controller.abort();
+    }, [modoSupervision, assignmentId]);
+
+    // Respaldo de datos de la asignación (ficha cargada por ID, estado de navegación o entidades)
+    const assignment = loadedAssignment
+        || location.state?.assignment
         || planificaciones[0]?.practiceAssignment
         || evidencias[0]?.practiceAssignment
         || finalDocuments[0]?.practiceAssignment;
+
+    const esCoordinacion = userRole === 'Coordinador de practicas'
+        || userRole === 'Administrador'
+        || userRole === 'Admin';
+    const rutaRegresoSupervision = location.state?.from || (esCoordinacion ? '/reportes' : '/mis-estudiantes');
+    const etiquetaRegresoSupervision = rutaRegresoSupervision === '/reportes'
+        ? '← Volver a Reportes'
+        : '← Volver a Mis Estudiantes';
 
     const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx'];
     const acceptAttr = allowedExtensions.join(',');
@@ -927,8 +961,8 @@ export default function Portafolio({ isReadOnly = false }) {
                             {assignment?.subject?.name || 'Práctica'} • {assignment?.center?.name || 'Centro de práctica'}
                         </p>
                     </div>
-                    <Button variant="secondary" size="sm" onClick={() => navigate('/mis-estudiantes')}>
-                        ← Volver a Mis Estudiantes
+                    <Button variant="secondary" size="sm" onClick={() => navigate(rutaRegresoSupervision)}>
+                        {etiquetaRegresoSupervision}
                     </Button>
                 </div>
             )}

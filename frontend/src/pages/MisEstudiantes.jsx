@@ -8,6 +8,7 @@ import evaluationService, { calculatePreliminaryGrade } from '../services/evalua
 import EvaluationForm from '../components/EvaluationForm';
 import FinalizeEvaluationDialog from '../components/FinalizeEvaluationDialog';
 import { DataTable, Badge, Modal, Button, Input, ConfirmDialog } from '../components/ui';
+import { formatEvaluationTimestamp } from '../utils/evaluationFormat';
 
 function getDefaultEvaluationTypeForRole(role) {
     if (role === 'Tutor') return 'TUTOR_ESP_1';
@@ -538,27 +539,39 @@ export default function MisEstudiantes() {
                 if (!canEvaluate) return null;
                 const ev = evaluacionesPorAsignacion[row.id];
                 const finalized = Boolean(ev?.isFinalized);
+                const sinPautasProfesionales = usesProfessionalRubrics && row.subject?.professionalRubrics === false && !ev;
                 return (
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                         <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => navigate(`/portafolio/estudiante/${row.id}`)}
+                            onClick={() => navigate(`/portafolio/estudiante/${row.id}`, { state: { assignment: row, from: '/mis-estudiantes' } })}
                         >
                             Ver Portafolio
                         </Button>
-                        <Button
-                            variant={finalized ? 'outline' : 'primary'}
-                            size="sm"
-                            onClick={() => handleOpenEvaluation(row)}
-                        >
-                            {finalized ? 'Ver Oficial' : ev ? 'Continuar Pauta' : 'Evaluar (Pauta)'}
-                        </Button>
+                        {sinPautasProfesionales ? (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                title="Esta asignatura no tiene configuradas pautas profesionales. Consulta a coordinación."
+                            >
+                                Sin pautas configuradas
+                            </Button>
+                        ) : (
+                            <Button
+                                variant={finalized ? 'outline' : 'primary'}
+                                size="sm"
+                                onClick={() => handleOpenEvaluation(row)}
+                            >
+                                {finalized ? 'Ver Oficial' : ev ? 'Continuar Pauta' : 'Evaluar (Pauta)'}
+                            </Button>
+                        )}
                     </div>
                 );
             },
         },
-    ], [canEvaluate, evaluacionesPorAsignacion, handleOpenEvaluation, navigate]);
+    ], [canEvaluate, evaluacionesPorAsignacion, handleOpenEvaluation, navigate, usesProfessionalRubrics]);
 
     const handleDescargarZip = async () => {
         try {
@@ -719,9 +732,9 @@ export default function MisEstudiantes() {
                                 {(existingEvaluation?.finalizedAt || existingEvaluation?.evaluationDate) && (
                                     <p className="text-xs text-green-700">
                                         Fecha de cierre y publicación:{' '}
-                                        {new Date(
+                                        {formatEvaluationTimestamp(
                                             existingEvaluation.finalizedAt || existingEvaluation.evaluationDate
-                                        ).toLocaleString('es-CL')}
+                                        )}
                                     </p>
                                 )}
                                 {existingEvaluation?.totalPoints != null && existingEvaluation?.maxPoints != null && (
